@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { Volleyball } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const Header = () => {
     const { user, signIn, signOut, profile } = useAuth()
@@ -24,10 +25,12 @@ const Header = () => {
 
     return (
         <header className="w-full flex items-center justify-between p-4 shadow-sm bg-gray-200">
-            <div className="flex items-center space-x-2">
-                <Volleyball className="h-6 w-6" />
-                <h1 className="text-xl font-bold">TotoHapoel</h1>
-            </div>
+            <Link to="/">
+                <div className="flex items-center space-x-2">
+                    <Volleyball className="h-6 w-6" />
+                    <h1 className="text-xl font-bold">TotoHapoel</h1>
+                </div>
+            </Link>
             <div>
                 {user ? (
                     <div className="flex items-center space-x-2">
@@ -41,6 +44,18 @@ const Header = () => {
                         <Button variant="outline" onClick={handleLogout}>
                             Logout
                         </Button>
+
+                        {
+                            profile?.is_admin && (
+                                <Link to="/admin">
+                                    <Button variant="outline">
+                                        Admin
+                                    </Button>
+                                </Link>
+                            )
+                        }
+
+
                     </div>
                 ) : (
                     <Button onClick={handleLogin}>Login</Button>

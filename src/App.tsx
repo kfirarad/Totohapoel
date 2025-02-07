@@ -3,29 +3,42 @@ import { Header, Footer } from '@/components'
 import { Login } from '@/components/Login'
 import { useAuth } from './contexts/AuthContext';
 import { Column } from '@/pages/Column';
+import { AdminLayout } from '@/components/AdminLayout';
+import { ColumnsList } from '@/pages/admin/ColumnsList';
+import { ColumnForm } from '@/pages/admin/ColumnForm';
 
-const RouterComponent = () => (
-  <Routes>
-    <Route path="/" element={<Navigate to="/column" />} />
-    <Route path="/column" element={<Column />} />
-  </Routes>
-)
+const RouterComponent = () => {
+  const { profile } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/column" />} />
+      <Route path="/column" element={<Column />} />
+      <Route path="/column/:columnId" element={<Column />} />
+
+      {/* Admin Routes */}
+      {profile?.is_admin && (
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/columns" />} />
+          <Route path="columns" element={<ColumnsList />} />
+          <Route path="columns/new" element={<ColumnForm />} />
+          <Route path="columns/:id" element={<ColumnForm />} />
+          <Route path="users" element={<div>Users management coming soon</div>} />
+        </Route>
+      )}
+    </Routes>
+  );
+};
 
 function App() {
   const { user } = useAuth();
   return (
     <Router>
       <Header />
-      {
-        user ? (
-          <RouterComponent />
-        ) : (
-          <Login />
-        )
-      }
+      {user ? <RouterComponent /> : <Login />}
       <Footer />
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

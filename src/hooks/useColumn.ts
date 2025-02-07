@@ -1,62 +1,97 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { Column, Game } from '@/types/database.types';
 
-interface UseColumnReturn {
-    column: Column | null;
-    games: Game[];
-    isLoading: boolean;
-    error: Error | null;
-}
-
-export const useColumn = () => {
-    const [data, setData] = useState<UseColumnReturn>({
-        column: null,
-        games: [],
-        isLoading: true,
-        error: null,
-    });
+export const useColumn = (columnId?: string) => {
+    const [column, setColumn] = useState<Column | null>(null);
+    const [games, setGames] = useState<Game[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+    const [previousColumn, setPreviousColumn] = useState<Column | null>(null);
+    const [nextColumn, setNextColumn] = useState<Column | null>(null);
 
     useEffect(() => {
         const fetchColumn = async () => {
+            setIsLoading(true);
+            setError(null);
             try {
-                // Fetch the latest active column
-                const { data: column, error: columnError } = await supabase
-                    .from('columns')
-                    .select('*')
-                    .eq('is_active', true)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
+                let columnQuery;
 
-                if (columnError) throw columnError;
+                if (columnId) {
+                    // Fetch specific column by ID
+                    const { data, error } = await supabase
+                        .from('columns')
+                        .select('*')
+                        .eq('id', columnId)
+                        .single();
 
-                // Fetch games for this column
-                const { data: games, error: gamesError } = await supabase
-                    .from('games')
-                    .select('*')
-                    .eq('column_id', column.id)
-                    .order('game_num', { ascending: true });
+                    if (error) throw error;
+                    columnQuery = data;
+                } else {
+                    // Fetch latest active column
+                    const { data, error } = await supabase
+                        .from('columns')
+                        .select('*')
+                        .eq('is_active', true)
+                        .order('deadline', { ascending: false })
+                        .limit(1)
+                        .single();
 
-                if (gamesError) throw gamesError;
+                    if (error && error.code !== 'PGRST116') throw error;
+                    columnQuery = data;
+                }
 
-                setData({
-                    column,
-                    games,
-                    isLoading: false,
-                    error: null,
-                });
-            } catch (error) {
-                setData(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: error as Error,
-                }));
+                if (columnQuery) {
+                    setColumn(columnQuery);
+
+                    // Fetch previous column
+                    const { data: prevData } = await supabase
+                        .from('columns')
+                        .select('*')
+                        .lt('deadline', columnQuery.deadline)
+                        .order('deadline', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    setPreviousColumn(prevData);
+
+                    // Fetch next column
+                    const { data: nextData } = await supabase
+                        .from('columns')
+                        .select('*')
+                        .gt('deadline', columnQuery.deadline)
+                        .order('deadline', { ascending: true })
+                        .limit(1)
+                        .single();
+
+                    setNextColumn(nextData);
+
+                    // Fetch games for the current column
+                    const { data: gamesData, error: gamesError } = await supabase
+                        .from('games')
+                        .select('*')
+                        .eq('column_id', columnQuery.id)
+                        .order('game_num');
+
+                    if (gamesError) throw gamesError;
+                    setGames(gamesData || []);
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err : new Error('An error occurred'));
+            } finally {
+                setIsLoading(false);
             }
         };
 
         fetchColumn();
-    }, []);
+    }, [columnId]);
 
-    return data;
+    return {
+        column,
+        games,
+        isLoading,
+        error,
+        previousColumn,
+        nextColumn
+    };
 };
