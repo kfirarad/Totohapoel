@@ -6,6 +6,7 @@ import { Column } from '@/pages/Column';
 import { AdminLayout } from '@/components/AdminLayout';
 import { ColumnsList } from '@/pages/admin/ColumnsList';
 import { ColumnForm } from '@/pages/admin/ColumnForm';
+import { QueryProvider } from '@/providers/QueryProvider';
 
 const RouterComponent = () => {
   const { profile } = useAuth();
@@ -33,11 +34,13 @@ const RouterComponent = () => {
 function App() {
   const { user } = useAuth();
   return (
-    <Router>
-      <Header />
-      {user ? <RouterComponent /> : <Login />}
-      <Footer />
-    </Router>
+    <QueryProvider>
+      <Router>
+        <Header />
+        {user ? <RouterComponent /> : <Login />}
+        <Footer />
+      </Router>
+    </QueryProvider>
   );
 }
 

@@ -28,7 +28,7 @@ const Header = () => {
             <Link to="/">
                 <div className="flex items-center space-x-2">
                     <Volleyball className="h-6 w-6" />
-                    <h1 className="text-xl font-bold">TotoHapoel</h1>
+                    <h1 className="text-xl font-bold">טוטו הפועל</h1>
                 </div>
             </Link>
             <div>
@@ -36,20 +36,16 @@ const Header = () => {
                     <div className="flex items-center space-x-2">
                         <div
                             className="flex items-center space-x-2 gap-2">
-                            <img
-                                className="h-8 w-8 rounded-full"
-                                src={profile?.avatar_url || 'https://ui-avatars.com/api/?name=Anonymous'}
-                                alt={profile?.name}
-                            /> {profile?.name}</div>
+                            {profile?.name}</div>
                         <Button variant="outline" onClick={handleLogout}>
-                            Logout
+                            התנתק
                         </Button>
 
                         {
                             profile?.is_admin && (
                                 <Link to="/admin">
                                     <Button variant="outline">
-                                        Admin
+                                        אדמין
                                     </Button>
                                 </Link>
                             )

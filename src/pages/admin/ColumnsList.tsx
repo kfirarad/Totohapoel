@@ -1,32 +1,36 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/services/supabase';
-import { Column } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
+import { Column } from '@/types/database.types';
+
+const fetchColumns = async () => {
+    const { data, error } = await supabase
+        .from('columns')
+        .select('*')
+        .order('deadline', { ascending: false });
+
+    if (error) throw error;
+    return data;
+};
 
 export const ColumnsList = () => {
-    const [columns, setColumns] = useState<Column[]>([]);
-    const [loading, setLoading] = useState(true);
+    const {
+        data: columns = [],
+        isLoading,
+        error
+    } = useQuery({
+        queryKey: ['columns'],
+        queryFn: fetchColumns
+    });
 
-    useEffect(() => {
-        const fetchColumns = async () => {
-            const { data, error } = await supabase
-                .from('columns')
-                .select('*')
-                .order('deadline', { ascending: false });
-
-            if (!error && data) {
-                setColumns(data);
-            }
-            setLoading(false);
-        };
-
-        fetchColumns();
-    }, []);
-
-    if (loading) {
+    if (isLoading) {
         return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error loading columns</div>;
     }
 
     return (
@@ -38,7 +42,7 @@ export const ColumnsList = () => {
                 </Link>
             </div>
             <div className="grid gap-4">
-                {columns.map((column) => (
+                {columns.map((column: Column) => (
                     <Link
                         key={column.id}
                         to={`/admin/columns/${column.id}`}
@@ -52,8 +56,21 @@ export const ColumnsList = () => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded text-sm ${column.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                <span
+                                    className={`px-2 py-1 rounded text-sm ${column.is_active
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-gray-100 text-gray-800'
+                                        }`}
+                                >
                                     {column.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                                <span
+                                    className={`px-2 py-1 rounded text-sm ${new Date(column.deadline) < new Date()
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-blue-100 text-blue-800'
+                                        }`}
+                                >
+                                    {new Date(column.deadline) < new Date() ? 'Past' : 'Upcoming'}
                                 </span>
                             </div>
                         </div>
