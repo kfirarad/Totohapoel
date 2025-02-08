@@ -12,8 +12,6 @@ interface ColumnSummaryProps {
 }
 
 export const ColumnSummary = ({ stats }: ColumnSummaryProps) => {
-    // if (!stats.length) return null;
-
     return (
         <div className="bg-white rounded-lg shadow p-4 space-y-4">
             <div className="flex justify-between items-center">

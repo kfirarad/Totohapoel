@@ -11,6 +11,15 @@ import { ColumnSummary } from '@/components/ColumnSummary';
 import { BetResult } from '@/types/database.types';
 import { useState } from 'react';
 
+interface UserStats {
+    user: {
+        id: string;
+        name: string;
+    };
+    totalBets: number;
+    correctBets: number;
+}
+
 export const Column = () => {
     const { columnId } = useParams();
     const navigate = useNavigate();
@@ -55,7 +64,7 @@ export const Column = () => {
         return <div>טוען...</div>;
     }
     if (columnError) return <div>Error: {columnError.message}</div>;
-    if (!column) return <div>No active column found</div>;
+    if (!column) return <div>לא נמצא טור פעיל</div>;
 
     const isDeadlinePassed = new Date(column.deadline) < new Date();
 
@@ -270,7 +279,7 @@ export const Column = () => {
                 {/* Column Summary */}
                 {isDeadlinePassed && (
                     <div className="order-first md:order-last">
-                        <ColumnSummary stats={columnStats as ColumnStats[]} />
+                        <ColumnSummary stats={columnStats as UserStats[]} />
                     </div>
                 )}
             </div>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { Column, Game, BetResult } from '@/types/database.types';
+import { BetResult } from '@/types/database.types';
 
 // Query keys
 export const queryKeys = {
@@ -71,7 +71,7 @@ const fetchGames = async (columnId: string) => {
     return data;
 };
 
-const fetchBets = async (columnId: string, userId: string) => {
+const fetchBets = async (columnId: string) => {
     const { data, error } = await supabase
         .from('bets')
         .select('*')
@@ -81,7 +81,6 @@ const fetchBets = async (columnId: string, userId: string) => {
 };
 
 const fetchVoteStats = async (columnId: string) => {
-
     const { data: bets, error } = await supabase
         .from('bets')
         .select('game_id, value')
@@ -91,7 +90,7 @@ const fetchVoteStats = async (columnId: string) => {
 
     // Calculate stats for each game
     const stats = bets.reduce((acc, bet) => {
-        if (!acc[bet.game_id]) {
+        if (bet.game_id && !acc[bet.game_id]) {
             acc[bet.game_id] = {
                 total: 0,
                 '1': 0,
@@ -99,8 +98,10 @@ const fetchVoteStats = async (columnId: string) => {
                 '2': 0
             };
         }
-        acc[bet.game_id].total++;
-        acc[bet.game_id][bet.value as BetResult]++;
+        if (bet.game_id && bet.value) {
+            acc[bet.game_id].total++;
+            acc[bet.game_id][bet.value as '1' | 'X' | '2']++;
+        }
         return acc;
     }, {} as Record<string, { total: number; '1': number; 'X': number; '2': number; }>);
 
@@ -114,7 +115,7 @@ const fetchColumnStats = async (columnId: string) => {
         .select(`
              user_id,
              value,
-             games (
+             games!inner (
                 result
              )
         `)
@@ -137,7 +138,7 @@ const fetchColumnStats = async (columnId: string) => {
         }
 
         acc[userId].totalBets++;
-
+        // @ts-expect-error - games is not always defined
         if (bet.games?.result && bet.value === bet.games.result) {
             acc[userId].correctBets++;
         }
@@ -150,7 +151,7 @@ const fetchColumnStats = async (columnId: string) => {
     }>);
 
     // Get names from user_id
-    const { data: userNames, error: userNamesError } = await supabase
+    const { data: userNames } = await supabase
         .from('profiles')
         .select('id, name')
         .in('id', Object.keys(userStats));
@@ -185,7 +186,7 @@ export const useGamesQuery = (columnId: string) => {
 export const useBetsQuery = (columnId: string, userId: string) => {
     return useQuery({
         queryKey: queryKeys.bets(columnId),
-        queryFn: () => fetchBets(columnId, userId),
+        queryFn: () => fetchBets(columnId),
         enabled: !!columnId && !!userId,
     });
 };
@@ -238,8 +239,9 @@ export const usePlaceBetMutation = () => {
             }
         },
         onSuccess: (_, { columnId }) => {
-            // Invalidate bets query to refetch
-            queryClient.invalidateQueries(queryKeys.bets(columnId));
+            queryClient.invalidateQueries({ queryKey: queryKeys.bets(columnId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.voteStats(columnId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.columnStats(columnId) });
         },
     });
 };
@@ -262,10 +264,13 @@ export const useSetResultMutation = () => {
                 .update({ result: value })
                 .eq('id', gameId);
             if (error) throw error;
+
+            // Return columnId for use in onSuccess
+            return { columnId };
         },
-        onSuccess: (_, { columnId }) => {
-            // Invalidate games query to refetch
-            queryClient.invalidateQueries(queryKeys.games(columnId));
+        onSuccess: ({ columnId }) => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.games(columnId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.columnStats(columnId) });
         },
     });
 }; 

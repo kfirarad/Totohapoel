@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { supabase } from '@/services/supabase'
-import { Session, User } from '@supabase/supabase-js'
+import { User } from '@supabase/supabase-js'
 
 type Profile = {
     id: string
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Sign in with email and password
     const signIn = async () => {
-        const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
+        const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
         if (error) {
             throw error
         }

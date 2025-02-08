@@ -1,4 +1,4 @@
-export type BetResult = 1 | 2 | 'X' | null;
+export type BetResult = '1' | '2' | 'X' | null;
 
 export interface Column {
   id?: string;
