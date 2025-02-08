@@ -16,16 +16,15 @@ jobs:
       - name: Set up Node.js
         uses: borales/actions-yarn@v4
         with:
-          node-version: "20"
           cmd: "install"
 
       - name: Build
         uses: borales/actions-yarn@v4
-        with:
-          cmd: "build"  
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        with:
+          cmd: "build"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
