@@ -74,7 +74,7 @@ const fetchUserBets = async (columnId: string, user_id: string) => {
 
 
 type GameBetValue = {
-    game_id: Game['game_num'];
+    game_num: Game['game_num'];
     value: BetResult[];
 }
 
@@ -125,17 +125,17 @@ const fetchVoteStats = async (columnId: string) => {
         userBet.bet_values.forEach((gameBet) => {
             gameBet.value.forEach((bet) => {
                 if (bet === '1' || bet === 'X' || bet === '2') {
-                    acc[gameBet.game_id][bet]++;
+                    acc[gameBet.game_num][bet]++;
                 }
             });
             if (gameBet.value.length === 1) {
-                acc[gameBet.game_id].singles++;
+                acc[gameBet.game_num].singles++;
             } else if (gameBet.value.length === 2) {
-                acc[gameBet.game_id].doubles++;
+                acc[gameBet.game_num].doubles++;
             } else if (gameBet.value.length === 3) {
-                acc[gameBet.game_id].triples++;
+                acc[gameBet.game_num].triples++;
             }
-            acc[gameBet.game_id].total++;
+            acc[gameBet.game_num].total++;
         });
 
         return acc;
@@ -210,7 +210,7 @@ export const useColumnQuery = (id?: string) => {
 export const useUserBetsQuery = (columnId: string, userId: string) => {
     return useQuery({
         queryKey: queryKeys.user_bets(columnId, userId),
-        queryFn: () => fetchUserBets(columnId),
+        queryFn: () => fetchUserBets(columnId, userId),
         enabled: !!columnId && !!userId,
     });
 };
@@ -243,7 +243,7 @@ export const usePlaceBetMutation = () => {
             betId
         }: {
             betValues: {
-                game_id: string,
+                game_num: string,
                 value: BetResult[]
             };
             userId: string;

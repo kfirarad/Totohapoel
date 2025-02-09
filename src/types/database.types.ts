@@ -22,7 +22,7 @@ export interface Game {
 }
 
 export interface GameBetValue {
-  game_id: string;
+  game_num: string;
   value: BetResult[];
 }
 

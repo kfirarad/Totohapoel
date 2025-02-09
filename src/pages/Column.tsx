@@ -28,6 +28,7 @@ export const Column = () => {
 
     const [orderBy, setOrderBy] = useState<'game_num' | 'game_time'>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
+
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
     const {
         data: column,
@@ -83,13 +84,14 @@ export const Column = () => {
         if (!user?.id || isDeadlinePassed) return;
 
         placeBet({
+            betValues: Object.entries(userBet).map(([game_num, bet]) => ({
+                game_num,
+                value: bet
+            })),
             betId: betsData?.id,
             columnId: column.id,
             userId: user.id,
-            betValues: Object.entries(userBet).map(([gameId, bet]) => ({
-                game_id: gameId,
-                value: bet
-            }))
+
         })
 
     };
@@ -98,10 +100,10 @@ export const Column = () => {
         const bets: Record<number, BetResult[]> = {};
         if (betsData?.bet_values) {
             betsData.bet_values.forEach((bet: {
-                game_id: number;
+                game_num: number;
                 value: BetResult[];
             }) => {
-                bets[bet.game_id] = bet.value;
+                bets[bet.game_num] = bet.value;
             });
             setUserBet(bets);
         }
