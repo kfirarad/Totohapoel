@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface GameFormData {
-    id?: string;
     game_num: number;
     home_team: string;
     away_team: string;
@@ -101,11 +100,25 @@ export const ColumnForm = () => {
         ),
         is_active: true,
         created_at: new Date().toISOString(),
-        created_by: ''
+        created_by: '',
+        max_doubles: 5,
+        max_triples: 4,
+        games: null
+
     });
-    const [games, setGames] = useState<GameFormData[]>(() =>
-        createEmptyGames(column.deadline)
-    );
+
+    // const [games, setGames] = useState<GameFormData[]>(() =>
+    //     createEmptyGames(column.deadline)
+    // );
+
+    const setGames = (games: GameFormData[]) => {
+        setColumn(prev => ({
+            ...prev,
+            games
+        }));
+    }
+
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -125,25 +138,10 @@ export const ColumnForm = () => {
                     return;
                 }
 
-                const { data: gamesData, error: gamesError } = await supabase
-                    .from('games')
-                    .select('*')
-                    .eq('column_id', id)
-                    .order('game_num');
-
-                if (gamesError) {
-                    toast({
-                        title: 'Error',
-                        description: 'Failed to load games',
-                        variant: 'destructive'
-                    });
-                    return;
-                }
-
                 setColumn(columnData);
 
                 // Create a map of existing games by game number
-                const existingGames = (gamesData || []).reduce((acc, game) => {
+                const existingGames = (columnData?.games || []).reduce((acc, game) => {
                     acc[game.game_num] = game;
                     return acc;
                 }, {} as Record<number, GameFormData>);
@@ -178,7 +176,7 @@ export const ColumnForm = () => {
 
         try {
             // Save column
-            const { data: savedColumn, error: columnError } = await supabase
+            const { error: columnError } = await supabase
                 .from('columns')
                 .upsert({
                     ...column,
@@ -187,37 +185,6 @@ export const ColumnForm = () => {
                 .single();
 
             if (columnError) throw columnError;
-
-            // Save games
-            const validGames = games.filter(game => game.home_team && game.away_team && game.game_time && game.competition);
-
-            // Insert games that don't have an id
-            const gamesToInsert = validGames.filter(game => !game.id);
-            const { error: gamesInsertError } = await supabase.from('games').insert(
-                gamesToInsert.map((game) => ({
-                    game_num: game.game_num,
-                    home_team: game.home_team,
-                    away_team: game.away_team,
-                    game_time: game.game_time,
-                    competition: game.competition,
-                    column_id: savedColumn.id,
-                    result: null
-                }))
-            );
-
-            const { error: gamesError } = await supabase.from('games').upsert(
-                validGames.filter(game => game.id).map((game) => ({
-                    id: game.id,
-                    game_num: game.game_num,
-                    home_team: game.home_team,
-                    away_team: game.away_team,
-                    game_time: game.game_time,
-                    competition: game.competition,
-                    column_id: savedColumn.id,
-                }))
-            );
-
-            if (gamesError || gamesInsertError) throw gamesError || gamesInsertError;
 
             toast({
                 title: 'Success',
@@ -266,37 +233,19 @@ export const ColumnForm = () => {
     };
 
     const handleSetResult = async (game: GameFormData, value: BetResult) => {
-        if (!game.id) return;
-
-        const newResult = game.result === value ? null : value;
-
-        const { error } = await supabase
-            .from('games')
-            .update({ result: newResult })
-            .eq('id', game.id);
-
-        if (error) {
-            toast({
-                title: 'Error',
-                description: 'Failed to update game result',
-                variant: 'destructive'
+        setColumn(prev => {
+            const { games = [] } = prev;
+            const updatedGames = games.map(g => {
+                if (g.game_num === game.game_num) {
+                    if (g.result === value) {
+                        return { ...g, result: undefined };
+                    } else {
+                        return { ...g, result: value };
+                    }
+                }
+                return g;
             });
-            return;
-        }
-
-        const newGames = [...games];
-        const gameIndex = newGames.findIndex(g => g.id === game.id);
-        if (gameIndex !== -1) {
-            newGames[gameIndex] = {
-                ...game,
-                result: newResult
-            };
-            setGames(newGames);
-        }
-
-        toast({
-            title: 'Success',
-            description: 'Game result updated'
+            return { ...prev, games: updatedGames };
         });
     };
 
@@ -322,7 +271,10 @@ export const ColumnForm = () => {
                 result: null
             }));
 
-            setGames(newGames);
+            setColumn({
+                ...column,
+                games: newGames
+            });
 
             toast({
                 title: 'Success',
@@ -391,6 +343,38 @@ export const ColumnForm = () => {
                     />
                 </div>
 
+                <div className="flex gap-2 flex-column">
+                    <div>
+                        <label htmlFor="deadline" className="text-sm font-medium">
+                            מס׳ כפולים
+                        </label>
+                        <Input
+                            id="max-doubles"
+                            type="number"
+                            value={column.max_doubles}
+                            onChange={(e) =>
+                                setColumn({ ...column, max_doubles: parseInt(e.target.value) })
+                            }
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="deadline" className="text-sm font-medium">
+                            מס׳ משולשים
+                        </label>
+                        <Input
+                            id="max-triples"
+                            type="number"
+                            value={column.max_triples}
+                            onChange={(e) =>
+                                setColumn({ ...column, max_triples: parseInt(e.target.value) })
+                            }
+                        />
+                    </div>
+
+                </div>
+
+
                 <div className="flex items-center gap-2">
                     <input
                         type="checkbox"
@@ -430,7 +414,7 @@ export const ColumnForm = () => {
 
                     {/* Games List */}
                     <div className="divide-y">
-                        {games.map((game, index) => (
+                        {column?.games?.map((game, index) => (
                             <div key={game.game_num} className="grid gap-4 p-4">
                                 {/* Mobile Layout */}
                                 <div className="md:hidden space-y-4">

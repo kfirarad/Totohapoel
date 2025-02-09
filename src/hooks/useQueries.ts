@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { BetResult } from '@/types/database.types';
+import { BetResult, Column, Game } from '@/types/database.types';
+import { User } from '@supabase/supabase-js';
 
 // Query keys
 export const queryKeys = {
     columns: ['columns'] as const,
     column: (id?: string) => ['column', id] as const,
-    games: (columnId: string) => ['games', columnId] as const,
-    bets: (columnId: string) => ['bets', columnId] as const,
+    user_bets: (columnId: string, userId: string) => ['user_bets', columnId, userId] as const,
     voteStats: (columnId: string) => ['voteStats', columnId] as const,
     columnStats: (columnId: string) => ['columnStats', columnId] as const,
 };
@@ -61,64 +61,97 @@ const fetchColumn = async (id?: string) => {
     };
 };
 
-const fetchGames = async (columnId: string) => {
+const fetchUserBets = async (columnId: string) => {
     const { data, error } = await supabase
-        .from('games')
+        .from('user_bets')
         .select('*')
         .eq('column_id', columnId)
-        .order('game_num');
+        .single();
     if (error) throw error;
     return data;
 };
 
-const fetchBets = async (columnId: string) => {
-    const { data, error } = await supabase
-        .from('bets')
-        .select('*')
-        .eq('column_id', columnId)
-    if (error) throw error;
-    return data;
-};
+
+type GameBetValue = {
+    game_id: Game['id'];
+    value: BetResult[];
+}
+
+type UserBets = {
+    user_id: User['id'];
+    column_id: Column['id'];
+    bet_values: GameBetValue[]
+}
+
+type GamesVotesStats =
+    Record<string, { total: number; '1': number; 'X': number; '2': number; singles: number, doubles: number, triples: number }>
 
 const fetchVoteStats = async (columnId: string) => {
-    const { data: bets, error } = await supabase
-        .from('bets')
-        .select('game_id, value')
-        .eq('column_id', columnId);
+    const { data: column, error: gamesError } = await supabase
+        .from('columns')
+        .select('games')
+        .eq('id', columnId)
+        .returns<Column[]>()
+        .single();
+
+    if (gamesError) throw gamesError;
+
+    const { games = [] } = column;
+
+    const gameVotes: GamesVotesStats = games.reduce((acc, game) => {
+        acc[game.game_num] = {
+            '1': 0,
+            'X': 0,
+            '2': 0,
+            singles: 0,
+            doubles: 0,
+            triples: 0,
+            total: 0
+        };
+        return acc;
+    }, {} as GamesVotesStats);
+
+    const { data: userBets, error } = await supabase
+        .from('user_bets')
+        .select('*')
+        .eq('column_id', columnId)
+        .order('created_at', { ascending: false })
+        .returns<UserBets[]>()
 
     if (error) throw error;
 
-    // Calculate stats for each game
-    const stats = bets.reduce((acc, bet) => {
-        if (bet.game_id && !acc[bet.game_id]) {
-            acc[bet.game_id] = {
-                total: 0,
-                '1': 0,
-                'X': 0,
-                '2': 0
-            };
-        }
-        if (bet.game_id && bet.value) {
-            acc[bet.game_id].total++;
-            acc[bet.game_id][bet.value as '1' | 'X' | '2']++;
-        }
-        return acc;
-    }, {} as Record<string, { total: number; '1': number; 'X': number; '2': number; }>);
+    const ab = userBets.reduce((acc, userBet) => {
+        userBet.bet_values.forEach((gameBet) => {
+            gameBet.value.forEach((bet) => {
+                if (bet === '1' || bet === 'X' || bet === '2') {
+                    acc[gameBet.game_id][bet]++;
+                }
+            });
+            if (gameBet.value.length === 1) {
+                acc[gameBet.game_id].singles++;
+            } else if (gameBet.value.length === 2) {
+                acc[gameBet.game_id].doubles++;
+            } else if (gameBet.value.length === 3) {
+                acc[gameBet.game_id].triples++;
+            }
+            acc[gameBet.game_id].total++;
+        });
 
-    return stats;
+        return acc;
+    }, gameVotes);
+
+    console.log('ab', ab);
+    return ab;
 };
 
 const fetchColumnStats = async (columnId: string) => {
-    // Fetch all bets with user info and game results
     const { data: bets, error: betsError } = await supabase
-        .from('bets')
+        .from(`user_bets`)
         .select(`
-             user_id,
-             value,
-             games!inner (
-                result
-             )
-        `)
+            bet_values,
+            profiles(id, name),
+            user_id
+            `)
         .eq('column_id', columnId);
 
     if (betsError) throw betsError;
@@ -175,18 +208,18 @@ export const useColumnQuery = (id?: string) => {
     });
 };
 
-export const useGamesQuery = (columnId: string) => {
-    return useQuery({
-        queryKey: queryKeys.games(columnId),
-        queryFn: () => fetchGames(columnId),
-        enabled: !!columnId,
-    });
-};
+// export const useGamesQuery = (columnId: string) => {
+//     return useQuery({
+//         queryKey: queryKeys.games(columnId),
+//         queryFn: () => fetchGames(columnId),
+//         enabled: !!columnId,
+//     });
+// };
 
-export const useBetsQuery = (columnId: string, userId: string) => {
+export const useUserBetsQuery = (columnId: string, userId: string) => {
     return useQuery({
-        queryKey: queryKeys.bets(columnId),
-        queryFn: () => fetchBets(columnId),
+        queryKey: queryKeys.user_bets(columnId, userId),
+        queryFn: () => fetchUserBets(columnId),
         enabled: !!columnId && !!userId,
     });
 };
@@ -213,35 +246,36 @@ export const usePlaceBetMutation = () => {
 
     return useMutation({
         mutationFn: async ({
-            gameId,
-            value,
+            betValues,
             userId,
             columnId,
             betId
         }: {
-            gameId: string;
-            value: BetResult;
+            betValues: UserBets['bet_values'];
             userId: string;
             columnId: string;
             betId?: string;
         }) => {
+
+            console.log(betValues, userId, columnId, betId);
+
             if (betId) {
                 const { error } = await supabase
-                    .from('bets')
-                    .update({ value })
+                    .from('user_bets')
+                    .update({ bet_values: betValues })
                     .eq('id', betId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
-                    .from('bets')
-                    .insert([{ game_id: gameId, value, user_id: userId, column_id: columnId }]);
+                    .from('user_bets')
+                    .insert([{ bet_values: betValues, user_id: userId, column_id: columnId }]);
                 if (error) throw error;
             }
         },
-        onSuccess: (_, { columnId }) => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.bets(columnId) });
+        onSuccess: (_, { columnId, userId }) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.voteStats(columnId) });
             queryClient.invalidateQueries({ queryKey: queryKeys.columnStats(columnId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.user_bets(columnId, userId) });
         },
     });
 };
@@ -269,7 +303,6 @@ export const useSetResultMutation = () => {
             return { columnId };
         },
         onSuccess: ({ columnId }) => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.games(columnId) });
             queryClient.invalidateQueries({ queryKey: queryKeys.columnStats(columnId) });
         },
     });

@@ -7,16 +7,27 @@ export interface Column {
   is_active: boolean;
   created_at?: string;
   created_by?: string;
+  max_doubles?: number;
+  max_triples?: number;
+  games?: Game[];
 }
 
 export interface Game {
-  id: string;
-  column_id: string;
   game_num: number;
   home_team: string;
   away_team: string;
   game_time: string;
   competition: string;
   result: BetResult;
-  created_at: string;
+}
+
+export interface GameBetValue {
+  game_id: string;
+  value: BetResult[];
+}
+
+export interface UserBet {
+  user_id: string;
+  column_id: string;
+  bet_values: GameBetValue[];
 }
