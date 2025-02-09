@@ -9,9 +9,10 @@ interface UserStats {
 
 interface ColumnSummaryProps {
     stats: UserStats[];
+    showScore: boolean;
 }
 
-export const ColumnSummary = ({ stats }: ColumnSummaryProps) => {
+export const ColumnSummary = ({ stats, showScore }: ColumnSummaryProps) => {
     return (
         <div className="bg-white rounded-lg shadow p-4 space-y-4">
             <div className="flex justify-between items-center">
@@ -34,9 +35,9 @@ export const ColumnSummary = ({ stats }: ColumnSummaryProps) => {
                                 </div>
                             </div>
                         </div>
-                        <div className="text-lg font-semibold">
+                        {showScore && <div className="text-lg font-semibold">
                             {userStat.correctBets}
-                        </div>
+                        </div>}
                     </div>
                 ))}
             </div>
