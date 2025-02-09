@@ -328,7 +328,7 @@ export const Column = () => {
                 {/* Column Summary */}
                 {(
                     <div className="order-first md:order-last">
-                        <ColumnSummary stats={columnStats as UserStats[] showScore={isDeadlinePassed}} />
+                        <ColumnSummary stats={columnStats as UserStats[]} showScore={isDeadlinePassed} />
                     </div>
                 )}
             </div>
