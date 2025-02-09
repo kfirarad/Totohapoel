@@ -26,7 +26,7 @@ export const Column = () => {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
 
-    const [orderBy, setOrderBy] = useState<'game_num' | 'game_time'>('game_num');
+    const [orderBy, setOrderBy] = useState<'game_num' | 'game_time' | 'triples'>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
 
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
@@ -52,7 +52,7 @@ export const Column = () => {
     const {
         data: columnStats = [],
         isLoading: isStatsLoading
-    } = useColumnStatsQuery(column?.id ?? '');
+    } = useColumnStatsQuery(column);
 
     const isDeadlinePassed = new Date(column?.deadline) < new Date();
 
@@ -118,10 +118,17 @@ export const Column = () => {
     }, [userBet]);
 
     const orderedGames: Game[] = useMemo(() => column?.games?.sort((a: Game, b: Game) => {
-        if (orderBy === 'game_num') {
-            return a.game_num - b.game_num;
-        } else {
-            return new Date(a.game_time).getTime() - new Date(b.game_time).getTime();
+        switch (orderBy) {
+            case 'game_num':
+                return a.game_num - b.game_num;
+            case 'game_time':
+                return new Date(a.game_time).getTime() - new Date(b.game_time).getTime();
+            case 'triples':
+                return (voteStats[b.game_num]?.triples || 0) - (voteStats[a.game_num]?.triples || 0) ||
+                    (voteStats[b.game_num]?.doubles || 0) - (voteStats[a.game_num]?.doubles || 0) ||
+                    (voteStats[b.game_num]?.singles || 0) - (voteStats[a.game_num]?.singles || 0);
+            default:
+                return a.game_num - b.game_num;
         }
     }) || [], [column?.games, orderBy]);
 
@@ -242,6 +249,14 @@ export const Column = () => {
                             <Button size={'sm'} variant={orderBy === 'game_time' ? 'default' : 'outline'} onClick={() => setOrderBy('game_time')}>
                                 זמן משחק
                             </Button>
+                            {
+                                isDeadlinePassed && (
+                                    <Button size={'sm'} variant={orderBy === 'triples' ? 'default' : 'outline'} onClick={() => setOrderBy('triples')}>
+                                        כפולים/משולשים
+                                    </Button>
+                                )
+                            }
+
                         </div>
                     </div>
 

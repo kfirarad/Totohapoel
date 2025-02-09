@@ -17,8 +17,6 @@ export const BetButtons = ({
     onBetPlace
 }: BetButtonsProps) => {
 
-    console.log('userBet', userBet);
-
     return (
         <div className="flex flex-row gap-2 justify-center items-center">
             {(['1', 'X', '2'] as const).map((value) => (

@@ -143,7 +143,8 @@ const fetchVoteStats = async (columnId: string) => {
     return ab;
 };
 
-const fetchColumnStats = async (columnId: string) => {
+const fetchColumnStats = async (column: Column) => {
+    const { games } = column;
     const { data: bets, error: betsError } = await supabase
         .from(`user_bets`)
         .select(`
@@ -151,29 +152,31 @@ const fetchColumnStats = async (columnId: string) => {
             profiles(id, name),
             user_id
             `)
-        .eq('column_id', columnId);
+        .eq('column_id', column.id);
 
     if (betsError) throw betsError;
 
     // Calculate stats for each user
     const userStats = bets.reduce((acc, bet) => {
-        const userId = bet.user_id;
+        const { profiles: { id: userId, name }, bet_values: betValues } = bet;
+
         if (!acc[userId]) {
             acc[userId] = {
                 user: {
                     id: userId,
-                    name: ''
+                    name: name
                 },
                 totalBets: 0,
                 correctBets: 0
             };
         }
-
-        acc[userId].totalBets++;
-        // @ts-expect-error - games is not always defined
-        if (bet.games?.result && bet.value === bet.games.result) {
-            acc[userId].correctBets++;
-        }
+        betValues.forEach((gameBet) => {
+            const game = games?.find((game) => game.game_num == gameBet.game_num);
+            if (game && game.result && gameBet.value.includes(game.result)) {
+                acc[userId].correctBets++;
+            }
+            acc[userId].totalBets++;
+        });
 
         return acc;
     }, {} as Record<string, {
@@ -181,21 +184,6 @@ const fetchColumnStats = async (columnId: string) => {
         totalBets: number;
         correctBets: number;
     }>);
-
-    // Get names from user_id
-    const { data: userNames } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', Object.keys(userStats));
-
-    // Add names to userStats
-    Object.keys(userStats).forEach((key) => {
-        const user = userNames?.find((user) => user.id === key);
-        if (user) {
-            userStats[key].user.name = user.name;
-        }
-    });
-
     return Object.values(userStats).sort((a, b) => b.correctBets - a.correctBets);
 };
 
@@ -223,11 +211,11 @@ export const useVoteStatsQuery = (columnId: string) => {
     });
 };
 
-export const useColumnStatsQuery = (columnId: string) => {
+export const useColumnStatsQuery = (column: Column) => {
     return useQuery({
-        queryKey: queryKeys.columnStats(columnId),
-        queryFn: () => fetchColumnStats(columnId),
-        enabled: !!columnId,
+        queryKey: queryKeys.columnStats(column?.id || ''),
+        queryFn: () => fetchColumnStats(column),
+        enabled: !!column?.id,
     });
 };
 
