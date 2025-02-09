@@ -136,7 +136,7 @@ const fetchVoteStats = async (columnId: string) => {
             } else if (gameBet.value.length === 3) {
                 acc[gameBet.game_num].triples++;
             }
-            acc[gameBet.game_num].total++;
+            acc[gameBet.game_num].total += gameBet.value.length;
         });
 
         return acc;
