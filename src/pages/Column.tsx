@@ -334,11 +334,10 @@ export const Column = () => {
                                         gameNum={game.game_num}
                                         userBet={userBet}
                                         result={game.result}
-                                        isDeadlinePassed={isDeadlinePassed}
                                         disabled={isDeadlinePassed || !userId || userId !== user?.id}
                                         onBetPlace={handlePlaceBet}
                                     />
-                                    {profile?.is_admin || isDeadlinePassed && voteStats[game.game_num] && (
+                                    {(profile?.is_admin || isDeadlinePassed) && voteStats[game.game_num] && (
                                         <div className="mt-2">
                                             <VoteStats stats={voteStats[game.game_num]} />
                                         </div>
