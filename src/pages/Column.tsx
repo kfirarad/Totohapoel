@@ -22,7 +22,7 @@ interface UserStats {
 }
 
 export const Column = () => {
-    const { columnId } = useParams();
+    const { columnId, userId } = useParams();
     const navigate = useNavigate();
     const { user, profile } = useAuth();
 
@@ -40,7 +40,7 @@ export const Column = () => {
     const {
         data: betsData = [],
         isLoading: isBetsLoading
-    } = useUserBetsQuery(column?.id ?? '', user?.id ?? '');
+    } = useUserBetsQuery(column?.id ?? '', userId || user?.id || '');
 
     const {
         data: voteStats = {},
@@ -184,6 +184,12 @@ export const Column = () => {
                 </p>
             </div>
 
+            {userId && userId != user?.id && (
+                <div className="mb-8">
+                    <h2 className="text-xl font-semibold">הטור של {betsData.profiles.name}</h2>
+                </div>
+            )}
+
             {/* Doubles & Triples Counter */}
             <div className="grid gap-6 md:grid-cols-[1fr_300px]">
                 <div className="rounded-lg border bg-card">
@@ -194,30 +200,43 @@ export const Column = () => {
                                 <div className="flex gap-4 items-center">
                                     <div>
                                         <span className={cn(["font-medium",
-                                            doublesAndTriplesCount.filledBets < column?.games?.length ? 'text-red-500' : 'text-green-500'
-                                        ])}>
+                                            doublesAndTriplesCount.filledBets < column?.games?.length ? 'text-red-500' : 'text-green-500',
+                                            doublesAndTriplesCount.filledBets === column?.games?.length ? 'text-green-500' : ''
+                                        ])}>{doublesAndTriplesCount.filledBets === column?.games?.length && (<>✅</>)}{" "}
                                             {doublesAndTriplesCount.filledBets}/{column?.games?.length}</span> מלאים
                                     </div>
                                     <div>
                                         <span className={cn(["font-medium",
-                                            doublesAndTriplesCount.doubles > column.max_doubles ? 'text-red-500' : 'text-green-500'
-                                        ])}>
+                                            doublesAndTriplesCount.doubles < column.max_doubles ? 'text-black' : (
+                                                doublesAndTriplesCount.doubles > column.max_doubles ? 'text-red-500' : 'text-green-500')
+                                        ])}>                                        {doublesAndTriplesCount.doubles === column.max_doubles && (<>✅</>)}
+                                            {doublesAndTriplesCount.doubles > column.max_doubles && (<>❌</>)}{" "}
                                             {doublesAndTriplesCount.doubles}/{column.max_doubles}
                                         </span> כפולים
+
+
+
                                     </div>
                                     <div>
                                         <span className={cn(["font-medium",
-                                            doublesAndTriplesCount.triples > column.max_triples ? 'text-red-500' : 'text-green-500'
+                                            doublesAndTriplesCount.triples < column.max_triples ? 'text-black' : (
+                                                doublesAndTriplesCount.triples > column.max_triples ? 'text-red-500' : 'text-green-500')
                                         ])}
-                                        >
+                                        >                                        {doublesAndTriplesCount.triples === column.max_triples && (<>✅</>)}
+                                            {doublesAndTriplesCount.triples > column.max_triples && (<>❌</>)}{" "}
                                             {doublesAndTriplesCount.triples}/{column.max_triples}</span> משולשים
+
                                     </div>
                                 </div>
                                 <div>
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        disabled={doublesAndTriplesCount.doubles > column.max_doubles || doublesAndTriplesCount.triples > column.max_triples}
+                                        disabled={
+                                            doublesAndTriplesCount.filledBets < column?.games?.length ||
+                                            doublesAndTriplesCount.doubles > column.max_doubles ||
+                                            doublesAndTriplesCount.triples > column.max_triples
+                                        }
                                         onClick={submitBet}
                                     >
                                         שלח טופס
@@ -328,7 +347,7 @@ export const Column = () => {
                 {/* Column Summary */}
                 {(
                     <div className="order-first md:order-last">
-                        <ColumnSummary stats={columnStats as UserStats[]} showScore={isDeadlinePassed} />
+                        <ColumnSummary stats={columnStats as UserStats[]} showScore={isDeadlinePassed} columnId={column.id} />
                     </div>
                 )}
             </div>

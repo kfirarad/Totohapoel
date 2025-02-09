@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 interface UserStats {
     user: {
         id: string;
@@ -8,11 +10,12 @@ interface UserStats {
 }
 
 interface ColumnSummaryProps {
+    columnId: string;
     stats: UserStats[];
     showScore: boolean;
 }
 
-export const ColumnSummary = ({ stats, showScore }: ColumnSummaryProps) => {
+export const ColumnSummary = ({ stats, showScore, columnId }: ColumnSummaryProps) => {
     return (
         <div className="bg-white rounded-lg shadow p-4 space-y-4">
             <div className="flex justify-between items-center">
@@ -31,7 +34,9 @@ export const ColumnSummary = ({ stats, showScore }: ColumnSummaryProps) => {
                         <div className="flex items-center gap-2">
                             <div>
                                 <div className="font-medium">
-                                    {userStat.user.name}
+                                    <Link to={`/column/${columnId}/user/${userStat.user.id}`}>
+                                        {userStat.user.name}
+                                    </Link>
                                 </div>
                             </div>
                         </div>

@@ -64,7 +64,8 @@ const fetchColumn = async (id?: string) => {
 const fetchUserBets = async (columnId: string, user_id: string) => {
     const { data, error } = await supabase
         .from('user_bets')
-        .select('*')
+        .select(`*,
+            profiles(id, name)`)
         .eq('column_id', columnId)
         .eq('user_id', user_id)
         .single();
@@ -152,7 +153,8 @@ const fetchColumnStats = async (column: Column) => {
             profiles(id, name),
             user_id
             `)
-        .eq('column_id', column.id);
+        .eq('column_id', column.id)
+        .returns<UserBets[]>();
 
     if (betsError) throw betsError;
 

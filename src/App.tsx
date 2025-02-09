@@ -16,6 +16,7 @@ const RouterComponent = () => {
       <Route path="/" element={<Navigate to="/column" />} />
       <Route path="/column" element={<Column />} />
       <Route path="/column/:columnId" element={<Column />} />
+      <Route path="/column/:columnId/user/:userId" element={<Column />} />
 
       {/* Admin Routes */}
       {profile?.is_admin && (
