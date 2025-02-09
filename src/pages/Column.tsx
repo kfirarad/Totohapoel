@@ -275,7 +275,7 @@ export const Column = () => {
                                 זמן משחק
                             </Button>
                             {
-                                isDeadlinePassed && (
+                                (profile?.is_admin || isDeadlinePassed) && (
                                     <Button size={'sm'} variant={orderBy === 'triples' ? 'default' : 'outline'} onClick={() => setOrderBy('triples')}>
                                         כפולים/משולשים
                                     </Button>
