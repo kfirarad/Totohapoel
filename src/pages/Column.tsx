@@ -193,58 +193,62 @@ export const Column = () => {
             {/* Doubles & Triples Counter */}
             <div className="grid gap-6 md:grid-cols-[1fr_300px]">
                 <div className="rounded-lg border bg-card">
-                    <div className="mb-4 sticky top-0 z-10 bg-card p-4 rounded-lg border-b-2">
+                    {!isDeadlinePassed && (!userId || userId === user?.id) && (<div className="mb-4 sticky top-0 z-10 bg-card p-4 rounded-lg border-b-2">
                         <div className="flex justify-between items-center">
-                            {!isDeadlinePassed && (!userId || userId === user?.id) && (<>
-
-                                <div className="flex gap-4 items-center">
-                                    <div>
-                                        <span className={cn(["font-medium",
-                                            doublesAndTriplesCount.filledBets < column?.games?.length ? 'text-red-500' : 'text-green-500',
-                                            doublesAndTriplesCount.filledBets === column?.games?.length ? 'text-green-500' : ''
-                                        ])}>{doublesAndTriplesCount.filledBets === column?.games?.length && (<>✅</>)}{" "}
-                                            {doublesAndTriplesCount.filledBets}/{column?.games?.length}</span> מלאים
-                                    </div>
-                                    <div>
-                                        <span className={cn(["font-medium",
-                                            doublesAndTriplesCount.doubles < column.max_doubles ? 'text-black' : (
-                                                doublesAndTriplesCount.doubles > column.max_doubles ? 'text-red-500' : 'text-green-500')
-                                        ])}>                                        {doublesAndTriplesCount.doubles === column.max_doubles && (<>✅</>)}
-                                            {doublesAndTriplesCount.doubles > column.max_doubles && (<>❌</>)}{" "}
-                                            {doublesAndTriplesCount.doubles}/{column.max_doubles}
-                                        </span> כפולים
-
-
-
-                                    </div>
-                                    <div>
-                                        <span className={cn(["font-medium",
-                                            doublesAndTriplesCount.triples < column.max_triples ? 'text-black' : (
-                                                doublesAndTriplesCount.triples > column.max_triples ? 'text-red-500' : 'text-green-500')
-                                        ])}
-                                        >                                        {doublesAndTriplesCount.triples === column.max_triples && (<>✅</>)}
-                                            {doublesAndTriplesCount.triples > column.max_triples && (<>❌</>)}{" "}
-                                            {doublesAndTriplesCount.triples}/{column.max_triples}</span> משולשים
-
-                                    </div>
+                            <div className="flex gap-4 items-center">
+                                <div>
+                                    <span className={cn(["font-medium",
+                                        doublesAndTriplesCount.filledBets < column?.games?.length ? 'text-red-500' : 'text-green-500',
+                                        doublesAndTriplesCount.filledBets === column?.games?.length ? 'text-green-500' : ''
+                                    ])}>{doublesAndTriplesCount.filledBets === column?.games?.length && (<>✅</>)}{" "}
+                                        {doublesAndTriplesCount.filledBets}/{column?.games?.length}</span> מלאים
                                 </div>
                                 <div>
+                                    <span className={cn(["font-medium",
+                                        doublesAndTriplesCount.doubles < column.max_doubles ? 'text-black' : (
+                                            doublesAndTriplesCount.doubles > column.max_doubles ? 'text-red-500' : 'text-green-500')
+                                    ])}>                                        {doublesAndTriplesCount.doubles === column.max_doubles && (<>✅</>)}
+                                        {doublesAndTriplesCount.doubles > column.max_doubles && (<>❌</>)}{" "}
+                                        {doublesAndTriplesCount.doubles}/{column.max_doubles}
+                                    </span> כפולים
 
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={
-                                            doublesAndTriplesCount.filledBets < column?.games?.length ||
-                                            doublesAndTriplesCount.doubles > column.max_doubles ||
-                                            doublesAndTriplesCount.triples > column.max_triples
-                                        }
-                                        onClick={submitBet}
-                                    >
-                                        שלח טופס
-                                    </Button>
-                                </div></>)}
-                            {
-                                isDeadlinePassed && (
+
+
+                                </div>
+                                <div>
+                                    <span className={cn(["font-medium",
+                                        doublesAndTriplesCount.triples < column.max_triples ? 'text-black' : (
+                                            doublesAndTriplesCount.triples > column.max_triples ? 'text-red-500' : 'text-green-500')
+                                    ])}
+                                    >                                        {doublesAndTriplesCount.triples === column.max_triples && (<>✅</>)}
+                                        {doublesAndTriplesCount.triples > column.max_triples && (<>❌</>)}{" "}
+                                        {doublesAndTriplesCount.triples}/{column.max_triples}</span> משולשים
+
+                                </div>
+                            </div>
+                            <div>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={
+                                        doublesAndTriplesCount.filledBets < column?.games?.length ||
+                                        doublesAndTriplesCount.doubles > column.max_doubles ||
+                                        doublesAndTriplesCount.triples > column.max_triples
+                                    }
+                                    onClick={submitBet}
+                                >
+                                    שלח טופס
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                    )}
+
+                    {isDeadlinePassed && (
+                        <div className="rounded-lg border bg-card p-4">
+                            <div className="flex justify-between items-center">
+                                <div className="flex gap-4 items-center">
                                     <div className="flex gap-4 items-center">
                                         <p className="text-right text-sm font-medium text-muted-foreground">
                                             ניחושים נכונים : {correctGuesses}/{gamesWithResults.length}
@@ -252,10 +256,11 @@ export const Column = () => {
                                             ({(correctGuesses / gamesWithResults.length * 100)}%)
                                         </p>
                                     </div>
-                                )
-                            }
-                        </div>
-                    </div>
+                                </div>
+                            </div>
+                        </div>)}
+
+
                     {/* Header - Only visible on desktop */}
                     <div className="hidden md:grid grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
                         <div>#</div>
