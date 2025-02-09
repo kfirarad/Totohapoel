@@ -335,6 +335,7 @@ export const Column = () => {
                                         userBet={userBet}
                                         result={game.result}
                                         isDeadlinePassed={isDeadlinePassed}
+                                        disabled={isDeadlinePassed || !userId || userId !== user?.id}
                                         onBetPlace={handlePlaceBet}
                                     />
                                     {profile?.is_admin || isDeadlinePassed && voteStats[game.game_num] && (

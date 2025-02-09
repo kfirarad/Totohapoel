@@ -5,7 +5,7 @@ interface BetButtonsProps {
     gameNum: number;
     userBet: Record<number, BetResult[]>;
     result: BetResult | null;
-    isDeadlinePassed: boolean;
+    disabled: boolean;
     onBetPlace: (gameNum: number, value: BetResult) => void;
 }
 
@@ -13,7 +13,7 @@ export const BetButtons = ({
     gameNum,
     userBet,
     result,
-    isDeadlinePassed,
+    disabled,
     onBetPlace
 }: BetButtonsProps) => {
 
@@ -23,13 +23,13 @@ export const BetButtons = ({
                 <button
                     key={value}
                     onClick={() => onBetPlace(gameNum, value)}
-                    disabled={isDeadlinePassed}
+                    disabled={disabled}
                     className={cn(
                         'px-4 py-2 rounded font-medium transition-colors',
                         userBet[gameNum]?.includes(value)
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted hover:bg-muted/80',
-                        isDeadlinePassed && 'opacity-50 cursor-not-allowed',
+                        disabled && 'opacity-50 cursor-not-allowed',
                         result === value && userBet[gameNum]?.includes(value) && 'ring-4 ring-green-500',
                         result === value && !userBet[gameNum]?.includes(value) && 'ring-4 ring-red-500'
                     )}
