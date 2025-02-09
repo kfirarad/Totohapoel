@@ -195,7 +195,7 @@ export const Column = () => {
                 <div className="rounded-lg border bg-card">
                     <div className="mb-4 sticky top-0 z-10 bg-card p-4 rounded-lg border-b-2">
                         <div className="flex justify-between items-center">
-                            {!isDeadlinePassed && (<>
+                            {!isDeadlinePassed && (!userId || userId === user?.id) && (<>
 
                                 <div className="flex gap-4 items-center">
                                     <div>
@@ -229,6 +229,7 @@ export const Column = () => {
                                     </div>
                                 </div>
                                 <div>
+
                                     <Button
                                         variant="outline"
                                         size="sm"
