@@ -73,7 +73,7 @@ const fetchUserBets = async (columnId: string) => {
 
 
 type GameBetValue = {
-    game_id: Game['id'];
+    game_id: Game['game_num'];
     value: BetResult[];
 }
 
@@ -139,8 +139,6 @@ const fetchVoteStats = async (columnId: string) => {
 
         return acc;
     }, gameVotes);
-
-    console.log('ab', ab);
     return ab;
 };
 
@@ -251,14 +249,14 @@ export const usePlaceBetMutation = () => {
             columnId,
             betId
         }: {
-            betValues: UserBets['bet_values'];
+            betValues: {
+                game_id: string,
+                value: BetResult[]
+            };
             userId: string;
             columnId: string;
             betId?: string;
         }) => {
-
-            console.log(betValues, userId, columnId, betId);
-
             if (betId) {
                 const { error } = await supabase
                     .from('user_bets')

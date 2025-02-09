@@ -10,7 +10,6 @@ import { VoteStats } from '@/components/VoteStats';
 import { ColumnSummary } from '@/components/ColumnSummary';
 import { BetResult } from '@/types/database.types';
 import { useEffect, useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { BetButtons } from '@/components/BetButtons';
 
 interface UserStats {
@@ -29,9 +28,6 @@ export const Column = () => {
     const [orderBy, setOrderBy] = useState<'game_num' | 'game_time'>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
-    const { toast } = useToast();
-
-
     const {
         data: column,
         isLoading: isColumnLoading,
@@ -59,17 +55,17 @@ export const Column = () => {
     const isDeadlinePassed = new Date(column?.deadline) < new Date();
 
     // Calculate correct guesses
+    //@ts-expect-error - games is not always defined
     const gamesWithResults = column?.games?.filter(game => game.result !== null) || [];
+    //@ts-expect-error - games is not always defined
     const correctGuesses = gamesWithResults.filter(game =>
         userBet[game.game_num]?.includes(game.result as BetResult)
     ).length;
 
     const handlePlaceBet = (gameId: number, value: BetResult) => {
-        console.log('handlePlaceBet', gameId, value);
         if (!user?.id || isDeadlinePassed) return;
 
         setUserBet(prevBet => {
-            console.log('prevBet', prevBet);
             const newValue = { ...prevBet };
             let bet = newValue[gameId] || [];
             if (bet.includes(value)) {
@@ -138,9 +134,6 @@ export const Column = () => {
     }
     if (columnError) return <div>Error: {columnError.message}</div>;
     if (!column) return <div>לא נמצא טור פעיל</div>;
-
-
-    console.log('voteStats', voteStats);
 
     return (
         <div className="container mx-auto px-4 py-8">

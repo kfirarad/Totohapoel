@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type BetOption = '1' | 'X' | '2';
+type BetOption = '1' | 'X' | '2' | 'singles' | 'doubles' | 'triples';
 
 interface VoteStatsProps {
     stats: {
@@ -55,11 +55,11 @@ export const VoteStats = ({ stats }: VoteStatsProps) => {
             </div>
 
             <div className="flex bg-gray-100 rounded-full overflow-hidden">
-                {[
+                {([
                     'singles',
                     'doubles',
                     'triples',
-                ].map((key) => (
+                ] as BetOption[]).map((key) => (
                     stats[key] > 0 && (
                         <div
                             key={key}

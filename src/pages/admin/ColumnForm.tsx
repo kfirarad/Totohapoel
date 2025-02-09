@@ -38,39 +38,6 @@ interface WinnerGameData {
     }[];
 }
 
-const parseGameString = (input: string): Partial<GameFormData> => {
-    try {
-        // Split by spaces and dashes
-        const parts = input.split(/\s+/);
-
-        // Extract time
-        const time = parts[1]; // e.g., "18:00"
-
-        const competition = parts.slice(2, 4).join(' ');
-
-        // Find the teams (everything after the competition, split by dash)
-        const teamsString = parts.slice(2 + 2).join(' ');
-        const [homeTeam, awayTeam] = teamsString.split('-').map(t => t.trim());
-
-        // Create a date object for the game time in Israel timezone
-        const today = new Date();
-        const gameTime = new Date(today);
-        const [hours, minutes] = time.split(':').map(Number);
-
-        gameTime.setHours(hours + 2, minutes, 0);
-
-        return {
-            competition,
-            home_team: homeTeam,
-            away_team: awayTeam,
-            game_time: format(gameTime, "yyyy-MM-dd'T'HH:mm")
-        };
-    } catch (error) {
-        console.error('Failed to parse game string:', error);
-        return {};
-    }
-};
-
 const createEmptyGames = (deadline: string): GameFormData[] => {
     return Array.from({ length: 16 }, (_, i) => ({
         game_num: i + 1,
@@ -103,13 +70,9 @@ export const ColumnForm = () => {
         created_by: '',
         max_doubles: 5,
         max_triples: 4,
-        games: null
+        games: []
 
     });
-
-    // const [games, setGames] = useState<GameFormData[]>(() =>
-    //     createEmptyGames(column.deadline)
-    // );
 
     const setGames = (games: GameFormData[]) => {
         setColumn(prev => ({
@@ -141,15 +104,15 @@ export const ColumnForm = () => {
                 setColumn(columnData);
 
                 // Create a map of existing games by game number
-                const existingGames = (columnData?.games || []).reduce((acc, game) => {
-                    acc[game.game_num] = game;
+                const existingGames = (columnData?.games || []).reduce((acc: { [x: string]: GameFormData; }, game: { game_num: string | number; }) => {
+                    acc[game.game_num] = game as GameFormData;
                     return acc;
                 }, {} as Record<number, GameFormData>);
 
                 // Merge existing games with empty games to ensure 16 rows
                 const mergedGames = createEmptyGames(columnData.deadline).map(emptyGame => ({
                     ...emptyGame,
-                    ...(existingGames[emptyGame.game_num] || {})
+                    ...existingGames[emptyGame.game_num]
                 }));
 
                 setGames(mergedGames);
@@ -204,35 +167,20 @@ export const ColumnForm = () => {
     };
 
     const handleGameChange = (index: number, field: string, value: string) => {
-        const newGames = [...games];
-        newGames[index] = {
-            ...games[index],
+        const games = [...column?.games || []];
+        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        games[index] = {
+            ...column.games?.[index],
+            game_num: column.games?.[index]?.game_num || index + 1,
             [field]: value
         };
-        setGames(newGames);
-    };
 
-    const handleGamePaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        const pastedText = e.clipboardData.getData('text');
-        const parsedGame = parseGameString(pastedText);
 
-        if (Object.keys(parsedGame).length > 0) {
-            const newGames = [...games];
-            newGames[index] = {
-                ...games[index],
-                ...parsedGame
-            };
-            setGames(newGames);
-
-            toast({
-                title: 'Game details parsed',
-                description: 'The game details have been automatically filled.',
-            });
-        }
+        setGames(games);
     };
 
     const handleSetResult = async (game: GameFormData, value: BetResult) => {
+        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
         setColumn(prev => {
             const { games = [] } = prev;
             const updatedGames = games.map(g => {
@@ -280,7 +228,8 @@ export const ColumnForm = () => {
                 title: 'Success',
                 description: 'Games data imported successfully'
             });
-        } catch (error) {
+        } catch (e) {
+            console.error('Failed to parse JSON data:', e);
             toast({
                 title: 'Error',
                 description: 'Failed to parse JSON data',
@@ -442,7 +391,6 @@ export const ColumnForm = () => {
                                     <Input
                                         value={game.competition}
                                         onChange={(e) => handleGameChange(index, 'competition', e.target.value)}
-                                        onPaste={(e) => handleGamePaste(index, e)}
                                         placeholder="Paste game details or enter competition..."
                                         className="mb-2"
                                     />
@@ -472,7 +420,6 @@ export const ColumnForm = () => {
                                         <Input
                                             value={game.competition}
                                             onChange={(e) => handleGameChange(index, 'competition', e.target.value)}
-                                            onPaste={(e) => handleGamePaste(index, e)}
                                             placeholder="Paste game details or enter competition..."
                                         />
                                     </div>
