@@ -8,8 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useColumnQuery, usePlaceBetMutation, useVoteStatsQuery, useColumnStatsQuery, useUserBetsQuery } from '@/hooks/useQueries';
 import { VoteStats } from '@/components/VoteStats';
 import { ColumnSummary } from '@/components/ColumnSummary';
-import { BetResult } from '@/types/database.types';
-import { useEffect, useState } from 'react';
+import { BetResult, Game } from '@/types/database.types';
+import { useEffect, useMemo, useState } from 'react';
 import { BetButtons } from '@/components/BetButtons';
 
 interface UserStats {
@@ -25,6 +25,7 @@ export const Column = () => {
     const { columnId } = useParams();
     const navigate = useNavigate();
     const { user, profile } = useAuth();
+
     const [orderBy, setOrderBy] = useState<'game_num' | 'game_time'>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
@@ -94,19 +95,12 @@ export const Column = () => {
     };
 
     useEffect(() => {
-        // const bets = new Map();
-        // if (betsData?.bet_values) {
-        //     betsData.bet_values.forEach((bet) => {
-        //         bets.set(bet.game_id, { value: bet.value });
-        //     });
-        //     if (JSON.stringify(Array.from(bets)) !== JSON.stringify(Array.from(userBet))) {
-        //         setUserBet(bets);
-        //     }
-        // }
-
-        const bets = {};
+        const bets: Record<number, BetResult[]> = {};
         if (betsData?.bet_values) {
-            betsData.bet_values.forEach((bet) => {
+            betsData.bet_values.forEach((bet: {
+                game_id: number;
+                value: BetResult[];
+            }) => {
                 bets[bet.game_id] = bet.value;
             });
             setUserBet(bets);
@@ -121,13 +115,13 @@ export const Column = () => {
         setDoublesAndTriplesCount({ filledBets, doubles, triples });
     }, [userBet]);
 
-    const orderedGames = column?.games?.sort((a, b) => {
+    const orderedGames: Game[] = useMemo(() => column?.games?.sort((a: Game, b: Game) => {
         if (orderBy === 'game_num') {
             return a.game_num - b.game_num;
         } else {
             return new Date(a.game_time).getTime() - new Date(b.game_time).getTime();
         }
-    }) || [];
+    }) || [], [column?.games, orderBy]);
 
     if (isColumnLoading || isBetsLoading || (profile?.is_admin && isVoteStatsLoading) || isStatsLoading) {
         return <div>טוען...</div>;
@@ -307,7 +301,6 @@ export const Column = () => {
                                         </div>
                                     )}
                                 </div>
-
                             </div>
                         ))}
                     </div>

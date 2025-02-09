@@ -61,11 +61,12 @@ const fetchColumn = async (id?: string) => {
     };
 };
 
-const fetchUserBets = async (columnId: string) => {
+const fetchUserBets = async (columnId: string, user_id: string) => {
     const { data, error } = await supabase
         .from('user_bets')
         .select('*')
         .eq('column_id', columnId)
+        .eq('user_id', user_id)
         .single();
     if (error) throw error;
     return data;
@@ -205,14 +206,6 @@ export const useColumnQuery = (id?: string) => {
         queryFn: () => fetchColumn(id),
     });
 };
-
-// export const useGamesQuery = (columnId: string) => {
-//     return useQuery({
-//         queryKey: queryKeys.games(columnId),
-//         queryFn: () => fetchGames(columnId),
-//         enabled: !!columnId,
-//     });
-// };
 
 export const useUserBetsQuery = (columnId: string, userId: string) => {
     return useQuery({
