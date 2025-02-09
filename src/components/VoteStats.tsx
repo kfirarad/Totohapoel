@@ -11,6 +11,7 @@ interface VoteStatsProps {
         doubles: number;
         triples: number;
         singles: number;
+        totalColumns: number;
     };
 }
 
@@ -67,12 +68,12 @@ export const VoteStats = ({ stats }: VoteStatsProps) => {
                                 'transition-all duration-300',
                                 colors[key],
                             )}
-                            style={{ width: `${(stats[key] / stats.total) * 100}%` }}
+                            style={{ width: `${(stats[key] / stats.totalColumns) * 100}%` }}
                         >
                             <div className="w-full flex items-center justify-center text-[8px] text-white font-bold text-center">
                                 {key}
                                 <br />
-                                {Math.round((stats[key] / stats.total) * 100)}%
+                                {Math.round((stats[key] / stats.totalColumns) * 100)}%
                             </div>
                         </div>
                     )))}

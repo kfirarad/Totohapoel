@@ -86,7 +86,7 @@ type UserBets = {
 }
 
 type GamesVotesStats =
-    Record<string, { total: number; '1': number; 'X': number; '2': number; singles: number, doubles: number, triples: number }>
+    Record<string, { total: number; '1': number; 'X': number; '2': number; singles: number, doubles: number, triples: number, totalColumns: number }>;
 
 const fetchVoteStats = async (columnId: string) => {
     const { data: column, error: gamesError } = await supabase
@@ -108,7 +108,8 @@ const fetchVoteStats = async (columnId: string) => {
             singles: 0,
             doubles: 0,
             triples: 0,
-            total: 0
+            total: 0,
+            totalColumns: 0
         };
         return acc;
     }, {} as GamesVotesStats);
@@ -137,6 +138,7 @@ const fetchVoteStats = async (columnId: string) => {
                 acc[gameBet.game_num].triples++;
             }
             acc[gameBet.game_num].total += gameBet.value.length;
+            acc[gameBet.game_num].totalColumns++;
         });
 
         return acc;
