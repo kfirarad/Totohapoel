@@ -22,7 +22,7 @@ interface UserStats {
 }
 
 export const Column = () => {
-    const { columnId, userId } = useParams();
+    const { columnId, userId: userIdParam } = useParams();
     const navigate = useNavigate();
     const { user, profile } = useAuth();
 
@@ -40,7 +40,7 @@ export const Column = () => {
     const {
         data: betsData = [],
         isLoading: isBetsLoading
-    } = useUserBetsQuery(column?.id ?? '', userId || user?.id || '');
+    } = useUserBetsQuery(column?.id ?? '', userIdParam || user?.id || '');
 
     const {
         data: voteStats = {},
@@ -65,7 +65,7 @@ export const Column = () => {
     ).length;
 
     const handlePlaceBet = (gameId: number, value: BetResult) => {
-        if (!user?.id || isDeadlinePassed) return;
+        if (isCurrentUserColumn || isDeadlinePassed) return;
 
         setUserBet(prevBet => {
             const newValue = { ...prevBet };
@@ -95,6 +95,9 @@ export const Column = () => {
         })
 
     };
+
+    const userId = userIdParam || user?.id;
+    const isCurrentUserColumn = userId === user?.id;
 
     useEffect(() => {
         const bets: Record<number, BetResult[]> = {};
@@ -184,7 +187,7 @@ export const Column = () => {
                 </p>
             </div>
 
-            {userId && userId != user?.id && (
+            {!isCurrentUserColumn && (
                 <div className="mb-8">
                     <h2 className="text-xl font-semibold">הטור של {betsData.profiles.name}</h2>
                 </div>
@@ -193,7 +196,7 @@ export const Column = () => {
             {/* Doubles & Triples Counter */}
             <div className="grid gap-6 md:grid-cols-[1fr_300px]">
                 <div className="rounded-lg border bg-card">
-                    {!isDeadlinePassed && (!userId || userId === user?.id) && (<div className="mb-4 sticky top-0 z-10 bg-card p-4 rounded-lg border-b-2">
+                    {!isDeadlinePassed && isCurrentUserColumn && (<div className="mb-4 sticky top-0 z-10 bg-card p-4 rounded-lg border-b-2">
                         <div className="flex justify-between items-center">
                             <div className="flex gap-4 items-center">
                                 <div>
@@ -334,7 +337,7 @@ export const Column = () => {
                                         gameNum={game.game_num}
                                         userBet={userBet}
                                         result={game.result}
-                                        disabled={isDeadlinePassed || !userId || userId !== user?.id}
+                                        disabled={isDeadlinePassed || !isCurrentUserColumn}
                                         onBetPlace={handlePlaceBet}
                                     />
                                     {(profile?.is_admin || isDeadlinePassed) && voteStats[game.game_num] && (

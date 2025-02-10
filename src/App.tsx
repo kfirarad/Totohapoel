@@ -36,7 +36,7 @@ function App() {
   const { user } = useAuth();
   return (
     <QueryProvider>
-      <Router basename="/Totohapoel">
+      <Router basename="/">
         <Header />
         {user ? <RouterComponent /> : <Login />}
         <Footer />
