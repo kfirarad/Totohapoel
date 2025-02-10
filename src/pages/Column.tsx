@@ -65,7 +65,7 @@ export const Column = () => {
     ).length;
 
     const handlePlaceBet = (gameId: number, value: BetResult) => {
-        if (isCurrentUserColumn || isDeadlinePassed) return;
+        if (!isCurrentUserColumn || isDeadlinePassed) return;
 
         setUserBet(prevBet => {
             const newValue = { ...prevBet };
