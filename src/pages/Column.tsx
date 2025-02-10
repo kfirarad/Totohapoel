@@ -135,7 +135,7 @@ export const Column = () => {
         }
     }) || [], [column?.games, orderBy]);
 
-    if (isColumnLoading || isBetsLoading || (profile?.is_admin && isVoteStatsLoading) || isStatsLoading) {
+    if (isColumnLoading || isBetsLoading || isVoteStatsLoading || isStatsLoading) {
         return <div>טוען...</div>;
     }
     if (columnError) return <div>Error: {columnError.message}</div>;
