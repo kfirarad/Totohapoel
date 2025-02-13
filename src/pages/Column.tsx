@@ -11,6 +11,8 @@ import { ColumnSummary } from '@/components/ColumnSummary';
 import { BetResult, Game } from '@/types/database.types';
 import { useEffect, useMemo, useState } from 'react';
 import { BetButtons } from '@/components/BetButtons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface UserStats {
     user: {
@@ -21,13 +23,16 @@ interface UserStats {
     correctBets: number;
 }
 
+type OrderBy = 'game_num' | 'game_time' | 'triples';
+
 export const Column = () => {
     const { columnId, userId: userIdParam } = useParams();
     const navigate = useNavigate();
     const { user, profile } = useAuth();
 
-    const [orderBy, setOrderBy] = useState<'game_num' | 'game_time' | 'triples'>('game_num');
+    const [orderBy, setOrderBy] = useState<OrderBy>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
+    const [showVoteStats, setShowVoteStats] = useState(false);
 
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
     const {
@@ -133,7 +138,7 @@ export const Column = () => {
             default:
                 return a.game_num - b.game_num;
         }
-    }) || [], [column?.games, orderBy]);
+    }) || [], [column?.games, orderBy, voteStats]);
 
     if (isColumnLoading || isBetsLoading || isVoteStatsLoading || isStatsLoading) {
         return <div>טוען...</div>;
@@ -288,11 +293,44 @@ export const Column = () => {
                         </div>
                     </div>
 
+                    {/** Mobile sort buttons */}
+                    <div className="visible md:hidden p-4 bg-muted/50 border-b font-medium text-muted-foreground">
+                        <div className="flex flex-row gap-2 justify-between items-center">
+                            <div className="flex flex-row gap-2 items-center">
+                                {(profile?.is_admin || isDeadlinePassed) && (<><Checkbox id="showVoteStats" checked={showVoteStats} onCheckedChange={() => setShowVoteStats(!showVoteStats)} />
+                                    <label
+                                        htmlFor="showVoteStats"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        הצג נתוני טופס
+                                    </label></>)}
+                            </div>
+                            <div className="flex flex-row gap-2 justify-end items-center">
+                                <div className="text-sm text-muted-foreground">סדר לפי</div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline">
+                                            {orderBy === 'game_num' ? 'מס׳' : orderBy === 'game_time' ? 'זמן משחק' : 'כפולים/משולשים'}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56">
+                                        <DropdownMenuRadioGroup value={orderBy} onValueChange={(value) => setOrderBy(value as OrderBy)}>
+                                            <DropdownMenuRadioItem value="game_num">מס׳</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="game_time">זמן משחק</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="triples">כפולים/משולשים</DropdownMenuRadioItem>
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                    </div>
+
+
                     {/* Games List */}
                     <div className="divide-y">
                         {orderedGames.map((game) => (
                             <div key={game.game_num} className="grid grid-cols-1 md:grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4">
-                                <div className="text-left md:text-right font-medium">
+                                <div className="text-right md:text-right font-medium">
                                     <span className="md:hidden text-muted-foreground text-sm">#</span>
                                     {game.game_num}
                                 </div>
@@ -340,7 +378,7 @@ export const Column = () => {
                                         disabled={isDeadlinePassed || !isCurrentUserColumn}
                                         onBetPlace={handlePlaceBet}
                                     />
-                                    {(profile?.is_admin || isDeadlinePassed) && voteStats[game.game_num] && (
+                                    {(profile?.is_admin || isDeadlinePassed) && showVoteStats && voteStats[game.game_num] && (
                                         <div className="mt-2">
                                             <VoteStats stats={voteStats[game.game_num]} />
                                         </div>

@@ -25,7 +25,7 @@ export const ColumnSummary = ({ stats, showScore, columnId }: ColumnSummaryProps
                 </span>
             </div>
 
-            <div className="divide-y max-h-48 overflow-y-scroll">
+            <div className="divide-y max-h-48 overflow-y-scroll md:max-h-fit  md:overflow-y-auto">
                 {stats.map((userStat) => (
                     <div
                         key={userStat.user.id}
