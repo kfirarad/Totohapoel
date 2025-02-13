@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BetButtons } from '@/components/BetButtons';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
-
+import { useToast } from '@/hooks/use-toast';
 interface UserStats {
     user: {
         id: string;
@@ -85,10 +85,12 @@ export const Column = () => {
         });
     };
 
-    const submitBet = () => {
+    const { toast } = useToast();
+
+    const submitBet = async () => {
         if (!user?.id || isDeadlinePassed) return;
 
-        placeBet({
+        await placeBet({
             betValues: Object.entries(userBet).map(([game_num, bet]) => ({
                 game_num,
                 value: bet
@@ -96,9 +98,13 @@ export const Column = () => {
             betId: betsData?.id,
             columnId: column.id,
             userId: user.id,
-
-        })
-
+        });
+        toast({
+            className: 'bg-blue-800 text-white color-white',
+            title: 'יאללה הפועל!',
+            description: 'הטופס נשלח בהצלחה',
+            variant: 'default'
+        });
     };
 
     const userId = userIdParam || user?.id;
@@ -289,7 +295,6 @@ export const Column = () => {
                                     </Button>
                                 )
                             }
-
                         </div>
                     </div>
 

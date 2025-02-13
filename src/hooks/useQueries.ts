@@ -254,6 +254,7 @@ export const usePlaceBetMutation = () => {
                     .insert([{ bet_values: betValues, user_id: userId, column_id: columnId }]);
                 if (error) throw error;
             }
+            return true;
         },
         onSuccess: (_, { columnId, userId }) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.voteStats(columnId) });
