@@ -259,7 +259,7 @@ export const Column = () => {
                     </div>
                     )}
 
-                    {isDeadlinePassed && (
+                    {isDeadlinePassed && gamesWithResults.length > 0 && (
                         <div className="rounded-lg border bg-card p-4">
                             <div className="flex justify-between items-center">
                                 <div className="flex gap-4 items-center">
