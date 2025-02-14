@@ -277,7 +277,17 @@ export const Column = () => {
 
                     {/* Header - Only visible on desktop */}
                     <div className="hidden md:grid grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
-                        <div>#</div>
+                        <div>
+                            <div className="flex flex-row gap-2 items-center">
+                                {(profile?.is_admin || isDeadlinePassed) && (<><Checkbox id="showVoteStats" checked={showVoteStats} onCheckedChange={() => setShowVoteStats(!showVoteStats)} />
+                                    <label
+                                        htmlFor="showVoteStats"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        הצג נתוני טופס
+                                    </label></>)}
+                            </div>
+                        </div>
                         <div></div>
                         <div></div>
                         <div className="flex flex-row gap-2 justify-end items-center">
