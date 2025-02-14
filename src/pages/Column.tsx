@@ -25,14 +25,22 @@ interface UserStats {
 
 type OrderBy = 'game_num' | 'game_time' | 'triples';
 
+const initialSettings = JSON.parse(localStorage.getItem('settings') || `{}`);
+
 export const Column = () => {
     const { columnId, userId: userIdParam } = useParams();
     const navigate = useNavigate();
     const { user, profile } = useAuth();
 
-    const [orderBy, setOrderBy] = useState<OrderBy>('game_num');
+    const [orderBy, setOrderBy] = useState<OrderBy>(initialSettings.orderBy || 'game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
-    const [showVoteStats, setShowVoteStats] = useState(true);
+    const [showVoteStats, setShowVoteStats] = useState(initialSettings.showVoteStats || false);
+    const [showGroupBet, setShowGroupBet] = useState(initialSettings.showGroupBet || false);
+
+    useEffect(() => {
+        localStorage.setItem('settings', JSON.stringify({ orderBy, showVoteStats, showGroupBet }));
+    }, [orderBy, showVoteStats, showGroupBet]);
+
 
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
     const {
@@ -83,6 +91,7 @@ export const Column = () => {
             newValue[gameId] = bet;
             return newValue;
         });
+
     };
 
     const { toast } = useToast();
@@ -110,18 +119,22 @@ export const Column = () => {
     const userId = userIdParam || user?.id;
     const isCurrentUserColumn = userId === user?.id;
 
-    useEffect(() => {
+    const formatBetsFromBetsData = (betsValues: {
+        game_num: number;
+        value: BetResult[];
+    }[]) => {
         const bets: Record<number, BetResult[]> = {};
-        if (betsData?.bet_values) {
-            betsData.bet_values.forEach((bet: {
-                game_num: number;
-                value: BetResult[];
-            }) => {
-                bets[bet.game_num] = bet.value;
-            });
-            setUserBet(bets);
-        }
+        betsValues.forEach((bet) => {
+            bets[bet.game_num] = bet.value;
+        });
+        return bets;
+    };
 
+
+    useEffect(() => {
+        if (betsData?.bet_values) {
+            setUserBet(formatBetsFromBetsData(betsData.bet_values));
+        }
     }, [betsData]);
 
     useEffect(() => {
@@ -288,6 +301,22 @@ export const Column = () => {
                                     </label></>)}
                             </div>
                         </div>
+                        {column.group_bet && column.group_bet.length === column.games.length && (<div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <Button
+                                    variant={!showGroupBet ? 'default' : 'outline'}
+                                    onClick={() => setShowGroupBet(false)}
+                                >
+                                    הטופס שלי
+                                </Button>
+
+                                <Button
+                                    variant={showGroupBet ? 'default' : 'outline'}
+                                    onClick={() => setShowGroupBet(true)}
+                                >
+                                    הטופס המשותף
+                                </Button></div>
+                        </div>)}
                         <div className="flex flex-row gap-2 justify-end items-center">
                             <div className="text-sm text-muted-foreground">סדר לפי</div>
                             <Button size={'sm'} variant={orderBy === 'game_num' ? 'default' : 'outline'} onClick={() => setOrderBy('game_num')}>
@@ -318,22 +347,44 @@ export const Column = () => {
                                         הצג נתוני טופס
                                     </label></>)}
                             </div>
-                            <div className="flex flex-row gap-2 justify-end items-center">
-                                <div className="text-sm text-muted-foreground">סדר לפי</div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline">
-                                            {orderBy === 'game_num' ? 'מס׳' : orderBy === 'game_time' ? 'זמן משחק' : 'כפולים/משולשים'}
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56">
-                                        <DropdownMenuRadioGroup value={orderBy} onValueChange={(value) => setOrderBy(value as OrderBy)}>
-                                            <DropdownMenuRadioItem value="game_num">מס׳</DropdownMenuRadioItem>
-                                            <DropdownMenuRadioItem value="game_time">זמן משחק</DropdownMenuRadioItem>
-                                            <DropdownMenuRadioItem value="triples">כפולים/משולשים</DropdownMenuRadioItem>
-                                        </DropdownMenuRadioGroup>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                            <div className="flex flex-col gap-2 items-end">
+                                <div className="flex flex-row gap-2 justify-end items-center">
+                                    <div className="text-sm text-muted-foreground">סדר לפי</div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline">
+                                                {orderBy === 'game_num' ? 'מס׳' : orderBy === 'game_time' ? 'זמן משחק' : 'כפולים/משולשים'}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-56">
+                                            <DropdownMenuRadioGroup value={orderBy} onValueChange={(value) => setOrderBy(value as OrderBy)}>
+                                                <DropdownMenuRadioItem value="game_num">מס׳</DropdownMenuRadioItem>
+                                                <DropdownMenuRadioItem value="game_time">זמן משחק</DropdownMenuRadioItem>
+                                                <DropdownMenuRadioItem value="triples">כפולים/משולשים</DropdownMenuRadioItem>
+                                            </DropdownMenuRadioGroup>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                                {column.group_bet && column.group_bet.length === column.games.length && (<div>
+                                    <div className="flex flex-row gap-2 items-center">
+
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline">
+                                                    {showGroupBet ? 'הטופס המשותף' : 'הטופס שלי'}
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-56">
+                                                <DropdownMenuRadioGroup value={showGroupBet.toString()} onValueChange={(value: string) => setShowGroupBet(
+                                                    value === 'true' ? true : false
+                                                )}>
+                                                    <DropdownMenuRadioItem value={'false'}>הטופס שלי</DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value={'true'}>הטופס המשותף</DropdownMenuRadioItem>
+                                                </DropdownMenuRadioGroup>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </div>)}
                             </div>
                         </div>
                     </div>
@@ -386,7 +437,7 @@ export const Column = () => {
                                 <div className="flex gap-2 justify-start flex-col">
                                     <BetButtons
                                         gameNum={game.game_num}
-                                        userBet={userBet}
+                                        userBet={showGroupBet ? formatBetsFromBetsData(column.group_bet) : userBet}
                                         result={game.result}
                                         disabled={isDeadlinePassed || !isCurrentUserColumn}
                                         onBetPlace={handlePlaceBet}
