@@ -77,6 +77,26 @@ export const Column = () => {
         userBet[game.game_num]?.includes(game.result as BetResult)
     ).length;
 
+    const formatBetsFromBetsData = (betsValues: {
+        game_num: number;
+        value: BetResult[];
+    }[]) => {
+        if (!betsValues) return {};
+        const bets: Record<number, BetResult[]> = {};
+        betsValues.forEach((bet) => {
+            bets[bet.game_num] = bet.value;
+        });
+        return bets;
+    };
+
+    const formattedGroupBet = formatBetsFromBetsData(column?.group_bet);
+
+    const correctGroupGuesses = gamesWithResults.filter(game =>
+        formattedGroupBet[game.game_num].includes(game.result as BetResult)
+    ).length;
+
+    const correctGuessesToUse = showGroupBet ? correctGroupGuesses : correctGuesses;
+
     const handlePlaceBet = (gameId: number, value: BetResult) => {
         if (!isCurrentUserColumn || isDeadlinePassed) return;
 
@@ -118,18 +138,6 @@ export const Column = () => {
 
     const userId = userIdParam || user?.id;
     const isCurrentUserColumn = userId === user?.id;
-
-    const formatBetsFromBetsData = (betsValues: {
-        game_num: number;
-        value: BetResult[];
-    }[]) => {
-        const bets: Record<number, BetResult[]> = {};
-        betsValues.forEach((bet) => {
-            bets[bet.game_num] = bet.value;
-        });
-        return bets;
-    };
-
 
     useEffect(() => {
         if (betsData?.bet_values) {
@@ -278,9 +286,9 @@ export const Column = () => {
                                 <div className="flex gap-4 items-center">
                                     <div className="flex gap-4 items-center">
                                         <p className="text-right text-sm font-medium text-muted-foreground">
-                                            ניחושים נכונים : {correctGuesses}/{gamesWithResults.length}
+                                            ניחושים נכונים : {correctGuessesToUse}/{gamesWithResults.length}
                                             {" "}
-                                            ({(correctGuesses / gamesWithResults.length * 100)}%)
+                                            ({(correctGuessesToUse / gamesWithResults.length * 100)}%)
                                         </p>
                                     </div>
                                 </div>
