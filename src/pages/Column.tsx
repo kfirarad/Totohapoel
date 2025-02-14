@@ -32,7 +32,7 @@ export const Column = () => {
 
     const [orderBy, setOrderBy] = useState<OrderBy>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
-    const [showVoteStats, setShowVoteStats] = useState(false);
+    const [showVoteStats, setShowVoteStats] = useState(true);
 
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
     const {
