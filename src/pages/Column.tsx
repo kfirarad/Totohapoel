@@ -276,7 +276,7 @@ export const Column = () => {
 
 
                     {/* Header - Only visible on desktop */}
-                    <div className="hidden md:grid grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
+                    <div className="hidden md:flex justify-between items-center gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
                         <div>
                             <div className="flex flex-row gap-2 items-center">
                                 {(profile?.is_admin || isDeadlinePassed) && (<><Checkbox id="showVoteStats" checked={showVoteStats} onCheckedChange={() => setShowVoteStats(!showVoteStats)} />
@@ -288,8 +288,6 @@ export const Column = () => {
                                     </label></>)}
                             </div>
                         </div>
-                        <div></div>
-                        <div></div>
                         <div className="flex flex-row gap-2 justify-end items-center">
                             <div className="text-sm text-muted-foreground">סדר לפי</div>
                             <Button size={'sm'} variant={orderBy === 'game_num' ? 'default' : 'outline'} onClick={() => setOrderBy('game_num')}>
