@@ -288,7 +288,7 @@ export const Column = () => {
                                         <p className="text-right text-sm font-medium text-muted-foreground">
                                             ניחושים נכונים : {correctGuessesToUse}/{gamesWithResults.length}
                                             {" "}
-                                            ({(correctGuessesToUse / gamesWithResults.length * 100)}%)
+                                            ({(correctGuessesToUse / gamesWithResults.length * 100).toFixed(2)}%)
                                         </p>
                                     </div>
                                 </div>
@@ -315,7 +315,7 @@ export const Column = () => {
                                     variant={!showGroupBet ? 'default' : 'outline'}
                                     onClick={() => setShowGroupBet(false)}
                                 >
-                                    הטופס שלי
+                                    טופס אישי
                                 </Button>
 
                                 <Button
@@ -379,14 +379,14 @@ export const Column = () => {
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="outline">
-                                                    {showGroupBet ? 'הטופס המשותף' : 'הטופס שלי'}
+                                                    {showGroupBet ? 'הטופס המשותף' : 'טופס אישי'}
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="w-56">
                                                 <DropdownMenuRadioGroup value={showGroupBet.toString()} onValueChange={(value: string) => setShowGroupBet(
                                                     value === 'true' ? true : false
                                                 )}>
-                                                    <DropdownMenuRadioItem value={'false'}>הטופס שלי</DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value={'false'}>טופס אישי</DropdownMenuRadioItem>
                                                     <DropdownMenuRadioItem value={'true'}>הטופס המשותף</DropdownMenuRadioItem>
                                                 </DropdownMenuRadioGroup>
                                             </DropdownMenuContent>
