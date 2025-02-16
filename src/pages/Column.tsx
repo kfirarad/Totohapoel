@@ -507,9 +507,9 @@ export const Column = () => {
                                 </div>
                                 {
                                     showLiveMatchWidget &&
+                                    game.result === null &&
+                                    game.live_tracker_id &&
                                     new Date(game.game_time).getTime() - Date.now() < 30 * 60 * 1000 &&
-                                    Date.now() - new Date(game.game_time).getTime() < 180 * 60 * 1000 &&
-                                    game.result === null && game.live_tracker_id &&
                                     <LiveMatchWidget matchId={game.live_tracker_id} />
                                 }
                             </div>
