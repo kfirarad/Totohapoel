@@ -41,6 +41,8 @@ const competitionTo365LeagueId = (leagueName: string) => {
             return 372;
         case "איטלקית ראשונה":
             return 384;
+        case "צרפתית ראשונה":
+            return 301;
         default:
             return null;
     }
@@ -60,7 +62,7 @@ export const Column = () => {
     const [standingWidgetLeague, setStandingWidgetLeague] = useState<number | null>(null);
     const { toast } = useToast();
 
-
+    useEffect(() => setUserBet({}), [columnId]);
 
     useEffect(() => {
         localStorage.setItem('settings', JSON.stringify({ orderBy, showVoteStats, showGroupBet, showLiveMatchWidget }));
