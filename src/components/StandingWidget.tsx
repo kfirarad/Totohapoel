@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import * as React from "react"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import {
@@ -9,29 +8,19 @@ import {
     Drawer,
     DrawerContent,
 } from "@/components/ui/drawer"
-import { min } from "date-fns";
 
 interface StandingWidgetProps {
     leagueId: number | null;
+    isOpened: boolean;
     onOpenChange?: (open: boolean) => void;
 }
 
 export const StandingWidget: React.FC<StandingWidgetProps> = ({
     leagueId,
+    isOpened,
     onOpenChange
 }) => {
-    // useEffect(() => {
-    //     //<script src="https://widgets.365scores.com/main.js"></script>
-    //     const script = document.createElement('script');
-    //     script.src = 'https://widgets.365scores.com/main.js';
-    //     script.async = true;
-    //     document.body.appendChild(script);
-    // }, []);
-
     const isDesktop = useMediaQuery("(min-width: 768px)")
-
-
-
     if (!leagueId) {
         return null;
     }
@@ -39,7 +28,7 @@ export const StandingWidget: React.FC<StandingWidgetProps> = ({
 
     if (isDesktop) {
         return (
-            <Dialog open={true} onOpenChange={onOpenChange}>
+            <Dialog open={isOpened} onOpenChange={onOpenChange}>
                 <DialogContent className="sm:max-w-[425px]">
                     <ScoreAxisWidget leagueId={leagueId} />
                 </DialogContent>
@@ -48,7 +37,7 @@ export const StandingWidget: React.FC<StandingWidgetProps> = ({
     }
 
     return (
-        <Drawer open={true} onOpenChange={onOpenChange}>
+        <Drawer open={isOpened} onOpenChange={onOpenChange}>
             <DrawerContent>
                 <ScoreAxisWidget leagueId={leagueId} />
             </DrawerContent>
@@ -57,7 +46,7 @@ export const StandingWidget: React.FC<StandingWidgetProps> = ({
 }
 
 
-const ScoreAxisWidget: React.FC<{ leagueId: number }> = ({ leagueId }) => {
+const ScoreAxisWidget: React.FC<{ leagueId: number }> = React.memo(({ leagueId }) => {
     const widgetStyles = {
         borderWidth: '1px',
         borderColor: 'rgba(0, 0, 0, 0.15)',
@@ -95,4 +84,4 @@ const ScoreAxisWidget: React.FC<{ leagueId: number }> = ({ leagueId }) => {
             <div style={dataProvidedStyles}>Data provided by <a target="_blank" href="https://www.scoreaxis.com/">Scoreaxis</a></div>
         </div>
     )
-}
+})

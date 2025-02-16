@@ -54,13 +54,16 @@ export const Column = () => {
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
     const [showVoteStats, setShowVoteStats] = useState(initialSettings.showVoteStats || false);
     const [showGroupBet, setShowGroupBet] = useState(initialSettings.showGroupBet || false);
+    const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
+    const [standingWidgetLeague, setStandingWidgetLeague] = useState<number | null>(null);
+    const { toast } = useToast();
+
+
 
     useEffect(() => {
         localStorage.setItem('settings', JSON.stringify({ orderBy, showVoteStats, showGroupBet }));
     }, [orderBy, showVoteStats, showGroupBet]);
 
-
-    const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
     const {
         data: column,
         isLoading: isColumnLoading,
@@ -131,10 +134,6 @@ export const Column = () => {
         });
 
     };
-
-    const { toast } = useToast();
-
-    const [standingWidgetLeague, setStandingWidgetLeague] = useState<number | null>(null);
 
     const submitBet = async () => {
         if (!user?.id || isDeadlinePassed) return;
@@ -495,7 +494,8 @@ export const Column = () => {
                 )}
             </div>
 
-            {!!standingWidgetLeague && <StandingWidget
+            {<StandingWidget
+                isOpened={!!standingWidgetLeague}
                 leagueId={standingWidgetLeague}
                 onOpenChange={(newState) => {
                     if (newState) {
