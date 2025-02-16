@@ -17,7 +17,6 @@ const RouterComponent = () => {
       <Route path="/column" element={<Column />} />
       <Route path="/column/:columnId" element={<Column />} />
       <Route path="/column/:columnId/user/:userId" element={<Column />} />
-
       {/* Admin Routes */}
       {profile?.is_admin && (
         <Route path="/admin" element={<AdminLayout />}>
@@ -25,7 +24,7 @@ const RouterComponent = () => {
           <Route path="columns" element={<ColumnsList />} />
           <Route path="columns/new" element={<ColumnForm />} />
           <Route path="columns/:id" element={<ColumnForm />} />
-          <Route path="users" element={<div>Users management coming soon</div>} />
+          <Route path="users" element={<div>Users management coming soon</div>} />          
         </Route>
       )}
     </Routes>

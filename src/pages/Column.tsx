@@ -14,6 +14,7 @@ import { BetButtons } from '@/components/BetButtons';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { StandingWidget } from '@/components';
 interface UserStats {
     user: {
         id: string;
@@ -26,6 +27,23 @@ interface UserStats {
 type OrderBy = 'game_num' | 'game_time' | 'triples';
 
 const initialSettings = JSON.parse(localStorage.getItem('settings') || `{}`);
+
+const competitionTo365LeagueId = (leagueName: string) => {
+    switch (leagueName) {
+        case "ספרדית ראשונה":
+            return 564;
+        case "גרמנית ראשונה":
+            return 82;
+        case "פרמייר ליג":
+            return 8;
+        case "ליגת Winner":
+            return 372;
+        case "איטלקית ראשונה":
+            return 384;
+        default:
+            return null;
+    }
+};
 
 export const Column = () => {
     const { columnId, userId: userIdParam } = useParams();
@@ -115,6 +133,8 @@ export const Column = () => {
     };
 
     const { toast } = useToast();
+
+    const [standingWidgetLeague, setStandingWidgetLeague] = useState<number | null>(null);
 
     const submitBet = async () => {
         if (!user?.id || isDeadlinePassed) return;
@@ -419,7 +439,9 @@ export const Column = () => {
                                             {format(new Date(game.game_time), 'HH:mm')}
                                         </div>
                                         <div className="text-sm text-blue-600">
-                                            {game.competition}
+                                            <span
+                                                onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                                            >{game.competition}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -429,7 +451,9 @@ export const Column = () => {
                                         {getDayName(new Date(game.game_time))}{", "}
                                         {format(new Date(game.game_time), 'HH:mm')}
                                     </div>
-                                    <div className="text-sm text-blue-600">
+                                    <div className="text-sm text-blue-600"
+                                        onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                                    >
                                         {game.competition}
                                     </div>
                                 </div>
@@ -470,6 +494,18 @@ export const Column = () => {
                     </div>
                 )}
             </div>
+
+            {!!standingWidgetLeague && <StandingWidget
+                leagueId={standingWidgetLeague}
+                onOpenChange={(newState) => {
+                    if (newState) {
+                        setStandingWidgetLeague(competitionTo365LeagueId(column.competition));
+                    } else {
+                        setStandingWidgetLeague(null);
+                    }
+                }}
+            />}
+
         </div>
     );
 };
