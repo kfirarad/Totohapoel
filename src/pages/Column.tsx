@@ -191,7 +191,7 @@ export const Column = () => {
     }) || [], [column?.games, orderBy, voteStats]);
 
     if (isColumnLoading || isBetsLoading || isVoteStatsLoading || isStatsLoading) {
-        return <div>טוען...</div>;
+        return <div className='flex justify-center align-center h-lvh'>טוען...</div>;
     }
     if (columnError) return <div>Error: {columnError.message}</div>;
     if (!column) return <div>לא נמצא טור פעיל</div>;
@@ -415,6 +415,7 @@ export const Column = () => {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
+
                                 {column.group_bet && column.group_bet.length === column.games.length && (<div>
                                     <div className="flex flex-row gap-2 items-center">
 

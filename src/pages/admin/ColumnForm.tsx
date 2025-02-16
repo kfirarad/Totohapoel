@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addDays, format, nextFriday, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 
 interface GameFormData {
     game_num: number;
@@ -59,6 +60,10 @@ export const ColumnForm = () => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    const [orderBy, setOrderBy] = useState<'game_num' | 'game_time' | 'result'>('game_num');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
     const [column, setColumn] = useState<Column>({
         id: '',
         name: '',
@@ -246,6 +251,16 @@ export const ColumnForm = () => {
 
     const isDeadlinePassed = new Date(column.deadline) < new Date();
 
+
+    const sortedGames = column?.games?.sort((a, b) => {
+        if (!a[orderBy] || !b[orderBy]) return 0;
+        if (sortOrder === 'asc') {
+            return a[orderBy] > b[orderBy] ? 1 : -1;
+        } else {
+            return a[orderBy] < b[orderBy] ? 1 : -1;
+        }
+    }) || [];
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex justify-between items-center">
@@ -352,6 +367,48 @@ export const ColumnForm = () => {
                         Paste JSON Data
                     </Button>
                 </div>
+
+                <div className="flex gap-4 items-center space-between">
+                    <div className="w-1/3">
+                        <div className="text-sm text-muted-foreground">סדר לפי</div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    {orderBy === 'game_num' ? 'מס׳' : orderBy === 'game_time' ? 'זמן משחק' : 'תוצאה'}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56">
+                                <DropdownMenuRadioGroup value={orderBy} onValueChange={(value) => setOrderBy(value as OrderBy)}>
+                                    <DropdownMenuRadioItem value="game_num">מס׳</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="game_time">זמן משחק</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="result">תוצאה</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    <div className="w-1/3">
+                        <div className="text-sm text-muted-foreground">סדר</div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    {sortOrder === 'asc' ? 'עולה' : 'יורד'}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56">
+                                <DropdownMenuRadioGroup value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+                                    <DropdownMenuRadioItem value="asc">עולה</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="desc">יורד</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+
+
+                </div>
+
+
                 <div className="rounded-lg border bg-card">
                     {/* Header - Only visible on desktop */}
                     <div className="hidden md:grid grid-cols-[60px_1fr_1fr_1fr_1fr_auto] gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
@@ -366,7 +423,7 @@ export const ColumnForm = () => {
 
                     {/* Games List */}
                     <div className="divide-y">
-                        {column?.games?.map((game, index) => (
+                        {sortedGames.map((game, index) => (
                             <div key={game.game_num} className="grid gap-4 p-4">
                                 {/* Mobile Layout */}
                                 <div className="md:hidden space-y-4">
@@ -417,7 +474,7 @@ export const ColumnForm = () => {
                                 </div>
 
                                 {/* Desktop Layout */}
-                                <div className="hidden md:grid grid-cols-[60px_1fr_1fr_1fr_1fr_auto] gap-4 items-center">
+                                <div className="hidden md:grid grid-cols-[20px_1fr_1fr_1fr_1fr_0.5fr_auto] gap-4 items-center">
                                     <div className="font-medium">{game.game_num}</div>
                                     <div>
                                         <Input
@@ -478,6 +535,6 @@ export const ColumnForm = () => {
                     </div>
                 </div>
             </div>
-        </form>
+        </form >
     );
 }; 
