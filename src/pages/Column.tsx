@@ -3,7 +3,7 @@ import { cn, getDayName } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { he } from "date-fns/locale";
+import { he, is } from "date-fns/locale";
 import { useAuth } from '@/contexts/AuthContext';
 import { useColumnQuery, usePlaceBetMutation, useVoteStatsQuery, useColumnStatsQuery, useUserBetsQuery } from '@/hooks/useQueries';
 import { VoteStats } from '@/components/VoteStats';
@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { StandingWidget } from '@/components';
+import { LiveMatchWidget } from '@/components/LiveMatchWidget';
 interface UserStats {
     user: {
         id: string;
@@ -53,6 +54,7 @@ export const Column = () => {
     const [orderBy, setOrderBy] = useState<OrderBy>(initialSettings.orderBy || 'game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
     const [showVoteStats, setShowVoteStats] = useState(initialSettings.showVoteStats || false);
+    const [showLiveMatchWidget, setShowLiveMatchWidget] = useState(initialSettings.showLiveMatchWidget || true);
     const [showGroupBet, setShowGroupBet] = useState(initialSettings.showGroupBet || false);
     const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({ filledBets: 0, doubles: 0, triples: 0 });
     const [standingWidgetLeague, setStandingWidgetLeague] = useState<number | null>(null);
@@ -61,8 +63,8 @@ export const Column = () => {
 
 
     useEffect(() => {
-        localStorage.setItem('settings', JSON.stringify({ orderBy, showVoteStats, showGroupBet }));
-    }, [orderBy, showVoteStats, showGroupBet]);
+        localStorage.setItem('settings', JSON.stringify({ orderBy, showVoteStats, showGroupBet, showLiveMatchWidget }));
+    }, [orderBy, showVoteStats, showGroupBet, showLiveMatchWidget]);
 
     const {
         data: column,
@@ -326,6 +328,15 @@ export const Column = () => {
                                     >
                                         הצג נתוני טופס
                                     </label></>)}
+                                {isDeadlinePassed && (
+                                    <><Checkbox id="showLiveMatchWidget" checked={showLiveMatchWidget} onCheckedChange={() => setShowLiveMatchWidget(!showLiveMatchWidget)} />
+                                        <label
+                                            htmlFor="showLiveMatchWidget"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                            הצג משחקים חיים
+                                        </label></>
+                                )}
                             </div>
                         </div>
                         {column.group_bet && column.group_bet.length === column.games.length && (<div>
@@ -373,6 +384,16 @@ export const Column = () => {
                                     >
                                         הצג נתוני טופס
                                     </label></>)}
+
+                                {isDeadlinePassed && (
+                                    <><Checkbox id="showLiveMatchWidget" checked={showLiveMatchWidget} onCheckedChange={() => setShowLiveMatchWidget(!showLiveMatchWidget)} />
+                                        <label
+                                            htmlFor="showLiveMatchWidget"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                            הצג משחקים חיים
+                                        </label></>
+                                )}
                             </div>
                             <div className="flex flex-col gap-2 items-end">
                                 <div className="flex flex-row gap-2 justify-end items-center">
@@ -420,70 +441,81 @@ export const Column = () => {
                     {/* Games List */}
                     <div className="divide-y">
                         {orderedGames.map((game) => (
-                            <div key={game.game_num} className="grid grid-cols-1 md:grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4">
-                                <div className="text-right md:text-right font-medium">
-                                    <span className="md:hidden text-muted-foreground text-sm">#</span>
-                                    {game.game_num}
-                                </div>
+                            <div>
+                                <div key={game.game_num} className="grid grid-cols-1 md:grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4">
+                                    <div className="text-right md:text-right font-medium">
+                                        <span className="md:hidden text-muted-foreground text-sm">#</span>
+                                        {game.game_num}
+                                    </div>
 
-                                {/* Mobile: Game Details Column */}
-                                <div className="md:hidden flex flex-row justify-between">
-                                    {/* Game Info */}
-                                    <div className="flex-1 flex flex-col gap-1">
-                                        <div className="font-medium">
-                                            {game.home_team} - {game.away_team}
+                                    {/* Mobile: Game Details Column */}
+                                    <div className="md:hidden flex flex-row justify-between">
+                                        {/* Game Info */}
+                                        <div className="flex-1 flex flex-col gap-1">
+                                            <div className="font-medium">
+                                                {game.home_team} - {game.away_team}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {getDayName(new Date(game.game_time))}{", "}
+                                                {format(new Date(game.game_time), 'HH:mm')}
+                                            </div>
+                                            <div className="text-sm text-blue-600">
+                                                <span
+                                                    onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                                                >{game.competition}</span>
+                                            </div>
                                         </div>
+                                    </div>
+                                    {/* Desktop: Time & Competition */}
+                                    <div className="hidden md:block">
                                         <div className="text-sm text-muted-foreground">
                                             {getDayName(new Date(game.game_time))}{", "}
                                             {format(new Date(game.game_time), 'HH:mm')}
                                         </div>
-                                        <div className="text-sm text-blue-600">
-                                            <span
-                                                onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
-                                            >{game.competition}</span>
+                                        <div className="text-sm text-blue-600"
+                                            onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                                        >
+                                            {game.competition}
                                         </div>
                                     </div>
-                                </div>
-                                {/* Desktop: Time & Competition */}
-                                <div className="hidden md:block">
-                                    <div className="text-sm text-muted-foreground">
-                                        {getDayName(new Date(game.game_time))}{", "}
-                                        {format(new Date(game.game_time), 'HH:mm')}
-                                    </div>
-                                    <div className="text-sm text-blue-600"
-                                        onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
-                                    >
-                                        {game.competition}
-                                    </div>
-                                </div>
 
-                                {/* Desktop: Teams */}
-                                <div className="hidden md:flex items-center gap-2">
-                                    <span className="font-medium">{game.home_team}</span>
-                                    <span className="text-muted-foreground">vs</span>
-                                    <span className="font-medium">{game.away_team}</span>
-                                </div>
+                                    {/* Desktop: Teams */}
+                                    <div className="hidden md:flex items-center gap-2">
+                                        <span className="font-medium">{game.home_team}</span>
+                                        <span className="text-muted-foreground">vs</span>
+                                        <span className="font-medium">{game.away_team}</span>
+                                    </div>
 
-                                {/* Desktop: Bet Buttons */}
-                                <div className="flex gap-2 justify-start flex-col">
-                                    <BetButtons
-                                        gameNum={game.game_num}
-                                        userBet={showGroupBet ? formatBetsFromBetsData(column.group_bet) : userBet}
-                                        result={game.result}
-                                        disabled={isDeadlinePassed || !isCurrentUserColumn}
-                                        onBetPlace={handlePlaceBet}
-                                    />
-                                    {(profile?.is_admin || isDeadlinePassed) && showVoteStats && voteStats[game.game_num] && (
-                                        <div className="mt-2">
-                                            <VoteStats stats={voteStats[game.game_num]} />
-                                        </div>
-                                    )}
+                                    {/* Desktop: Bet Buttons */}
+                                    <div className="flex gap-2 justify-start flex-col">
+                                        <BetButtons
+                                            gameNum={game.game_num}
+                                            userBet={showGroupBet ? formatBetsFromBetsData(column.group_bet) : userBet}
+                                            result={game.result}
+                                            disabled={isDeadlinePassed || !isCurrentUserColumn}
+                                            onBetPlace={handlePlaceBet}
+                                        />
+                                        {(profile?.is_admin || isDeadlinePassed) && showVoteStats && voteStats[game.game_num] && (
+                                            <div className="mt-2">
+                                                <VoteStats stats={voteStats[game.game_num]} />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
+                                {
+                                    showLiveMatchWidget &&
+                                    new Date(game.game_time).getTime() - Date.now() < 30 * 60 * 1000 &&
+                                    Date.now() - new Date(game.game_time).getTime() < 30 * 60 * 1000 &&
+                                    game.result === null && game.live_tracker_id &&
+                                    <LiveMatchWidget matchId={game.live_tracker_id} />
+                                }
                             </div>
                         ))}
                     </div>
 
                     {/* Footer */}
+
+
                 </div>
 
                 {/* Column Summary */}

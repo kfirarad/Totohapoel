@@ -85,3 +85,10 @@ const ScoreAxisWidget: React.FC<{ leagueId: number }> = React.memo(({ leagueId }
         </div>
     )
 })
+
+
+/**
+ * 
+ * 
+ * <div id="scoreaxis-widget-c8b99"><iframe id="Iframe" src="https://www.scoreaxis.com/widget/standings-widget/564?autoHeight=1&amp;groupNum=undefined&amp;lang=he&amp;font=0&amp;fontSize=14&amp;links=0&amp;widgetRows=1%2C1%2C1%2C1%2C1%2C1%2C1%2C0%2C1%2C1&amp;header=1&amp;teamsLogo=1&amp;widgetHomeAwayTabs=1&amp;removeBorders=1&amp;inst=c8b99" style="width:100%;border:none;transition:all 300ms ease"></iframe><script>window.addEventListener("DOMContentLoaded",event=>{window.addEventListener("message",event=>{if(event.data.appHeight&&"c8b99"==event.data.inst){let container=document.querySelector("#scoreaxis-widget-c8b99 iframe");container&&(container.style.height=parseInt(event.data.appHeight)+"px")}},!1)});</script></div><div style="font-size: 12px; font-family: Arial, sans-serif; text-align: left;">Data provided by <a target="_blank" href="https://www.scoreaxis.com/">Scoreaxis</a></div>
+ */

@@ -15,6 +15,7 @@ interface GameFormData {
     away_team: string;
     game_time: string;
     competition: string;
+    live_tracker_id: number;
     result: BetResult;
 }
 
@@ -216,7 +217,8 @@ export const ColumnForm = () => {
                 away_team: row.teamB,
                 competition: row.league,
                 game_time: row.eventStartTime,
-                result: null
+                result: null,
+                live_tracker_id: null,
             }));
 
             setColumn({
@@ -358,6 +360,7 @@ export const ColumnForm = () => {
                         <div>Home Team</div>
                         <div>Away Team</div>
                         <div>Game Time</div>
+                        <div>Live Tracker ID</div>
                         {isDeadlinePassed && <div>Result</div>}
                     </div>
 
@@ -442,6 +445,13 @@ export const ColumnForm = () => {
                                             type="datetime-local"
                                             value={format(new Date(game.game_time), "yyyy-MM-dd'T'HH:mm")}
                                             onChange={(e) => handleGameChange(index, 'game_time', new Date(e.target.value).toISOString())}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Input
+                                            value={game.live_tracker_id}
+                                            onChange={(e) => handleGameChange(index, 'live_tracker_id', e.target.value)}
+                                            placeholder="live_tracker_id"
                                         />
                                     </div>
                                     {isDeadlinePassed && (

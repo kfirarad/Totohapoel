@@ -18,6 +18,7 @@ export interface Game {
   away_team: string;
   game_time: string;
   competition: string;
+  live_tracker_id: number;
   result: BetResult;
 }
 
