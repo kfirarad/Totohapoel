@@ -9,6 +9,7 @@ import { addDays, format, nextFriday, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
+import { useSetResultMutation, useRecalculateCorrectGuessesMutation } from '@/hooks/useQueries';
 
 interface GameFormData {
     game_num: number;
@@ -130,7 +131,7 @@ export const ColumnForm = () => {
     }, [id]);
 
     const { user } = useAuth();
-
+    const { mutateAsync: calculateCorrectGuessesAsync } = useRecalculateCorrectGuessesMutation();
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -144,7 +145,7 @@ export const ColumnForm = () => {
 
 
         try {
-            // Save column
+
             const { error: columnError } = await supabase
                 .from('columns')
                 .upsert({
@@ -152,6 +153,9 @@ export const ColumnForm = () => {
                 })
                 .select()
                 .single();
+
+
+            calculateCorrectGuessesAsync(column.id);
 
             if (columnError) throw columnError;
 
@@ -181,26 +185,34 @@ export const ColumnForm = () => {
             [field]: value
         };
 
-
         setGames(games);
     };
 
     const handleSetResult = async (game: GameFormData, value: BetResult) => {
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
-        setColumn(prev => {
-            const { games = [] } = prev;
-            const updatedGames = games.map(g => {
-                if (g.game_num === game.game_num) {
-                    if (g.result === value) {
-                        return { ...g, result: undefined };
-                    } else {
+        try {
+            // Optimistically update the local state
+            setColumn(prev => {
+                const { games = [] } = prev;
+                const updatedGames = games.map(g => {
+                    if (g.game_num === game.game_num) {
                         return { ...g, result: value };
                     }
-                }
-                return g;
+                    return g;
+                });
+                return { ...prev, games: updatedGames };
             });
-            return { ...prev, games: updatedGames };
-        });
+
+            toast({
+                title: 'Success',
+                description: 'Game result updated successfully'
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error?.message || 'Failed to set result',
+                variant: 'destructive'
+            });
+        }
     };
 
     const handlePasteJson = async () => {
@@ -537,4 +549,4 @@ export const ColumnForm = () => {
             </div>
         </form >
     );
-}; 
+};

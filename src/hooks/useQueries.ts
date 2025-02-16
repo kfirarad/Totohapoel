@@ -195,7 +195,7 @@ const fetchColumnStats = async (column: Column) => {
 export const useColumnQuery = (id?: string) => {
     return useQuery({
         queryKey: queryKeys.column(id),
-        queryFn: () => fetchColumn(id),        
+        queryFn: () => fetchColumn(id),
     });
 };
 
@@ -271,23 +271,88 @@ export const useSetResultMutation = () => {
         mutationFn: async ({
             gameId,
             value,
-            columnId
         }: {
             gameId: string;
             value: BetResult;
-            columnId: string;
         }) => {
             const { error } = await supabase
                 .from('games')
                 .update({ result: value })
                 .eq('id', gameId);
             if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.columnStats('') });
+            queryClient.invalidateQueries({ queryKey: queryKeys.column('') });
+        },
+    });
+};
 
-            // Return columnId for use in onSuccess
+export const useRecalculateCorrectGuessesMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (columnId?: string) => {
+            if (!columnId) return;
+
+            // Get the column data
+            const { data: column, error: columnError } = await supabase
+                .from('columns')
+                .select('*')
+                .eq('id', columnId)
+                .single();
+
+            if (columnError) throw columnError;
+
+            // Get all user bets for the column
+            const { data: userBets, error: userBetsError } = await supabase
+                .from('user_bets')
+                .select('*')
+                .eq('column_id', columnId);
+
+            if (userBetsError) throw userBetsError;
+
+            // Update correct_guess for each user bet
+            const toUpdate = await Promise.all(userBets.map(async (userBet) => {
+                let correctGuesses = 0;
+                for (const gameBet of userBet.bet_values) {
+                    const game = column.games.find((g: Game) => g.game_num == gameBet.game_num);
+                    if (game && game.result && gameBet.value.includes(game.result)) {
+                        correctGuesses++;
+                    }
+                }
+                return { id: userBet.id, correct_guesses: correctGuesses };
+            }));
+
+
+            const { error: updateError } = await supabase
+                .from('user_bets')
+                .upsert(toUpdate)
+
+            if (updateError) throw updateError;
+
+
+            // now update the column "group_bet_correct_guesses"
+            const groupBetCorrectGuesses = column.group_bet.reduce((acc, gameBet) => {
+                const game = column.games.find((g: Game) => g.game_num == gameBet.game_num);
+                if (game && game.result && gameBet.value.includes(game.result)) {
+                    acc++;
+                }
+                return acc;
+            }, 0);
+
+            const { error: updateColumnError } = await supabase
+                .from('columns')
+                .update({ group_bet_correct_guesses: groupBetCorrectGuesses })
+                .eq('id', columnId);
+
+            if (updateColumnError) throw updateColumnError;
+
             return { columnId };
         },
         onSuccess: ({ columnId }) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.columnStats(columnId) });
         },
     });
-}; 
+};
+

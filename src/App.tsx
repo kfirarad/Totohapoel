@@ -7,6 +7,7 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { ColumnsList } from '@/pages/admin/ColumnsList';
 import { ColumnForm } from '@/pages/admin/ColumnForm';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { StatsPage } from './pages/StatsPage';
 
 const RouterComponent = () => {
   const { profile } = useAuth();
@@ -17,6 +18,7 @@ const RouterComponent = () => {
       <Route path="/column" element={<Column />} />
       <Route path="/column/:columnId" element={<Column />} />
       <Route path="/column/:columnId/user/:userId" element={<Column />} />
+      <Route path="/stats" element={<StatsPage />} />
       {/* Admin Routes */}
       {profile?.is_admin && (
         <Route path="/admin" element={<AdminLayout />}>

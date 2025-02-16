@@ -3,7 +3,7 @@ import { cn, getDayName } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { he, is } from "date-fns/locale";
+import { he } from "date-fns/locale";
 import { useAuth } from '@/contexts/AuthContext';
 import { useColumnQuery, usePlaceBetMutation, useVoteStatsQuery, useColumnStatsQuery, useUserBetsQuery } from '@/hooks/useQueries';
 import { VoteStats } from '@/components/VoteStats';

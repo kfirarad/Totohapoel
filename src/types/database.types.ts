@@ -10,6 +10,8 @@ export interface Column {
   max_doubles?: number;
   max_triples?: number;
   games?: Game[];
+  group_bet: GameBetValue[] | null;
+  group_bet_correct_guesses: number | null;
 }
 
 export interface Game {
@@ -31,4 +33,5 @@ export interface UserBet {
   user_id: string;
   column_id: string;
   bet_values: GameBetValue[];
+  correct_guesses: number | null;
 }
