@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
-import { Volleyball } from 'lucide-react'
+import { User, Volleyball } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const Header = () => {
@@ -33,10 +33,13 @@ const Header = () => {
             </Link>
             <div>
                 {user ? (
-                    <div className="flex items-center space-x-2">
-                        <div
-                            className="flex items-center space-x-2 gap-2">
-                            {profile?.name}</div>
+                    <div className="flex items-center space-x-2 gap-2">
+                        <div className="flex items-center space-x-2 gap-2 hover:underline">
+                            <User className="h-6 w-6" />
+                            <Link to="/profile">
+                                {profile?.name}
+                            </Link>
+                        </div>
                         <Button variant="outline" onClick={handleLogout}>
                             התנתק
                         </Button>

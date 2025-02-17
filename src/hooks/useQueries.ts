@@ -10,6 +10,7 @@ export const queryKeys = {
     user_bets: (columnId: string, userId: string) => ['user_bets', columnId, userId] as const,
     voteStats: (columnId: string) => ['voteStats', columnId] as const,
     columnStats: (columnId: string) => ['columnStats', columnId] as const,
+    userStats: (userId?: string) => ['userStats', userId] as const,
 };
 
 // Fetch functions
@@ -356,3 +357,25 @@ export const useRecalculateCorrectGuessesMutation = () => {
     });
 };
 
+export const useUserStatsQuery = (userId?: string) => {
+    return useQuery({
+        queryKey: queryKeys.userStats(userId),
+        queryFn: async () => {
+            const { data: bets, error } = await supabase
+                .from('user_bets')
+                .select('correct_guesses, columns(name, deadline, group_bet_correct_guesses)')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: true })
+                .returns<{
+                    correct_guesses: number;
+                    columns: {
+                        name: string;
+                        deadline: string;
+                        group_bet_correct_guesses: number;
+                    }
+                }[]>();
+            if (error) throw error;
+            return bets;
+        },
+    });
+}
