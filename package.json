@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.48.1",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-query-devtools": "^5.66.0",
+    "babel-plugin-react-compiler": "^19.0.0-beta-30d8a17-20250209",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

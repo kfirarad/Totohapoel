@@ -29,7 +29,7 @@ export const StandingWidget: React.FC<StandingWidgetProps> = ({
     if (isDesktop) {
         return (
             <Dialog open={isOpened} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:min-w-[50vw]">
                     <ScoreAxisWidget leagueId={leagueId} />
                 </DialogContent>
             </Dialog>
