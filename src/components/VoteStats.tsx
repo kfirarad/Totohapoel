@@ -54,7 +54,8 @@ export const VoteStats = ({ stats, calcType }: VoteStatsProps) => {
                             <div className="w-full flex items-center justify-center text-[8px] text-white font-bold text-center">
                                 {key}
                                 <br />
-                                ({stats[calcType][key]}){Math.round((stats[calcType][key] / stats[calcType].total) * 100)}%
+                                ({parseFloat(stats[calcType][key]).toFixed(2)})
+                                {Math.round((stats[calcType][key] / stats[calcType].total) * 100)}%
                             </div>
                         </div>
                     )))}

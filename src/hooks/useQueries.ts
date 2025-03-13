@@ -170,9 +170,7 @@ const fetchVoteStats = async (columnId: string) => {
 
     return acc;
   }, gameVotes);
-
-  console.log('ab' , ab);
-
+  
   return ab;
 };
 
