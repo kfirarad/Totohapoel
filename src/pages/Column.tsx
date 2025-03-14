@@ -244,6 +244,13 @@ export const Column = () => {
     [column?.games, orderBy, voteStats]
   );
 
+
+  useEffect(() => {
+    if(showGroupBet && column?.group_bet.length !== column?.games.length) {
+      setShowGroupBet(false);
+    }
+  }, [column?.games?.length, column?.group_bet, showGroupBet]);
+
   if (
     isColumnLoading ||
     isBetsLoading ||
@@ -256,6 +263,7 @@ export const Column = () => {
   }
   if (columnError) return <div>Error: {columnError.message}</div>;
   if (!column) return <div>לא נמצא טור פעיל</div>;
+
 
   return (
     <div className="container mx-auto px-4 py-8">
