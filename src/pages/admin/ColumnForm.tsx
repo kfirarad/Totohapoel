@@ -266,6 +266,9 @@ export const ColumnForm = () => {
 
     const sortedGames = column?.games?.sort((a, b) => {
         if (!a[orderBy] || !b[orderBy]) return 0;
+        if(a[orderBy] === b[orderBy]) {
+            return a.game_num - b.game_num;
+        };
         if (sortOrder === 'asc') {
             return a[orderBy] > b[orderBy] ? 1 : -1;
         } else {

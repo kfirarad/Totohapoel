@@ -225,8 +225,11 @@ export const Column = () => {
           case "game_num":
             return a.game_num - b.game_num;
           case "game_time":
+            if(a["game_time"] === b["game_time"]) {
+              return a.game_num - b.game_num;
+            }
             return (
-              new Date(a.game_time).getTime() - new Date(b.game_time).getTime()
+              new Date(a.game_time).getTime() - new Date(b.game_time).getTime() 
             );
           case "triples":
             return (
