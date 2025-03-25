@@ -327,7 +327,7 @@ export const Column = () => {
       <div className="grid gap-6 md:grid-cols-[1fr_300px]">
         <div className="rounded-lg border bg-card">
           {!isDeadlinePassed && isCurrentUserColumn && (
-            <div className="mb-4 sticky top-0 z-10 bg-card p-4 rounded-lg border-b-2">
+            <div className="mb-4 sticky top-0 z-20 bg-card p-4 rounded-lg border-b-2">
               <div className="flex justify-between items-center">
                 <div className="flex gap-4 items-center">
                   <div>
