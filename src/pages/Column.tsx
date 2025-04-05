@@ -153,7 +153,7 @@ export const Column = () => {
   const formattedGroupBet = formatBetsFromBetsData(column?.group_bet);
 
   const correctGroupGuesses = gamesWithResults.filter((game) =>
-    formattedGroupBet[game.game_num].includes(game.result as BetResult)
+    formattedGroupBet[game.game_num]?.includes?.(game.result as BetResult)
   ).length;
 
   const correctGuessesToUse = showGroupBet
