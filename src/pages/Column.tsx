@@ -104,43 +104,56 @@ export const Column = () => {
   }, [orderBy, showVoteStats, showGroupBet, showLiveMatchWidget]);
 
   const {
-    
     data: column,
     isLoading: isColumnLoading,
     error: columnError,
     data: { previousColumn, nextColumn } = {
       previousColumn: null,
       nextColumn: null,
-    },  
+    },
     refetch: refetchColumn,
   } = useColumnQuery(columnId);
 
   useEffect(() => {
-    if(columnId !== undefined) {
+    if (columnId !== undefined) {
       return;
     }
-    const channels = supabase.channel('custom-update-channel')
-  .on(
-    'postgres_changes',
-    { event: 'UPDATE', schema: 'public', table: 'columns' },
-    () => {
-      refetchColumn();
-    }    
-  )
-  .subscribe();
-  console.log('Channel subscribed', channels);
+    const channels = supabase
+      .channel("custom-update-channel")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "columns" },
+        () => {
+          refetchColumn();
+        }
+      )
+      .subscribe();
     return () => {
       supabase.removeChannel(channels);
     };
-  }, [columnId]);
+  }, [columnId, refetchColumn]);
 
+  const {
+    data: betsData = [],
+    isLoading: isBetsLoading,
+    refetch: refetchUserBets,
+  } = useUserBetsQuery(column?.id ?? "", userIdParam || user?.id || "");
 
-  console.log("Column data", column);
-
-  const { data: betsData = [], isLoading: isBetsLoading } = useUserBetsQuery(
-    column?.id ?? "",
-    userIdParam || user?.id || ""
-  );
+  useEffect(() => {
+    const channels = supabase
+      .channel("custom-insert-channel")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "user_bets" },
+        () => {
+          refetchUserBets();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channels);
+    };
+  }, [refetchUserBets]);
 
   const { data: voteStats = {}, isLoading: isVoteStatsLoading } =
     useVoteStatsQuery(column?.id ?? "");
@@ -250,11 +263,11 @@ export const Column = () => {
           case "game_num":
             return a.game_num - b.game_num;
           case "game_time":
-            if(a["game_time"] === b["game_time"]) {
+            if (a["game_time"] === b["game_time"]) {
               return a.game_num - b.game_num;
             }
             return (
-              new Date(a.game_time).getTime() - new Date(b.game_time).getTime() 
+              new Date(a.game_time).getTime() - new Date(b.game_time).getTime()
             );
           case "triples":
             return (
@@ -272,9 +285,8 @@ export const Column = () => {
     [column?.games, orderBy, voteStats]
   );
 
-
   useEffect(() => {
-    if(showGroupBet && column?.group_bet.length !== column?.games.length) {
+    if (showGroupBet && column?.group_bet.length !== column?.games.length) {
       setShowGroupBet(false);
     }
   }, [column?.games?.length, column?.group_bet, showGroupBet]);
@@ -291,7 +303,6 @@ export const Column = () => {
   }
   if (columnError) return <div>Error: {columnError.message}</div>;
   if (!column) return <div>לא נמצא טור פעיל</div>;
-
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -574,23 +585,23 @@ export const Column = () => {
               <div className="flex flex-col gap-2  w-1/2">
                 {(profile?.is_admin || isDeadlinePassed) && (
                   <>
-                  <div className="flex flex-row gap-2 items-center"> 
-                    <Checkbox
-                      id="showVoteStats"
-                      checked={showVoteStats}
-                      onCheckedChange={() => setShowVoteStats(!showVoteStats)}
-                    />
-                    <label
-                      htmlFor="showVoteStats"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      הצג נתוני טופס
-                    </label>
+                    <div className="flex flex-row gap-2 items-center">
+                      <Checkbox
+                        id="showVoteStats"
+                        checked={showVoteStats}
+                        onCheckedChange={() => setShowVoteStats(!showVoteStats)}
+                      />
+                      <label
+                        htmlFor="showVoteStats"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        הצג נתוני טופס
+                      </label>
                     </div>
 
                     <div className="flex flex-row gap-2 items-center">
                       <Button
-                      size={"sm"}
+                        size={"sm"}
                         variant={calcType === "classic" ? "default" : "outline"}
                         onClick={() => setCalcType("classic")}
                       >
@@ -606,27 +617,25 @@ export const Column = () => {
                         משוקלל
                       </Button>
                     </div>
-
                   </>
                 )}
 
                 {isDeadlinePassed && (
                   <>
-                                    <div className="flex flex-row gap-2 items-center"> 
-
-                    <Checkbox
-                      id="showLiveMatchWidget"
-                      checked={showLiveMatchWidget}
-                      onCheckedChange={() =>
-                        setShowLiveMatchWidget(!showLiveMatchWidget)
-                      }
-                    />
-                    <label
-                      htmlFor="showLiveMatchWidget"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      הצג משחקים חיים
-                    </label>
+                    <div className="flex flex-row gap-2 items-center">
+                      <Checkbox
+                        id="showLiveMatchWidget"
+                        checked={showLiveMatchWidget}
+                        onCheckedChange={() =>
+                          setShowLiveMatchWidget(!showLiveMatchWidget)
+                        }
+                      />
+                      <label
+                        htmlFor="showLiveMatchWidget"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        הצג משחקים חיים
+                      </label>
                     </div>
                   </>
                 )}
