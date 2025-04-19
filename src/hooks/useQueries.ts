@@ -234,7 +234,7 @@ const fetchColumnStats = async (column: Column) => {
 export const useColumnQuery = (id?: string) => {
   return useQuery({
     queryKey: queryKeys.column(id),
-    queryFn: () => fetchColumn(id),
+    queryFn: () => fetchColumn(id),    
   });
 };
 

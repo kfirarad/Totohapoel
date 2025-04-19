@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { StandingWidget } from "@/components";
 import { LiveMatchWidget } from "@/components/LiveMatchWidget";
+import { supabase } from "@/services/supabase";
 interface UserStats {
   user: {
     id: string;
@@ -103,14 +104,38 @@ export const Column = () => {
   }, [orderBy, showVoteStats, showGroupBet, showLiveMatchWidget]);
 
   const {
+    
     data: column,
     isLoading: isColumnLoading,
     error: columnError,
     data: { previousColumn, nextColumn } = {
       previousColumn: null,
       nextColumn: null,
-    },
+    },  
+    refetch: refetchColumn,
   } = useColumnQuery(columnId);
+
+  useEffect(() => {
+    if(columnId !== undefined) {
+      return;
+    }
+    const channels = supabase.channel('custom-update-channel')
+  .on(
+    'postgres_changes',
+    { event: 'UPDATE', schema: 'public', table: 'columns' },
+    () => {
+      refetchColumn();
+    }    
+  )
+  .subscribe();
+  console.log('Channel subscribed', channels);
+    return () => {
+      supabase.removeChannel(channels);
+    };
+  }, [columnId]);
+
+
+  console.log("Column data", column);
 
   const { data: betsData = [], isLoading: isBetsLoading } = useUserBetsQuery(
     column?.id ?? "",
