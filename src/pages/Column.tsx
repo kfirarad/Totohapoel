@@ -496,7 +496,7 @@ export const Column = () => {
               </div>
             </div>
             {column.group_bet &&
-              column.group_bet.length === column.games.length && (
+              column.group_bet?.length === column.games.length && (
                 <div>
                   <div className="flex flex-row gap-2 items-center">
                     <Button
@@ -639,7 +639,7 @@ export const Column = () => {
                 </div>
 
                 {column.group_bet &&
-                  column.group_bet.length === column.games.length && (
+                  column.group_bet?.length === column.games.length && (
                     <div>
                       <div className="flex flex-row gap-2 items-center">
                         <DropdownMenu>

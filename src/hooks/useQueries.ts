@@ -382,7 +382,7 @@ export const useRecalculateCorrectGuessesMutation = () => {
       if (updateError) throw updateError;
 
       // now update the column "group_bet_correct_guesses"
-      const groupBetCorrectGuesses = column.group_bet.reduce((acc, gameBet) => {
+      const groupBetCorrectGuesses = column.group_bet?.reduce((acc, gameBet) => {
         const game = column.games.find(
           (g: Game) => g.game_num == gameBet.game_num
         );

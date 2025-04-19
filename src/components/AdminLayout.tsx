@@ -13,6 +13,7 @@ export const AdminLayout = () => {
     const navItems = [
         { path: '/admin/columns', label: 'Columns' },
         { path: '/admin/users', label: 'Users' },
+        { path: '/admin/group-bet', label: 'Group Bet' },
     ];
 
     return (
@@ -63,4 +64,4 @@ export const AdminLayout = () => {
             </main>
         </div>
     );
-}; 
+};

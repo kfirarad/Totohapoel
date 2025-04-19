@@ -6,6 +6,7 @@ import { Column } from '@/pages/Column';
 import { AdminLayout } from '@/components/AdminLayout';
 import { ColumnsList } from '@/pages/admin/ColumnsList';
 import { ColumnForm } from '@/pages/admin/ColumnForm';
+import { GroupBet } from '@/pages/admin/GroupBet';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ProfilePage } from './pages/ProfilePage';
 
@@ -26,6 +27,7 @@ const RouterComponent = () => {
           <Route path="columns" element={<ColumnsList />} />
           <Route path="columns/new" element={<ColumnForm />} />
           <Route path="columns/:id" element={<ColumnForm />} />
+          <Route path="group-bet" element={<GroupBet />} />
           <Route path="users" element={<div>Users management coming soon</div>} />
         </Route>
       )}
