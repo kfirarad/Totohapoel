@@ -286,7 +286,7 @@ export const Column = () => {
   );
 
   useEffect(() => {
-    if (showGroupBet && column?.group_bet.length !== column?.games.length) {
+    if (showGroupBet && column?.group_bet?.length !== column?.games.length) {
       setShowGroupBet(false);
     }
   }, [column?.games?.length, column?.group_bet, showGroupBet]);
