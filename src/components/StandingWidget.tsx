@@ -14,27 +14,16 @@ export const StandingWidget: React.FC<StandingWidgetProps> = ({
   isOpened,
   onOpenChange,
 }) => {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
   if (!leagueId) {
     return null;
   }
 
-  if (isDesktop) {
-    return (
-      <Dialog open={isOpened} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:min-w-[50vw] max-h-[80vh] overflow-auto">
-          <ScoreAxisWidget leagueId={leagueId} />
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-    <Drawer open={isOpened} onOpenChange={onOpenChange}>
-      <DrawerContent>
+    <Dialog open={isOpened} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:min-w-[50vw] max-h-[80vh] overflow-auto">
         <ScoreAxisWidget leagueId={leagueId} />
-      </DrawerContent>
-    </Drawer>
+      </DialogContent>
+    </Dialog>
   );
 };
 
