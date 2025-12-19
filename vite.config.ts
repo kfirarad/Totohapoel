@@ -3,8 +3,9 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
 export default defineConfig({
-  server:{
-    port: 3000
+  server: {
+    port: 3000,
+    allowedHosts: ["kfirs-macbook-pro.vulture-atria.ts.net", "localhost"],
   },
   plugins: [
     react({
@@ -17,7 +18,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-    "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {

@@ -44,18 +44,20 @@ const initialSettings = JSON.parse(localStorage.getItem("settings") || `{}`);
 
 const competitionTo365LeagueId = (leagueName: string) => {
   switch (leagueName) {
+    case "ליגה לאומית":
+      return "62322cdc012d6104ac3acad6";
     case "ספרדית ראשונה":
-      return 564;
+      return "62322c053617da0b83221cc6";
     case "גרמנית ראשונה":
-      return 82;
+      return "62321f50f7016c22d3650732";
     case "פרמייר ליג":
-      return 8;
+      return "6232265abf1fa71a672159ec";
     case "ליגת Winner":
-      return 372;
+      return "623238c3a59f94038c2c2afe";
     case "איטלקית ראשונה":
-      return 384;
+      return "62322b827aee66235a2be718";
     case "צרפתית ראשונה":
-      return 301;
+      return "62322b4efd209951602c9096";
     default:
       return null;
   }
