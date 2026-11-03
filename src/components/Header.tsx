@@ -49,6 +49,7 @@ const Header = () => {
                     <nav className="order-last -mx-3 flex w-full gap-1 overflow-x-auto md:order-none md:mx-0 md:w-auto">
                         <NavLink to="/column" className={navClass}>הטור שלי</NavLink>
                         <NavLink to="/stats" className={navClass}>סטטיסטיקה</NavLink>
+                        <NavLink to="/profile" className={navClass}>פרופיל</NavLink>
                         {profile?.is_admin && <NavLink to="/admin" className={navClass}>ניהול</NavLink>}
                     </nav>
                 )}
