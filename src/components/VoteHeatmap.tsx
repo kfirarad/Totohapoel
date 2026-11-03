@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Teams } from "@/components/Teams";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/Segmented";
@@ -69,6 +70,8 @@ export const VoteHeatmap = <T extends string>({
   participants: number;
 }) => {
   const [sort, setSort] = useState<"num" | "open">("num");
+  // hide the pick frames to look at the group's votes alone
+  const [showPicks, setShowPicks] = useState(true);
 
   const total = games.reduce(
     (acc, g) => {
@@ -105,7 +108,7 @@ export const VoteHeatmap = <T extends string>({
                 { value: "open", label: "הכי פתוח" },
               ]}
             />
-            {pickOptions && (
+            {showPicks && pickOptions && (
               <Segmented label="מסומן" value={pickValue} onChange={onPickChange} options={pickOptions} />
             )}
           </div>
@@ -140,21 +143,37 @@ export const VoteHeatmap = <T extends string>({
               </span>
             ))}
           </span>
-          <span className="flex items-center gap-1">
+          <button
+            onClick={() => setShowPicks(!showPicks)}
+            aria-pressed={showPicks}
+            title={showPicks ? "הסתר סימון" : "הצג סימון"}
+            className={cn(
+              "-mx-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground",
+              !showPicks && "line-through"
+            )}
+          >
             <span className="size-3 rounded-[3px] ring-2 ring-inset ring-foreground" aria-hidden />
             {pickLabel}
-          </span>
-          <span className="flex items-center gap-1.5">
-            תוצאה:
-            <span className="flex items-center gap-1">
-              <span className="h-[3px] w-3 rounded-full bg-success" aria-hidden />
-              פגיעה
+            {showPicks ? <Eye className="size-3.5" aria-hidden /> : <EyeOff className="size-3.5" aria-hidden />}
+          </button>
+          {showPicks ? (
+            <span className="flex items-center gap-1.5">
+              תוצאה:
+              <span className="flex items-center gap-1">
+                <span className="h-[3px] w-3 rounded-full bg-success" aria-hidden />
+                פגיעה
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-[3px] w-3 rounded-full bg-destructive" aria-hidden />
+                החטאה
+              </span>
             </span>
+          ) : (
             <span className="flex items-center gap-1">
-              <span className="h-[3px] w-3 rounded-full bg-destructive" aria-hidden />
-              החטאה
+              <span className="h-[3px] w-3 rounded-full bg-foreground" aria-hidden />
+              תוצאה
             </span>
-          </span>
+          )}
         </div>
       </div>
 
@@ -199,11 +218,11 @@ export const VoteHeatmap = <T extends string>({
                   )}
                 </div>
                 {OUTCOMES.map((o, i) => {
-                  const isMine = mine.includes(o);
+                  const isMine = showPicks && mine.includes(o);
                   const isResult = game.result === o;
                   const pct = Math.round(shares[i] * 100);
                   const hit = !!game.result && mine.includes(game.result);
-                  const label = `משחק ${game.game_num}, ${o}: ${pct}%${isMine ? `, ${pickLabel}` : ""}${isResult ? `, התוצאה (${hit ? "פגיעה" : "החטאה"})` : ""}`;
+                  const label = `משחק ${game.game_num}, ${o}: ${pct}%${isMine ? `, ${pickLabel}` : ""}${isResult ? (showPicks ? `, התוצאה (${hit ? "פגיעה" : "החטאה"})` : ", התוצאה") : ""}`;
                   return (
                     <div
                       role="cell"
@@ -225,7 +244,7 @@ export const VoteHeatmap = <T extends string>({
                           aria-hidden
                           className={cn(
                             "absolute inset-x-2 top-1 h-[3px] rounded-full shadow-[0_0_0_1.5px_hsl(var(--card))]",
-                            hit ? "bg-success" : "bg-destructive"
+                            !showPicks ? "bg-foreground" : hit ? "bg-success" : "bg-destructive"
                           )}
                         />
                       )}
