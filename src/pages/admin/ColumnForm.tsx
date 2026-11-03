@@ -10,6 +10,10 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { useSetResultMutation, useRecalculateCorrectGuessesMutation } from '@/hooks/useQueries';
+import { decodeDraw, drawToColumn, parseScoreAxisId, pickTotoDraw, winnerBookmarklet, type WinnerDraw } from '@/lib/winner';
+import { SCOREAXIS_MESSAGE, SCOREAXIS_ORIGIN, scoreAxisBookmarklet, scoreAxisUrl, type ScoreAxisResult } from '@/lib/scoreaxis';
+
+type TeamAlias = { he_name: string; en_name: string | null; scoreaxis_team_id: string | null };
 
 interface GameFormData {
     game_num: number;
@@ -19,27 +23,9 @@ interface GameFormData {
     competition: string;
     live_tracker_id: number;
     result: BetResult;
+    bet_radar_id?: string | null;
 }
 
-interface WinnerGameData {
-    gameType: number;
-    drawNumber: number;
-    drawId: number;
-    closeDateTime: string;
-    stake: number;
-    rows: {
-        rowNumber: number;
-        day: string;
-        time: string;
-        eventStartTime: string;
-        league: string;
-        teamA: string;
-        teamB: string;
-        period: string;
-        betRadarId: string;
-        status: string;
-    }[];
-}
 
 const createEmptyGames = (deadline: string): GameFormData[] => {
     return Array.from({ length: 16 }, (_, i) => ({
@@ -130,6 +116,106 @@ export const ColumnForm = () => {
         fetchData();
     }, [id]);
 
+    // ScoreAxis lookup: teams we can't resolve yet need an English name once (remembered in team_aliases)
+    const [missingTeams, setMissingTeams] = useState<{ he: string; en: string }[] | null>(null);
+    const [aliases, setAliases] = useState<Map<string, TeamAlias>>(new Map());
+    const [scoreAxisStatus, setScoreAxisStatus] = useState('');
+
+    const openScoreAxis = (map: Map<string, TeamAlias>) => {
+        const side = (he: string) => ({ he, id: map.get(he)?.scoreaxis_team_id ?? null, en: map.get(he)?.en_name ?? null });
+        const games = (column.games ?? []).filter((g) => g.home_team && g.away_team);
+        window.open(
+            scoreAxisUrl({
+                origin: window.location.origin,
+                games: games.map((g) => ({ n: g.game_num, t: new Date(g.game_time).toISOString(), home: side(g.home_team), away: side(g.away_team) })),
+            }),
+            'scoreaxis'
+        );
+        setScoreAxisStatus('בטאב של ScoreAxis שנפתח, לחץ על הסימניה "ScoreAxis ← טוטו הפועל"');
+    };
+
+    const startScoreAxis = async () => {
+        const names = [...new Set((column.games ?? []).flatMap((g) => [g.home_team, g.away_team]).filter(Boolean))];
+        if (!names.length) return;
+        const { data, error } = await supabase.from('team_aliases').select('*').in('he_name', names);
+        if (error) {
+            toast({ title: 'שגיאה', description: 'טעינת שמות הקבוצות נכשלה', variant: 'destructive' });
+            return;
+        }
+        const map = new Map((data as TeamAlias[]).map((a) => [a.he_name, a]));
+        setAliases(map);
+        const missing = names.filter((n) => !map.get(n)?.scoreaxis_team_id && !map.get(n)?.en_name);
+        if (missing.length) setMissingTeams(missing.map((he) => ({ he, en: '' })));
+        else openScoreAxis(map);
+    };
+
+    const continueWithNames = async () => {
+        const named = (missingTeams ?? []).filter((t) => t.en.trim());
+        if (named.length) {
+            const { error } = await supabase
+                .from('team_aliases')
+                .upsert(named.map((t) => ({ he_name: t.he, en_name: t.en.trim(), updated_at: new Date().toISOString() })));
+            if (error) console.error(error);
+        }
+        const map = new Map(aliases);
+        named.forEach((t) => map.set(t.he, { he_name: t.he, en_name: t.en.trim(), scoreaxis_team_id: null }));
+        setAliases(map);
+        setMissingTeams(null);
+        openScoreAxis(map);
+    };
+
+    // results posted back by the ScoreAxis bookmarklet
+    useEffect(() => {
+        const onMessage = async (e: MessageEvent) => {
+            if (e.origin !== SCOREAXIS_ORIGIN || e.data?.type !== SCOREAXIS_MESSAGE) return;
+            const results = e.data.results as ScoreAxisResult[];
+            setColumn((prev) => ({
+                ...prev,
+                games: prev.games?.map((g) => {
+                    const r = results.find((x) => x.n === g.game_num);
+                    return r?.matchId ? { ...g, live_tracker_id: r.matchId as unknown as number } : g;
+                }),
+            }));
+            // remember resolved team ids so next rounds need no search
+            const learned = new Map<string, string>();
+            results.forEach((r) => {
+                if (r.homeId) learned.set(r.home, r.homeId);
+                if (r.awayId) learned.set(r.away, r.awayId);
+            });
+            if (learned.size) {
+                const { error } = await supabase.from('team_aliases').upsert(
+                    [...learned].map(([he_name, scoreaxis_team_id]) => ({ he_name, scoreaxis_team_id, updated_at: new Date().toISOString() }))
+                );
+                if (error) console.error(error);
+            }
+            const found = results.filter((r) => r.matchId).length;
+            setScoreAxisStatus(`נמצאו ${found} מתוך ${results.length} משחקים${found < results.length ? ' · את השאר אפשר להשלים ידנית' : ''} · לחץ שמור`);
+            toast({ title: 'ScoreAxis', description: `נמצאו ${found} מתוך ${results.length} משחקים` });
+        };
+        window.addEventListener('message', onMessage);
+        return () => window.removeEventListener('message', onMessage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const applyDraw = (draw: WinnerDraw) => {
+        const imported = drawToColumn(draw);
+        // imported rows have no ScoreAxis id yet (null), which Game types as a number
+        setColumn(prev => ({ ...prev, name: imported.name, deadline: imported.deadline, games: imported.games as unknown as Column['games'] }));
+        toast({ title: 'יובא מווינר', description: `${imported.games.length} משחקים · ${imported.name}` });
+    };
+
+    // the Winner bookmarklet opens /admin/columns/new#winner=<draw>
+    useEffect(() => {
+        if (loading || id) return;
+        const encoded = window.location.hash.match(/^#winner=(.+)$/)?.[1];
+        if (!encoded) return;
+        const draw = decodeDraw(encoded);
+        history.replaceState(null, '', window.location.pathname);
+        if (draw) applyDraw(draw);
+        else toast({ title: 'שגיאה', description: 'נתוני הייבוא מווינר לא תקינים', variant: 'destructive' });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, id]);
+
     const { user } = useAuth();
     const { mutateAsync: calculateCorrectGuessesAsync } = useRecalculateCorrectGuessesMutation();
     const handleSubmit = async (e: React.FormEvent) => {
@@ -217,41 +303,15 @@ export const ColumnForm = () => {
 
     const handlePasteJson = async () => {
         try {
-            const clipboardText = await navigator.clipboard.readText();
-            const jsonData: WinnerGameData = JSON.parse(clipboardText);
-
-            // Update column deadline from closeDateTime
-            setColumn(prev => ({
-                ...prev,
-                deadline: jsonData.closeDateTime,
-                name: `מחזור ${jsonData.drawNumber}`
-            }));
-
-            // Map the JSON data to our game format
-            const newGames = jsonData.rows.map(row => ({
-                game_num: row.rowNumber,
-                home_team: row.teamA,
-                away_team: row.teamB,
-                competition: row.league,
-                game_time: row.eventStartTime,
-                result: null,
-                live_tracker_id: null,
-            }));
-
-            setColumn({
-                ...column,
-                games: newGames
-            });
-
-            toast({
-                title: 'הצלחה',
-                description: 'נתוני המשחקים יובאו'
-            });
+            // accepts Winner's full GetTotoDraws response or just the Toto 16 draw
+            const draw = pickTotoDraw(JSON.parse(await navigator.clipboard.readText()));
+            if (!draw) throw new Error('no Toto 16 draw in clipboard');
+            applyDraw(draw);
         } catch (e) {
             console.error('Failed to parse JSON data:', e);
             toast({
                 title: 'שגיאה',
-                description: 'קריאת נתוני ה-JSON נכשלה',
+                description: 'לא נמצא טוטו 16 בתוכן שהודבק',
                 variant: 'destructive'
             });
         }
@@ -317,9 +377,9 @@ export const ColumnForm = () => {
                     <Input
                         id="deadline"
                         type="datetime-local"
-                        value={column.deadline.slice(0, 16)}
+                        value={format(new Date(column.deadline), "yyyy-MM-dd'T'HH:mm")}
                         onChange={(e) =>
-                            setColumn({ ...column, deadline: e.target.value })
+                            setColumn({ ...column, deadline: new Date(e.target.value).toISOString() })
                         }
                     />
                 </div>
@@ -381,6 +441,68 @@ export const ColumnForm = () => {
                     >
                         הדבק JSON
                     </Button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed p-3 text-sm">
+                    {/* React blocks javascript: hrefs, so the bookmarklet href is set on the DOM node */}
+                    <a
+                        ref={(el) => el?.setAttribute('href', winnerBookmarklet(window.location.origin))}
+                        onClick={(e) => e.preventDefault()}
+                        className="cursor-grab rounded-lg bg-brand px-3 py-1.5 font-semibold text-brand-foreground"
+                        title="גרור לסרגל הסימניות"
+                    >
+                        ייבוא לטוטו הפועל
+                    </a>
+                    <span className="text-muted-foreground">
+                        גרור את הכפתור לסרגל הסימניות. אחר כך היכנס ל-winner.co.il ולחץ עליו — הטור ייפתח כאן ממולא.
+                    </span>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-dashed p-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <a
+                            ref={(el) => el?.setAttribute('href', scoreAxisBookmarklet())}
+                            onClick={(e) => e.preventDefault()}
+                            className="cursor-grab rounded-lg bg-brand px-3 py-1.5 font-semibold text-brand-foreground"
+                            title="גרור לסרגל הסימניות"
+                        >
+                            ScoreAxis ← טוטו הפועל
+                        </a>
+                        <Button type="button" variant="outline" disabled={!column.games?.some((g) => g.home_team)} onClick={startScoreAxis}>
+                            מצא משחקים ב-ScoreAxis
+                        </Button>
+                        <span className="text-muted-foreground">
+                            {scoreAxisStatus || 'גרור את הסימניה לסרגל (פעם אחת), ואז לחץ "מצא משחקים" — מזהי המעקב החי יתמלאו אוטומטית.'}
+                        </span>
+                    </div>
+
+                    {missingTeams && (
+                        <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+                            <p className="font-medium">
+                                קבוצות חדשות — כתוב את השם באנגלית כפי שמופיע ב-ScoreAxis (פעם אחת בלבד, נשמר להבא):
+                            </p>
+                            <div className="grid gap-2 md:grid-cols-2">
+                                {missingTeams.map((t, i) => (
+                                    <label key={t.he} className="flex items-center gap-2">
+                                        <span className="w-36 shrink-0 truncate">{t.he}</span>
+                                        <Input
+                                            dir="ltr"
+                                            placeholder="e.g. Petah Tikva"
+                                            value={t.en}
+                                            onChange={(e) =>
+                                                setMissingTeams(missingTeams.map((x, j) => (j === i ? { ...x, en: e.target.value } : x)))
+                                            }
+                                        />
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <Button type="button" onClick={continueWithNames}>המשך ל-ScoreAxis</Button>
+                                <Button type="button" variant="ghost" onClick={() => setMissingTeams(null)}>ביטול</Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">שדה ריק = המשחק יידלג ותוכל להזין אותו ידנית.</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-4 items-center space-between">
@@ -522,8 +644,8 @@ export const ColumnForm = () => {
                                     <div>
                                         <Input
                                             value={game.live_tracker_id}
-                                            onChange={(e) => handleGameChange(index, 'live_tracker_id', e.target.value)}
-                                            placeholder="מזהה מעקב"
+                                            onChange={(e) => handleGameChange(index, 'live_tracker_id', parseScoreAxisId(e.target.value) ?? e.target.value)}
+                                            placeholder="מזהה / קוד הטמעה של ScoreAxis"
                                         />
                                     </div>
                                     {isDeadlinePassed && (

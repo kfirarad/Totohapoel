@@ -13,6 +13,7 @@ export const AdminLayout = () => {
     const navItems = [
         { path: '/admin/columns', label: 'טורים' },
         { path: '/admin/users', label: 'משתמשים' },
+        { path: '/admin/teams', label: 'קבוצות' },
         { path: '/admin/group-bet', label: 'הטופס המשותף' },
     ];
 

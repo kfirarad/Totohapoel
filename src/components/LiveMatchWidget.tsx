@@ -1,6 +1,6 @@
 import React from "react";
 
-export const LiveMatchWidget: React.FC<{ matchId: number }> = React.memo(({ matchId }) => {
+export const LiveMatchWidget: React.FC<{ matchId: number | string }> = React.memo(({ matchId }) => {
     if (!matchId) {
         return null;
     }

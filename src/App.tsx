@@ -8,6 +8,7 @@ import { ColumnsList } from '@/pages/admin/ColumnsList';
 import { ColumnForm } from '@/pages/admin/ColumnForm';
 import { GroupBet } from '@/pages/admin/GroupBet';
 import { UsersList } from '@/pages/admin/UsersList';
+import { TeamsList } from '@/pages/admin/TeamsList';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatsPage } from './pages/StatsPage';
@@ -33,6 +34,7 @@ const RouterComponent = () => {
           <Route path="group-bet" element={<GroupBet />} />
           <Route path="group-bet/:columnId" element={<GroupBet />} />
           <Route path="users" element={<UsersList />} />
+          <Route path="teams" element={<TeamsList />} />
         </Route>
       )}
     </Routes>
