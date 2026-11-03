@@ -469,7 +469,7 @@ export const useSeasonDataQuery = (enabled = true) => {
         fetchAllRows<SeasonColumn>((from, to) =>
           supabase
             .from("columns")
-            .select("id, name, deadline, games, group_bet_correct_guesses")
+            .select("id, name, deadline, games, group_bet")
             .order("deadline")
             .range(from, to)
             .returns<SeasonColumn[]>()

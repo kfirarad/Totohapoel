@@ -23,6 +23,7 @@ const CHART_COLUMNS = 20;
 const chartConfig = {
   me: { label: "אני", color: "hsl(var(--brand))" },
   group: { label: "הטופס המשותף", color: "hsl(var(--muted-foreground))" },
+  average: { label: "ממוצע המשתתפים", color: "hsl(var(--chart-2))" },
 } satisfies ChartConfig;
 
 const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n * 100)}%`);
@@ -49,7 +50,9 @@ export const ProfilePage = () => {
   const chartData = history.slice(-CHART_COLUMNS).map((h) => ({
     column: h.name,
     me: h.correct,
-    group: h.group ?? 0,
+    // no group bet that round -> gap in the line, not a fake 0
+    group: h.group,
+    average: h.average,
   }));
 
   const tiles = me
@@ -123,7 +126,7 @@ export const ProfilePage = () => {
 
           {/* Me vs group */}
           <section className="rounded-2xl border bg-card p-5 md:p-6">
-            <h2 className="text-base font-bold">אני מול הטופס המשותף</h2>
+            <h2 className="text-base font-bold">אני מול הטופס המשותף והממוצע</h2>
             <p className="mb-4 text-sm text-muted-foreground">פגיעות ב-{chartData.length} המחזורים האחרונים</p>
             <ChartContainer config={chartConfig} className="aspect-auto h-64 w-full">
               <LineChart data={chartData} margin={{ top: 8, left: 8, right: 0 }}>
@@ -139,6 +142,13 @@ export const ProfilePage = () => {
                   stroke="var(--color-group)"
                   strokeWidth={2}
                   strokeDasharray="4 4"
+                  dot={false}
+                />
+                <Line
+                  dataKey="average"
+                  type="monotone"
+                  stroke="var(--color-average)"
+                  strokeWidth={1.5}
                   dot={false}
                 />
                 <Line
