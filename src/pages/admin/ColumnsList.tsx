@@ -46,7 +46,7 @@ export const ColumnsList = () => {
                     <Link
                         key={column.id}
                         to={`/admin/columns/${column.id}`}
-                        className="block p-4 bg-card rounded-lg shadow hover:shadow-md transition-shadow"
+                        className="block p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow"
                     >
                         <div className="flex justify-between items-center">
                             <div>

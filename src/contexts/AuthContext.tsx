@@ -43,7 +43,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Sign in with email and password
     const signIn = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google'
+            provider: 'google',
+            options: { redirectTo: window.location.origin },
         })
         if (error) {
             throw error
