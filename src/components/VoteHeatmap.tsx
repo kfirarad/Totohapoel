@@ -205,7 +205,7 @@ export const VoteHeatmap = <T extends string>({
               >
                 <span role="cell" className="text-xs text-muted-foreground tabular-nums">{game.game_num}</span>
                 <div role="cell" className="flex min-w-0 flex-col gap-1 pe-1.5">
-                  <span className="truncate text-[13px] font-semibold md:text-sm">
+                  <span className="min-w-0 text-[13px] font-semibold md:text-sm">
                     <Teams game={game} />
                   </span>
                   {h && (
