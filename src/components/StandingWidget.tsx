@@ -48,7 +48,7 @@ const ScoreAxisWidget: React.FC<{ leagueId: string }> = React.memo(
       footerDiv.className = "widget-main-link";
       footerDiv.style.cssText = "padding: 6px 12px;font-weight: 500;";
       footerDiv.innerHTML =
-        'Live data by <a href="https://www.scoreaxis.com/" style="color: inherit;">Scoreaxis</a>';
+        'נתונים חיים: <a href="https://www.scoreaxis.com/" style="color: inherit;">Scoreaxis</a>';
 
       // Append script and footer to container
       containerRef.current.appendChild(script);

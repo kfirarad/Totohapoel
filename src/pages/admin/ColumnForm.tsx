@@ -101,8 +101,8 @@ export const ColumnForm = () => {
 
                 if (columnError) {
                     toast({
-                        title: 'Error',
-                        description: 'Failed to load column',
+                        title: 'שגיאה',
+                        description: 'טעינת הטור נכשלה',
                         variant: 'destructive'
                     });
                     return;
@@ -160,14 +160,14 @@ export const ColumnForm = () => {
             if (columnError) throw columnError;
 
             toast({
-                title: 'Success',
-                description: 'Column saved successfully'
+                title: 'הצלחה',
+                description: 'הטור נשמר'
             });
 
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to save column';
+            const errorMessage = error instanceof Error ? error.message : 'שמירת הטור נכשלה';
             toast({
-                title: 'Error',
+                title: 'שגיאה',
                 description: errorMessage,
                 variant: 'destructive'
             });
@@ -203,13 +203,13 @@ export const ColumnForm = () => {
             });
 
             toast({
-                title: 'Success',
-                description: 'Game result updated successfully'
+                title: 'הצלחה',
+                description: 'התוצאה עודכנה'
             });
         } catch (error: any) {
             toast({
-                title: 'Error',
-                description: error?.message || 'Failed to set result',
+                title: 'שגיאה',
+                description: error?.message || 'עדכון התוצאה נכשל',
                 variant: 'destructive'
             });
         }
@@ -244,21 +244,21 @@ export const ColumnForm = () => {
             });
 
             toast({
-                title: 'Success',
-                description: 'Games data imported successfully'
+                title: 'הצלחה',
+                description: 'נתוני המשחקים יובאו'
             });
         } catch (e) {
             console.error('Failed to parse JSON data:', e);
             toast({
-                title: 'Error',
-                description: 'Failed to parse JSON data',
+                title: 'שגיאה',
+                description: 'קריאת נתוני ה-JSON נכשלה',
                 variant: 'destructive'
             });
         }
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <div>טוען...</div>;
     }
 
     const isDeadlinePassed = new Date(column.deadline) < new Date();
@@ -280,7 +280,7 @@ export const ColumnForm = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">
-                    {id ? 'Edit Column' : 'New Column'}
+                    {id ? 'עריכת טור' : 'טור חדש'}
                 </h1>
                 <div className="space-x-2">
                     <Button
@@ -288,10 +288,10 @@ export const ColumnForm = () => {
                         variant="outline"
                         onClick={() => navigate('/admin/columns')}
                     >
-                        Cancel
+                        ביטול
                     </Button>
                     <Button type="submit" disabled={saving}>
-                        {saving ? 'Saving...' : 'Save'}
+                        {saving ? 'שומר...' : 'שמור'}
                     </Button>
                 </div>
             </div>
@@ -299,7 +299,7 @@ export const ColumnForm = () => {
             <div className="grid gap-4">
                 <div className="grid gap-2">
                     <label htmlFor="name" className="text-sm font-medium">
-                        Column Name
+                        שם הטור
                     </label>
                     <Input
                         id="name"
@@ -312,7 +312,7 @@ export const ColumnForm = () => {
 
                 <div className="grid gap-2">
                     <label htmlFor="deadline" className="text-sm font-medium">
-                        Deadline
+                        מועד סגירה
                     </label>
                     <Input
                         id="deadline"
@@ -366,20 +366,20 @@ export const ColumnForm = () => {
                         }
                     />
                     <label htmlFor="is_active" className="text-sm font-medium">
-                        Active
+                        פעיל
                     </label>
                 </div>
             </div>
 
             <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">Games</h2>
+                    <h2 className="text-xl font-semibold">משחקים</h2>
                     <Button
                         type="button"
                         variant="outline"
                         onClick={handlePasteJson}
                     >
-                        Paste JSON Data
+                        הדבק JSON
                     </Button>
                 </div>
 
@@ -428,12 +428,12 @@ export const ColumnForm = () => {
                     {/* Header - Only visible on desktop */}
                     <div className="hidden md:grid grid-cols-[60px_1fr_1fr_1fr_1fr_auto] gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
                         <div>#</div>
-                        <div>Competition</div>
-                        <div>Home Team</div>
-                        <div>Away Team</div>
-                        <div>Game Time</div>
-                        <div>Live Tracker ID</div>
-                        {isDeadlinePassed && <div>Result</div>}
+                        <div>מסגרת</div>
+                        <div>בית</div>
+                        <div>חוץ</div>
+                        <div>זמן משחק</div>
+                        <div>מזהה מעקב חי</div>
+                        {isDeadlinePassed && <div>תוצאה</div>}
                     </div>
 
                     {/* Games List */}
@@ -443,7 +443,7 @@ export const ColumnForm = () => {
                                 {/* Mobile Layout */}
                                 <div className="md:hidden space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="font-medium">Game {game.game_num}</span>
+                                        <span className="font-medium">משחק {game.game_num}</span>
                                         {isDeadlinePassed && (
                                             <div className="flex gap-2">
                                                 {(['1', 'X', '2'] as const).map((value) => (
@@ -466,19 +466,19 @@ export const ColumnForm = () => {
                                     <Input
                                         value={game.competition}
                                         onChange={(e) => handleGameChange(index, 'competition', e.target.value)}
-                                        placeholder="Paste game details or enter competition..."
+                                        placeholder="מסגרת (או הדבקת פרטי משחק)..."
                                         className="mb-2"
                                     />
                                     <div className="grid grid-cols-2 gap-2">
                                         <Input
                                             value={game.home_team}
                                             onChange={(e) => handleGameChange(index, 'home_team', e.target.value)}
-                                            placeholder="Home Team"
+                                            placeholder="קבוצת בית"
                                         />
                                         <Input
                                             value={game.away_team}
                                             onChange={(e) => handleGameChange(index, 'away_team', e.target.value)}
-                                            placeholder="Away Team"
+                                            placeholder="קבוצת חוץ"
                                         />
                                     </div>
                                     <Input
@@ -495,21 +495,21 @@ export const ColumnForm = () => {
                                         <Input
                                             value={game.competition}
                                             onChange={(e) => handleGameChange(index, 'competition', e.target.value)}
-                                            placeholder="Paste game details or enter competition..."
+                                            placeholder="מסגרת (או הדבקת פרטי משחק)..."
                                         />
                                     </div>
                                     <div>
                                         <Input
                                             value={game.home_team}
                                             onChange={(e) => handleGameChange(index, 'home_team', e.target.value)}
-                                            placeholder="Home Team"
+                                            placeholder="קבוצת בית"
                                         />
                                     </div>
                                     <div>
                                         <Input
                                             value={game.away_team}
                                             onChange={(e) => handleGameChange(index, 'away_team', e.target.value)}
-                                            placeholder="Away Team"
+                                            placeholder="קבוצת חוץ"
                                         />
                                     </div>
                                     <div>
@@ -523,7 +523,7 @@ export const ColumnForm = () => {
                                         <Input
                                             value={game.live_tracker_id}
                                             onChange={(e) => handleGameChange(index, 'live_tracker_id', e.target.value)}
-                                            placeholder="live_tracker_id"
+                                            placeholder="מזהה מעקב"
                                         />
                                     </div>
                                     {isDeadlinePassed && (

@@ -7,6 +7,7 @@ type Profile = {
     email: string
     name: string
     is_admin: boolean
+    avatar_url: string | null
 }
 
 interface AuthContextType {
@@ -59,35 +60,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     useEffect(() => {
-        if (user) {
-            supabase
+        if (!user) {
+            setProfile(null)
+            return
+        }
+        const avatar_url: string | null =
+            user.user_metadata.avatar_url ?? user.user_metadata.picture ?? null
+
+        const loadProfile = async () => {
+            const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', user.id)
-                .single().then(({ data, error }) => {
-                    if (!data) {
-                        supabase
-                            .from('profiles')
-                            .insert({
-                                id: user.id,
-                                email: user.email,
-                                name: user.user_metadata.full_name,
-                                is_admin: false,
-                            }).then(({ data, error }) => {
-                                if (error) {
-                                    throw error
-                                }
-                                setProfile(data)
-                            })
-                    }
-                    if (error) {
-                        throw error
-                    }
-                    setProfile(data)
-                })
-        } else {
-            setProfile(null)
+                .maybeSingle()
+            if (error) throw error
+
+            if (!data) {
+                const { data: created, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: user.id,
+                        email: user.email,
+                        name: user.user_metadata.full_name,
+                        is_admin: false,
+                        avatar_url,
+                    })
+                    .select()
+                    .single()
+                if (insertError) throw insertError
+                setProfile(created)
+                return
+            }
+
+            // Keep the Google photo fresh so other players see it
+            if (avatar_url && data.avatar_url !== avatar_url) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url })
+                    .eq('id', user.id)
+                if (updateError) console.error(updateError)
+                else data.avatar_url = avatar_url
+            }
+            setProfile(data)
         }
+        loadProfile()
     }, [user])
 
     return (

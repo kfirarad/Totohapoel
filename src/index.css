@@ -2,9 +2,40 @@
 
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme {
+  --animate-loading-bar: loading-bar 1.1s ease-in-out infinite;
+  @keyframes loading-bar {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-300%); }
+  }
+
+  --font-sans: "Heebo", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: hsl(var(--brand));
+  --color-brand-foreground: hsl(var(--brand-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warn: hsl(var(--warn));
+  --color-warn-foreground: hsl(var(--warn-foreground));
+  --color-warn-border: hsl(var(--warn-border));
+  --color-error: hsl(var(--error));
+  --color-error-foreground: hsl(var(--error-foreground));
+  --color-error-border: hsl(var(--error-border));
+  --color-heat-1: hsl(var(--heat-1));
+  --color-heat-1-fg: hsl(var(--heat-1-fg));
+  --color-heat-2: hsl(var(--heat-2));
+  --color-heat-2-fg: hsl(var(--heat-2-fg));
+  --color-heat-3: hsl(var(--heat-3));
+  --color-heat-3-fg: hsl(var(--heat-3-fg));
+  --color-heat-4: hsl(var(--heat-4));
+  --color-heat-4-fg: hsl(var(--heat-4-fg));
+  --color-hedge-1: hsl(var(--hedge-1));
+  --color-hedge-2: hsl(var(--hedge-2));
+  --color-hedge-3: hsl(var(--hedge-3));
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -69,65 +100,117 @@
 }
 
 @layer base {
+  /* Clean & minimal: near-black ink on white, club blue as the one brand color */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 240 7% 97%;
+    --foreground: 240 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
-    --chart-1: 12 76% 61%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 240 6% 10%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 8% 95%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 8% 95%;
+    --muted-foreground: 240 5% 39%;
+    --accent: 240 8% 95%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 357 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 9% 91%;
+    --input: 240 9% 91%;
+    --ring: 240 6% 10%;
+    --brand: 226 71% 40%;
+    --brand-foreground: 0 0% 100%;
+    --success: 145 59% 30%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 140 50% 95%;
+    --warn: 39 100% 95%;
+    --warn-foreground: 33 100% 24%;
+    --warn-border: 40 76% 80%;
+    --error: 0 80% 96%;
+    --error-foreground: 356 76% 36%;
+    --error-border: 358 69% 86%;
+    /* vote share: one blue ramp, more votes = darker */
+    --heat-1: 222 79% 93%;
+    --heat-1-fg: 240 6% 10%;
+    --heat-2: 223 74% 83%;
+    --heat-2-fg: 240 6% 10%;
+    --heat-3: 226 55% 51%;
+    --heat-3-fg: 0 0% 100%;
+    --heat-4: 226 71% 40%;
+    --heat-4-fg: 0 0% 100%;
+    /* hedging: single (sure) -> triple (unsure), neutral so it never competes with the blue */
+    --hedge-1: 240 5% 26%;
+    --hedge-2: 240 5% 63%;
+    --hedge-3: 240 5% 84%;
+    --chart-1: 226 71% 40%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.75rem;
   }
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 240 8% 5%;
+      --foreground: 240 8% 95%;
+      --card: 240 7% 8%;
+      --card-foreground: 240 8% 95%;
+      --popover: 240 7% 8%;
+      --popover-foreground: 240 8% 95%;
+      --primary: 240 8% 95%;
+      --primary-foreground: 240 7% 8%;
+      --secondary: 240 6% 12%;
+      --secondary-foreground: 240 8% 95%;
+      --muted: 240 6% 12%;
+      --muted-foreground: 240 6% 66%;
+      --accent: 240 6% 12%;
+      --accent-foreground: 240 8% 95%;
+      --destructive: 357 86% 64%;
+      --destructive-foreground: 240 7% 8%;
+      --border: 240 6% 16%;
+      --input: 240 6% 16%;
+      --ring: 240 8% 95%;
+      --brand: 225 66% 47%;
+      --brand-foreground: 0 0% 100%;
+      --success: 145 56% 64%;
+      --success-foreground: 240 8% 5%;
+      --success-soft: 145 40% 11%;
+      --warn: 38 56% 11%;
+      --warn-foreground: 40 86% 69%;
+      --warn-border: 40 57% 18%;
+      --error: 355 41% 12%;
+      --error-foreground: 357 100% 77%;
+      --error-border: 354 42% 24%;
+      --heat-1: 225 45% 17%;
+      --heat-1-fg: 240 8% 95%;
+      --heat-2: 226 56% 31%;
+      --heat-2-fg: 240 8% 95%;
+      --heat-3: 226 66% 53%;
+      --heat-3-fg: 0 0% 100%;
+      --heat-4: 225 86% 72%;
+      --heat-4-fg: 240 8% 5%;
+      --hedge-1: 240 5% 84%;
+      --hedge-2: 240 5% 55%;
+      --hedge-3: 240 5% 30%;
+      --chart-1: 225 66% 60%;
+      --chart-2: 160 60% 45%;
+      --chart-3: 30 80% 55%;
+      --chart-4: 280 65% 60%;
+      --chart-5: 340 75% 55%;
+    }
   }
 }
 @layer base {
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: light dark;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }

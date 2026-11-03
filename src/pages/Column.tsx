@@ -1,4 +1,5 @@
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict } from "date-fns";
+import { Teams } from "@/components/Teams";
 import { cn, getDayName } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,21 +12,23 @@ import {
   useVoteStatsQuery,
   useColumnStatsQuery,
   useUserBetsQuery,
+  useSeasonDataQuery,
+  columnQueryOptions,
+  userBetsQueryOptions,
 } from "@/hooks/useQueries";
-import { VoteStats } from "@/components/VoteStats";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formVotes, formWeights, readAlgoSettings } from "@/lib/stats";
+import { VoteHeatmap } from "@/components/VoteHeatmap";
 import { ColumnSummary } from "@/components/ColumnSummary";
 import { BetResult, Game } from "@/types/database.types";
-import { useEffect, useMemo, useState } from "react";
-import { BetButtons } from "@/components/BetButtons";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { BetButtons, betOutcome } from "@/components/BetButtons";
+import { CircleCheck, CircleX } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { Banner } from "@/components/Banner";
+import { Segmented } from "@/components/Segmented";
+import { LimitTiles } from "@/components/LimitTiles";
 import { StandingWidget } from "@/components";
 import { LiveMatchWidget } from "@/components/LiveMatchWidget";
 import { supabase } from "@/services/supabase";
@@ -33,6 +36,7 @@ interface UserStats {
   user: {
     id: string;
     name: string;
+    avatar_url?: string | null;
   };
   totalBets: number;
   correctBets: number;
@@ -109,18 +113,18 @@ export const Column = () => {
   const [showGroupBet, setShowGroupBet] = useState(
     initialSettings.showGroupBet || false
   );
-  const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({
-    filledBets: 0,
-    doubles: 0,
-    triples: 0,
-  });
   const [standingWidgetLeague, setStandingWidgetLeague] = useState<
-    number | null
+    string | null
   >(null);
-  const { toast } = useToast();
+  // Save outcome shown in the bottom bar; success auto-hides
+  const [notice, setNotice] = useState<"ok" | "fail" | null>(null);
+  useEffect(() => {
+    if (notice !== "ok") return;
+    const t = setTimeout(() => setNotice(null), 3500);
+    return () => clearTimeout(t);
+  }, [notice]);
 
-  useEffect(() => setUserBet({}), [columnId]);
-  const [calcType, setCalcType] = useState<"weighted" | "classic">("classic");
+  const [calcType, setCalcType] = useState<"weighted" | "classic" | "form">("classic");
   useEffect(() => {
     localStorage.setItem(
       "settings",
@@ -136,6 +140,7 @@ export const Column = () => {
   const {
     data: column,
     isLoading: isColumnLoading,
+    isPlaceholderData: isColumnSwitching,
     error: columnError,
     data: { previousColumn, nextColumn } = {
       previousColumn: null,
@@ -169,6 +174,15 @@ export const Column = () => {
     refetch: refetchUserBets,
   } = useUserBetsQuery(column?.id ?? "", userIdParam || user?.id || "");
 
+  // on someone else's column, also load my picks so I can compare
+  const viewingOther = !!userIdParam && userIdParam !== user?.id;
+  const { data: myBetsData } = useUserBetsQuery(viewingOther ? column?.id ?? "" : "", user?.id ?? "");
+  const [compareMine, setCompareMine] = useState(false);
+  useEffect(() => setCompareMine(false), [userIdParam]);
+
+  // the current round (what /column shows), to know whether "back to current" makes sense
+  const { data: currentColumn } = useQuery(columnQueryOptions());
+
   useEffect(() => {
     const channels = supabase
       .channel("custom-insert-channel")
@@ -185,10 +199,19 @@ export const Column = () => {
     };
   }, [refetchUserBets]);
 
-  const { data: voteStats = {}, isLoading: isVoteStatsLoading } =
+  const { data: voteStats = {} } =
     useVoteStatsQuery(column?.id ?? "");
 
   const { mutateAsync: placeBet, isPending: isSaving } = usePlaceBetMutation();
+
+  // "Form" mode: each vote weighted by the voter's form in the columns before this one
+  const { data: season } = useSeasonDataQuery(calcType === "form");
+  const formVoteByGame = useMemo(() => {
+    if (!season || !column?.id) return null;
+    const { formWeeks, power } = readAlgoSettings();
+    const weightOf = formWeights(season.columns, season.bets, new Date(column.deadline), formWeeks, power);
+    return formVotes(season.bets.filter((b) => b.column_id === column.id), weightOf);
+  }, [season, column?.id, column?.deadline]);
 
   const { data: columnStats = [], isLoading: isStatsLoading } =
     useColumnStatsQuery(column);
@@ -224,9 +247,6 @@ export const Column = () => {
     formattedGroupBet[game.game_num]?.includes?.(game.result as BetResult)
   ).length;
 
-  const correctGuessesToUse = showGroupBet
-    ? correctGroupGuesses
-    : correctGuesses;
 
   const handlePlaceBet = (gameId: number, value: BetResult) => {
     if (!isCurrentUserColumn || isDeadlinePassed) return;
@@ -239,6 +259,7 @@ export const Column = () => {
         : [...bet, value],
     };
     setUserBet(newValue);
+    setNotice(null);
     if (draftKey) {
       writeDraft(
         draftKey,
@@ -252,6 +273,7 @@ export const Column = () => {
   const submitBet = async () => {
     if (!user?.id || isDeadlinePassed || isSaving) return;
 
+    setNotice(null);
     try {
       await placeBet({
         betValues: Object.entries(userBet).map(([game_num, bet]) => ({
@@ -263,24 +285,25 @@ export const Column = () => {
       });
     } catch (e) {
       console.error(e);
-      toast({
-        title: "הטופס לא נשמר",
-        description: "אירעה שגיאה בשמירה, נסה שוב",
-        variant: "destructive",
-      });
+      setNotice("fail");
       return;
     }
     if (draftKey) writeDraft(draftKey, null);
-    toast({
-      className: "bg-blue-800 text-white color-white",
-      title: "יאללה הפועל!",
-      description: "הטופס נשלח בהצלחה",
-      variant: "default",
-    });
+    setNotice("ok");
   };
 
   const userId = userIdParam || user?.id;
   const isCurrentUserColumn = userId === user?.id;
+
+  // whose picks are shown: the viewed column, mine (only on someone else's column) or the group bet
+  type PickSource = "viewed" | "me" | "group";
+  const myBets = formatBetsFromBetsData(myBetsData?.bet_values);
+  const pickSource: PickSource = showGroupBet ? "group" : compareMine && !isCurrentUserColumn ? "me" : "viewed";
+  const setPickSource = (source: PickSource) => {
+    setShowGroupBet(source === "group");
+    setCompareMine(source === "me");
+  };
+  const displayedBets = pickSource === "group" ? formattedGroupBet : pickSource === "me" ? myBets : userBet;
 
   const serverBets = formatBetsFromBetsData(betsData?.bet_values);
   // Draft only while the column is still editable by its owner; keyed per column so last week's picks never leak in
@@ -291,7 +314,8 @@ export const Column = () => {
   const hasUnsavedChanges =
     !!draftKey && betsFingerprint(userBet) !== betsFingerprint(serverBets);
 
-  useEffect(() => {
+  // Layout effect: swap in the new column's picks before paint, so the old picks never flash
+  useLayoutEffect(() => {
     if (isBetsLoading) return;
     const server = formatBetsFromBetsData(betsData?.bet_values);
     const draft = draftKey ? readDraft(draftKey) : null;
@@ -299,20 +323,27 @@ export const Column = () => {
       writeDraft(draftKey!, null);
     }
     setUserBet(draft || server);
-  }, [betsData, draftKey, isBetsLoading]);
+  }, [betsData, draftKey, isBetsLoading, column?.id]);
 
-  useEffect(() => {
-    const filledBets = Object.values(userBet).filter(
-      (bet) => bet.length > 0
-    ).length;
-    const doubles = Object.values(userBet).filter(
-      (bet) => bet.length === 2
-    ).length;
-    const triples = Object.values(userBet).filter(
-      (bet) => bet.length === 3
-    ).length;
-    setDoublesAndTriplesCount({ filledBets, doubles, triples });
+  const doublesAndTriplesCount = useMemo(() => {
+    const values = Object.values(userBet);
+    return {
+      filledBets: values.filter((bet) => bet.length > 0).length,
+      doubles: values.filter((bet) => bet.length === 2).length,
+      triples: values.filter((bet) => bet.length === 3).length,
+    };
   }, [userBet]);
+
+  // Prefetch neighbouring columns so prev/next is usually instant
+  const queryClient = useQueryClient();
+  const viewedUserId = userIdParam || user?.id;
+  useEffect(() => {
+    for (const neighbour of [previousColumn, nextColumn]) {
+      if (!neighbour?.id) continue;
+      queryClient.prefetchQuery(columnQueryOptions(neighbour.id));
+      if (viewedUserId) queryClient.prefetchQuery(userBetsQueryOptions(neighbour.id, viewedUserId));
+    }
+  }, [queryClient, previousColumn?.id, nextColumn?.id, viewedUserId]);
 
   const orderedGames: Game[] = useMemo(
     () =>
@@ -344,29 +375,22 @@ export const Column = () => {
   );
 
   useEffect(() => {
-    if (showGroupBet && column?.group_bet?.length !== column?.games.length) {
+    if (showGroupBet && !column?.group_bet?.some((b: { value?: BetResult[] }) => b.value?.length)) {
       setShowGroupBet(false);
     }
   }, [column?.games?.length, column?.group_bet, showGroupBet]);
 
-  if (
-    isColumnLoading ||
-    isBetsLoading ||
-    isVoteStatsLoading ||
-    isStatsLoading
-  ) {
-    return (
-      <div className="flex justify-center align-center h-lvh">טוען...</div>
-    );
-  }
-  if (columnError) return <div>Error: {columnError.message}</div>;
-  if (!column) return <div>לא נמצא טור פעיל</div>;
+  if (isColumnLoading) return <ColumnSkeleton />;
+  if (columnError) return <div className="p-8">שגיאה: {columnError.message}</div>;
+  if (!column) return <div className="p-8">לא נמצא טור פעיל</div>;
 
+  const games: Game[] = column.games ?? [];
   const canSubmit =
     !isSaving &&
-    doublesAndTriplesCount.filledBets >= column.games?.length &&
+    doublesAndTriplesCount.filledBets >= games.length &&
     doublesAndTriplesCount.doubles <= column.max_doubles &&
     doublesAndTriplesCount.triples <= column.max_triples;
+  const isEditable = !!draftKey;
   const unsentMessage = !draftKey
     ? null
     : !betsData
@@ -374,562 +398,398 @@ export const Column = () => {
     : hasUnsavedChanges
     ? "השינויים בטופס עוד לא נשמרו"
     : null;
+  const canSeeVotes = !!profile?.is_admin || isDeadlinePassed;
+  const showVotes = canSeeVotes && showVoteStats;
+  // an entry with no picks (e.g. a half-started admin edit) isn't a group bet
+  const hasGroupBet = !!column.group_bet?.some((b: { value?: BetResult[] }) => b.value?.length);
+  const viewedName = betsData?.profiles?.name ?? "";
+  const hits = (bets: Bets) =>
+    gamesWithResults.filter((g: Game) => bets[g.game_num]?.includes(g.result as BetResult)).length;
+  const pickOptions: { value: PickSource; label: string; score: number }[] = [
+    { value: "viewed", label: isCurrentUserColumn ? "אני" : viewedName, score: correctGuesses },
+    ...(!isCurrentUserColumn ? [{ value: "me" as const, label: "הטור שלי", score: hits(myBets) }] : []),
+    ...(hasGroupBet ? [{ value: "group" as const, label: "הטופס המשותף", score: correctGroupGuesses }] : []),
+  ];
+  const canSwitchPicks = pickOptions.length > 1;
+  const deadline = new Date(column.deadline);
+  const discardChanges = () => {
+    setUserBet(serverBets);
+    setNotice(null);
+    if (draftKey) writeDraft(draftKey, null);
+  };
+
+  const navButton = (target: { id: string } | null, label: string, Icon: typeof ChevronLeft) => (
+    <Button
+      variant="outline"
+      size="icon"
+      className="size-10 shrink-0 rounded-xl"
+      aria-label={label}
+      disabled={!target}
+      onClick={() => target && navigate(`/column/${target.id}`)}
+    >
+      <Icon className="size-[18px]" />
+    </Button>
+  );
 
   return (
-    <div className={cn("container mx-auto px-4 py-8", unsentMessage && "pb-24")}>
-      {unsentMessage && (
-        <div
-          role="status"
-          className="fixed bottom-4 inset-x-4 z-50 mx-auto max-w-md flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 shadow-lg"
+    <div className={cn("mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8", isEditable && "pb-44 md:pb-32")}>
+      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_300px]">
+        <section
+          aria-busy={isColumnSwitching}
+          className={cn(
+            "relative overflow-hidden rounded-2xl border bg-card transition-opacity duration-200",
+            isColumnSwitching && "pointer-events-none opacity-60"
+          )}
         >
-          <span className="font-medium">⚠️ {unsentMessage}</span>
-          <div className="flex gap-2 shrink-0">
-            {betsData && hasUnsavedChanges && (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={isSaving}
-                onClick={() => {
-                  setUserBet(serverBets);
-                  if (draftKey) writeDraft(draftKey, null);
-                }}
-              >
-                בטל שינויים
-              </Button>
+          {isColumnSwitching && (
+            <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden" aria-hidden>
+              <div className="h-full w-1/3 animate-loading-bar bg-brand motion-reduce:animate-none" />
+            </div>
+          )}
+          {/* Column header */}
+          <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-6">
+            <div className="flex items-center justify-between gap-3 md:justify-start">
+              {navButton(previousColumn, "טור קודם", ChevronRight)}
+              <div className="text-center md:text-start">
+                <h1 className="text-xl font-bold tracking-tight md:text-2xl">{column.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {isDeadlinePassed
+                    ? `נסגר ב-${format(deadline, "d בMMMM, HH:mm", { locale: he })}`
+                    : `נסגר ${getDayName(deadline)} ${format(deadline, "HH:mm")} · ${formatDistanceToNowStrict(deadline, { locale: he, addSuffix: true })}`}
+                </p>
+              </div>
+              {navButton(nextColumn, "טור הבא", ChevronLeft)}
+            </div>
+
+            {isEditable ? (
+              <LimitTiles
+                loading={isBetsLoading}
+                filled={doublesAndTriplesCount.filledBets}
+                total={games.length}
+                doubles={doublesAndTriplesCount.doubles}
+                maxDoubles={column.max_doubles ?? 0}
+                triples={doublesAndTriplesCount.triples}
+                maxTriples={column.max_triples ?? 0}
+              />
+            ) : (
+              gamesWithResults.length > 0 && (
+                <div
+                  role={canSwitchPicks ? "group" : undefined}
+                  aria-label={canSwitchPicks ? "ניחושים נכונים" : undefined}
+                  className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-muted p-1 md:min-w-64"
+                >
+                  {pickOptions.map((t) => {
+                    const selected = canSwitchPicks && pickSource === t.value;
+                    const pct = Math.round((t.score / gamesWithResults.length) * 100);
+                    const content = (
+                      <>
+                        <span className="w-full truncate text-xs text-muted-foreground">
+                          {canSwitchPicks ? t.label : "ניחושים נכונים"}
+                        </span>
+                        <span className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold leading-tight tracking-tight tabular-nums">{pct}%</span>
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            {t.score} מתוך {gamesWithResults.length}
+                          </span>
+                        </span>
+                        <span className="mt-1 h-1 w-full overflow-hidden rounded-full bg-border" aria-hidden>
+                          <span className="block h-full rounded-full bg-success" style={{ width: `${pct}%` }} />
+                        </span>
+                      </>
+                    );
+                    // with more than one source, each score tile doubles as the switch
+                    return canSwitchPicks ? (
+                      <button
+                        key={t.value}
+                        aria-pressed={selected}
+                        onClick={() => setPickSource(t.value)}
+                        className={cn(
+                          "flex min-w-0 flex-col items-start rounded-lg px-3 py-2 text-start",
+                          selected ? "bg-card shadow-xs" : "hover:bg-card/50"
+                        )}
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <div key={t.value} className="flex flex-col items-start px-3 py-2">{content}</div>
+                    );
+                  })}
+                </div>
+              )
             )}
-            <Button size="sm" disabled={!canSubmit} onClick={submitBet}>
+          </div>
+
+          {(!isCurrentUserColumn || (columnId && column.id !== currentColumn?.id)) && (
+            <div className="flex items-center justify-between gap-3 border-t px-4 py-2.5 text-sm md:px-6">
+              <span className="flex items-center gap-1">
+                {!isCurrentUserColumn && (
+                  <>
+                    הטור של{" "}
+                    {isBetsLoading ? <Skeleton className="inline-block h-4 w-24" /> : <strong>{betsData?.profiles?.name}</strong>}
+                  </>
+                )}
+              </span>
+              {!isCurrentUserColumn ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(column.id === currentColumn?.id ? "/column" : `/column/${column.id}`)}
+                >
+                  חזרה לטור שלי
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => navigate("/column")}>
+                  חזרה למחזור הנוכחי
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t bg-muted/40 px-4 py-3 md:px-6">
+            {!showVotes && <Segmented
+              label="סדר לפי"
+              value={orderBy}
+              onChange={setOrderBy}
+              options={[
+                { value: "game_num", label: "מס׳" },
+                { value: "game_time", label: "שעה" },
+                ...(canSeeVotes ? [{ value: "triples" as const, label: "כפולים/משולשים" }] : []),
+              ]}
+            />}
+            {canSwitchPicks && !showVotes && !(isDeadlinePassed && gamesWithResults.length > 0) && (
+              <Segmented
+                label="טופס"
+                value={pickSource}
+                onChange={setPickSource}
+                options={pickOptions.map(({ value, label }) => ({ value, label }))}
+              />
+            )}
+            {canSeeVotes && (
+              <Segmented
+                label="תצוגה"
+                value={showVoteStats ? "votes" : "picks"}
+                onChange={(v) => setShowVoteStats(v === "votes")}
+                options={[
+                  { value: "picks", label: "טור" },
+                  { value: "votes", label: "הצבעות" },
+                ]}
+              />
+            )}
+            {showVotes && (
+              <Segmented
+                label="חישוב"
+                value={calcType}
+                onChange={setCalcType}
+                options={[
+                  { value: "classic", label: "קלאסי" },
+                  { value: "weighted", label: "משוקלל" },
+                  { value: "form", label: "לפי כושר" },
+                ]}
+              />
+            )}
+            {isDeadlinePassed && (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={showLiveMatchWidget}
+                  onCheckedChange={() => setShowLiveMatchWidget(!showLiveMatchWidget)}
+                />
+                משחקים חיים
+              </label>
+            )}
+          </div>
+
+          {/* Games */}
+          {showVotes ? (
+            <VoteHeatmap
+              games={orderedGames}
+              votes={Object.fromEntries(
+                games.map((g) => [
+                  g.game_num,
+                  calcType === "form" ? formVoteByGame?.[g.game_num] : voteStats[g.game_num]?.[calcType],
+                ])
+              )}
+              hedge={Object.fromEntries(games.map((g) => [g.game_num, voteStats[g.game_num]]))}
+              picks={displayedBets}
+              pickLabel={
+                pickSource === "group"
+                  ? "הטופס המשותף"
+                  : pickSource === "me" || isCurrentUserColumn
+                  ? "הבחירה שלי"
+                  : `הבחירה של ${viewedName}`
+              }
+              pickOptions={canSwitchPicks ? pickOptions.map(({ value, label }) => ({ value, label })) : undefined}
+              pickValue={pickSource}
+              onPickChange={setPickSource}
+              participants={columnStats.length}
+            />
+          ) : (
+            <ul key={column.id} className="divide-y border-t animate-in fade-in duration-300">
+            {orderedGames.map((game) => {
+              const startsIn = new Date(game.game_time).getTime() - Date.now();
+              const correct =
+                isBetsLoading && pickSource === "viewed" ? null : betOutcome(displayedBets[game.game_num], game.result);
+              return (
+                <li
+                  key={game.game_num}
+                  className={cn(
+                    "px-4 py-2.5 transition-colors md:px-6",
+                    correct === true && "bg-success-soft",
+                    correct === false && "bg-error/60"
+                  )}
+                >
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{game.game_num}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        {correct === true && <CircleCheck className="size-4 shrink-0 text-success" aria-label="ניחוש נכון" />}
+                        {correct === false && <CircleX className="size-4 shrink-0 text-destructive" aria-label="ניחוש שגוי" />}
+                        <span className="truncate"><Teams game={game} /></span>
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground md:text-sm">
+                        {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), "HH:mm")} ·{" "}
+                        <button
+                          className="hover:text-foreground hover:underline"
+                          onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                        >
+                          {game.competition}
+                        </button>
+                      </div>
+                    </div>
+                    {isBetsLoading && pickSource === "viewed" ? (
+                      <Skeleton className="h-[50px] w-[130px] shrink-0 rounded-xl md:w-[142px]" />
+                    ) : (
+                      <BetButtons
+                        gameNum={game.game_num}
+                        userBet={displayedBets}
+                        result={game.result}
+                        disabled={isDeadlinePassed || !isCurrentUserColumn}
+                        onBetPlace={handlePlaceBet}
+                      />
+                    )}
+                  </div>
+                  {showLiveMatchWidget &&
+                    game.live_tracker_id &&
+                    startsIn < 30 * 60 * 1000 &&
+                    startsIn > -120 * 60 * 1000 && (
+                      <div className="mt-2">
+                        <LiveMatchWidget matchId={game.live_tracker_id} />
+                      </div>
+                    )}
+                </li>
+              );
+            })}
+          </ul>
+          )}
+        </section>
+
+        <aside>
+          <ColumnSummary
+            stats={columnStats as UserStats[]}
+            showScore={isDeadlinePassed}
+            columnId={column.id}
+            loading={isStatsLoading}
+            groupBet={
+              hasGroupBet
+                ? { score: correctGroupGuesses, selected: pickSource === "group", onSelect: () => setPickSource("group") }
+                : undefined
+            }
+          />
+        </aside>
+      </div>
+
+      {/* Save bar: state banner + actions, pinned while the column is editable */}
+      {isEditable && !isBetsLoading && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:gap-4 md:px-8">
+            <div className="flex-1">
+              {notice === "ok" ? (
+                <Banner tone="success" onClose={() => setNotice(null)}>
+                  הטופס נשלח בהצלחה · יאללה הפועל!
+                </Banner>
+              ) : notice === "fail" ? (
+                <Banner tone="error" action={{ label: "נסה שוב", onClick: submitBet, disabled: !canSubmit }}>
+                  הטופס לא נשמר · בדוק חיבור ונסה שוב
+                </Banner>
+              ) : unsentMessage ? (
+                <Banner
+                  tone="warn"
+                  action={betsData && hasUnsavedChanges ? { label: "בטל שינויים", onClick: discardChanges, disabled: isSaving } : undefined}
+                >
+                  {unsentMessage}
+                </Banner>
+              ) : (
+                <p className="text-sm font-medium text-success">הטופס נשלח · אפשר לערוך עד סגירת המחזור</p>
+              )}
+            </div>
+            <Button
+              className="h-12 rounded-xl px-6 text-base md:h-11"
+              disabled={!canSubmit || (!unsentMessage && notice !== "fail")}
+              onClick={submitBet}
+            >
               {isSaving ? "שומר..." : "שלח טופס"}
             </Button>
           </div>
         </div>
       )}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">{column.name}</h1>
-            <div className="flex gap-2">
-              {previousColumn && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/column/${previousColumn.id}`)}
-                >
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                  טור קודם
-                </Button>
-              )}
-              {nextColumn && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/column/${nextColumn.id}`)}
-                >
-                  טור הבא
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                </Button>
-              )}
-            </div>
-          </div>
-          {columnId && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/column")}
-            >
-              חזור לשבוע נוכחי
-            </Button>
-          )}
-        </div>
-        <p className="text-gray-600">
-          תאריך אחרון למשלוח:{" "}
-          {format(new Date(column.deadline), "PPpp", {
-            locale: he,
-          })}
-        </p>
-      </div>
 
-      {!isCurrentUserColumn && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold">
-            הטור של {betsData?.profiles?.name}
-          </h2>
-        </div>
-      )}
-
-      {/* Doubles & Triples Counter */}
-      <div className="grid gap-6 md:grid-cols-[1fr_300px]">
-        <div className="rounded-lg border bg-card">
-          {!isDeadlinePassed && isCurrentUserColumn && (
-            <div className="mb-4 sticky top-0 z-20 bg-card p-4 rounded-lg border-b-2">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-4 items-center">
-                  <div>
-                    <span
-                      className={cn([
-                        "font-medium",
-                        doublesAndTriplesCount.filledBets <
-                        column?.games?.length
-                          ? "text-red-500"
-                          : "text-green-500",
-                        doublesAndTriplesCount.filledBets ===
-                        column?.games?.length
-                          ? "text-green-500"
-                          : "",
-                      ])}
-                    >
-                      {doublesAndTriplesCount.filledBets ===
-                        column?.games?.length && <>✅</>}{" "}
-                      {doublesAndTriplesCount.filledBets}/
-                      {column?.games?.length}
-                    </span>{" "}
-                    מלאים
-                  </div>
-                  <div>
-                    <span
-                      className={cn([
-                        "font-medium",
-                        doublesAndTriplesCount.doubles < column.max_doubles
-                          ? "text-black"
-                          : doublesAndTriplesCount.doubles > column.max_doubles
-                          ? "text-red-500"
-                          : "text-green-500",
-                      ])}
-                    >
-                      {" "}
-                      {doublesAndTriplesCount.doubles ===
-                        column.max_doubles && <>✅</>}
-                      {doublesAndTriplesCount.doubles > column.max_doubles && (
-                        <>❌</>
-                      )}{" "}
-                      {doublesAndTriplesCount.doubles}/{column.max_doubles}
-                    </span>{" "}
-                    כפולים
-                  </div>
-                  <div>
-                    <span
-                      className={cn([
-                        "font-medium",
-                        doublesAndTriplesCount.triples < column.max_triples
-                          ? "text-black"
-                          : doublesAndTriplesCount.triples > column.max_triples
-                          ? "text-red-500"
-                          : "text-green-500",
-                      ])}
-                    >
-                      {" "}
-                      {doublesAndTriplesCount.triples ===
-                        column.max_triples && <>✅</>}
-                      {doublesAndTriplesCount.triples > column.max_triples && (
-                        <>❌</>
-                      )}{" "}
-                      {doublesAndTriplesCount.triples}/{column.max_triples}
-                    </span>{" "}
-                    משולשים
-                  </div>
-                </div>
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!canSubmit}
-                    onClick={submitBet}
-                  >
-                    {isSaving ? "שומר..." : "שלח טופס"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isDeadlinePassed && gamesWithResults.length > 0 && (
-            <div className="rounded-lg border bg-card p-4">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-4 items-center">
-                  <div className="flex gap-4 items-center">
-                    <p className="text-right text-sm font-medium text-muted-foreground">
-                      ניחושים נכונים : {correctGuessesToUse}/
-                      {gamesWithResults.length} (
-                      {(
-                        (correctGuessesToUse / gamesWithResults.length) *
-                        100
-                      ).toFixed(2)}
-                      %)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Header - Only visible on desktop */}
-          <div className="hidden md:flex justify-between items-center gap-4 p-4 bg-white border-b font-medium text-muted-foreground sticky top-0 z-10">
-            <div>
-              <div className="flex flex-col gap-2 items-start">
-                {(profile?.is_admin || isDeadlinePassed) && (
-                  <>
-                    <div className="flex flex-row gap-2 items-start">
-                      <>
-                        <Checkbox
-                          id="showVoteStats"
-                          checked={showVoteStats}
-                          onCheckedChange={() =>
-                            setShowVoteStats(!showVoteStats)
-                          }
-                        />
-                        <label
-                          htmlFor="showVoteStats"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          הצג נתוני טופס
-                        </label>
-                      </>
-                    </div>
-
-                    <div className="flex flex-row gap-2 items-start">
-                      <Button
-                        variant={calcType === "classic" ? "default" : "outline"}
-                        onClick={() => setCalcType("classic")}
-                      >
-                        קלאסי
-                      </Button>
-                      <Button
-                        variant={
-                          calcType === "weighted" ? "default" : "outline"
-                        }
-                        onClick={() => setCalcType("weighted")}
-                      >
-                        משוקלל
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {isDeadlinePassed && (
-                  <div className="flex flex-row gap-2 items-start">
-                    <Checkbox
-                      id="showLiveMatchWidget"
-                      checked={showLiveMatchWidget}
-                      onCheckedChange={() =>
-                        setShowLiveMatchWidget(!showLiveMatchWidget)
-                      }
-                    />
-                    <label
-                      htmlFor="showLiveMatchWidget"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      הצג משחקים חיים
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
-            {column.group_bet &&
-              column.group_bet?.length === column.games.length && (
-                <div>
-                  <div className="flex flex-row gap-2 items-center">
-                    <Button
-                      variant={!showGroupBet ? "default" : "outline"}
-                      onClick={() => setShowGroupBet(false)}
-                    >
-                      טופס אישי
-                    </Button>
-
-                    <Button
-                      variant={showGroupBet ? "default" : "outline"}
-                      onClick={() => setShowGroupBet(true)}
-                    >
-                      הטופס המשותף
-                    </Button>
-                  </div>
-                </div>
-              )}
-            <div className="flex flex-row gap-2 justify-end items-center">
-              <div className="text-sm text-muted-foreground">סדר לפי</div>
-              <Button
-                size={"sm"}
-                variant={orderBy === "game_num" ? "default" : "outline"}
-                onClick={() => setOrderBy("game_num")}
-              >
-                מס׳
-              </Button>
-              <Button
-                size={"sm"}
-                variant={orderBy === "game_time" ? "default" : "outline"}
-                onClick={() => setOrderBy("game_time")}
-              >
-                זמן משחק
-              </Button>
-              {(profile?.is_admin || isDeadlinePassed) && (
-                <Button
-                  size={"sm"}
-                  variant={orderBy === "triples" ? "default" : "outline"}
-                  onClick={() => setOrderBy("triples")}
-                >
-                  כפולים/משולשים
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/** Mobile sort buttons */}
-          <div className="visible md:hidden p-4 bg-white border-b font-medium text-muted-foreground sticky top-0 z-10">
-            <div className="flex flex-row gap-2 justify-between items-center">
-              <div className="flex flex-col gap-2  w-1/2">
-                {(profile?.is_admin || isDeadlinePassed) && (
-                  <>
-                    <div className="flex flex-row gap-2 items-center">
-                      <Checkbox
-                        id="showVoteStats"
-                        checked={showVoteStats}
-                        onCheckedChange={() => setShowVoteStats(!showVoteStats)}
-                      />
-                      <label
-                        htmlFor="showVoteStats"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        הצג נתוני טופס
-                      </label>
-                    </div>
-
-                    <div className="flex flex-row gap-2 items-center">
-                      <Button
-                        size={"sm"}
-                        variant={calcType === "classic" ? "default" : "outline"}
-                        onClick={() => setCalcType("classic")}
-                      >
-                        קלאסי
-                      </Button>
-                      <Button
-                        size={"sm"}
-                        variant={
-                          calcType === "weighted" ? "default" : "outline"
-                        }
-                        onClick={() => setCalcType("weighted")}
-                      >
-                        משוקלל
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {isDeadlinePassed && (
-                  <>
-                    <div className="flex flex-row gap-2 items-center">
-                      <Checkbox
-                        id="showLiveMatchWidget"
-                        checked={showLiveMatchWidget}
-                        onCheckedChange={() =>
-                          setShowLiveMatchWidget(!showLiveMatchWidget)
-                        }
-                      />
-                      <label
-                        htmlFor="showLiveMatchWidget"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        הצג משחקים חיים
-                      </label>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 items-end">
-                <div className="flex flex-row gap-2 justify-end items-center">
-                  <div className="text-sm text-muted-foreground">סדר לפי</div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline">
-                        {orderBy === "game_num"
-                          ? "מס׳"
-                          : orderBy === "game_time"
-                          ? "זמן משחק"
-                          : "כפולים/משולשים"}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
-                      <DropdownMenuRadioGroup
-                        value={orderBy}
-                        onValueChange={(value) => setOrderBy(value as OrderBy)}
-                      >
-                        <DropdownMenuRadioItem value="game_num">
-                          מס׳
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="game_time">
-                          זמן משחק
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="triples">
-                          כפולים/משולשים
-                        </DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {column.group_bet &&
-                  column.group_bet?.length === column.games.length && (
-                    <div>
-                      <div className="flex flex-row gap-2 items-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline">
-                              {showGroupBet ? "הטופס המשותף" : "טופס אישי"}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56">
-                            <DropdownMenuRadioGroup
-                              value={showGroupBet.toString()}
-                              onValueChange={(value: string) =>
-                                setShowGroupBet(value === "true" ? true : false)
-                              }
-                            >
-                              <DropdownMenuRadioItem value={"false"}>
-                                טופס אישי
-                              </DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem value={"true"}>
-                                הטופס המשותף
-                              </DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  )}
-              </div>
-            </div>
-          </div>
-
-          {/* Games List */}
-          <div className="divide-y">
-            {orderedGames.map((game) => (
-              <div>
-                <div
-                  key={game.game_num}
-                  className="grid grid-cols-1 md:grid-cols-[60px_1fr_2fr_1fr] gap-4 p-4"
-                >
-                  <div className="text-right md:text-right font-medium">
-                    <span className="md:hidden text-muted-foreground text-sm">
-                      #
-                    </span>
-                    {game.game_num}
-                  </div>
-
-                  {/* Mobile: Game Details Column */}
-                  <div className="md:hidden flex flex-row justify-between">
-                    {/* Game Info */}
-                    <div className="flex-1 flex flex-col gap-1">
-                      <div className="font-medium">
-                        {game.home_team} - {game.away_team}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {getDayName(new Date(game.game_time))}
-                        {", "}
-                        {format(new Date(game.game_time), "HH:mm")}
-                      </div>
-                      <div className="text-sm text-blue-600">
-                        <span
-                          onClick={() =>
-                            setStandingWidgetLeague(
-                              competitionTo365LeagueId(game.competition)
-                            )
-                          }
-                        >
-                          {game.competition}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Desktop: Time & Competition */}
-                  <div className="hidden md:block">
-                    <div className="text-sm text-muted-foreground">
-                      {getDayName(new Date(game.game_time))}
-                      {", "}
-                      {format(new Date(game.game_time), "HH:mm")}
-                    </div>
-                    <div
-                      className="text-sm text-blue-600"
-                      onClick={() =>
-                        setStandingWidgetLeague(
-                          competitionTo365LeagueId(game.competition)
-                        )
-                      }
-                    >
-                      {game.competition}
-                    </div>
-                  </div>
-
-                  {/* Desktop: Teams */}
-                  <div className="hidden md:flex items-center gap-2">
-                    <span className="font-medium">{game.home_team}</span>
-                    <span className="text-muted-foreground">vs</span>
-                    <span className="font-medium">{game.away_team}</span>
-                  </div>
-
-                  {/* Desktop: Bet Buttons */}
-                  <div className="flex gap-2 justify-start flex-col">
-                    <BetButtons
-                      gameNum={game.game_num}
-                      userBet={
-                        showGroupBet
-                          ? formatBetsFromBetsData(column.group_bet)
-                          : userBet
-                      }
-                      result={game.result}
-                      disabled={isDeadlinePassed || !isCurrentUserColumn}
-                      onBetPlace={handlePlaceBet}
-                    />
-                    {(profile?.is_admin || isDeadlinePassed) &&
-                      showVoteStats &&
-                      voteStats[game.game_num] && (
-                        <div className="mt-2">
-                          <VoteStats
-                            stats={voteStats[game.game_num]}
-                            calcType={calcType}
-                          />
-                        </div>
-                      )}
-                  </div>
-                </div>
-                {showLiveMatchWidget &&
-                  game.live_tracker_id &&
-                  new Date(game.game_time).getTime() - Date.now() <
-                    30 * 60 * 1000 &&
-                  new Date(game.game_time).getTime() - Date.now() >
-                    -120 * 60 * 1000 && (
-                    <LiveMatchWidget matchId={game.live_tracker_id} />
-                  )}
-              </div>
-            ))}
-          </div>
-
-          {/* Footer */}
-        </div>
-
-        {/* Column Summary */}
-        {
-          <div className="order-first md:order-last">
-            <ColumnSummary
-              stats={columnStats as UserStats[]}
-              showScore={isDeadlinePassed}
-              columnId={column.id}
-            />
-          </div>
-        }
-      </div>
-
-      {
-        <StandingWidget
-          isOpened={!!standingWidgetLeague}
-          leagueId={standingWidgetLeague}
-          onOpenChange={(newState) => {
-            if (newState) {
-              setStandingWidgetLeague(
-                competitionTo365LeagueId(column.competition)
-              );
-            } else {
-              setStandingWidgetLeague(null);
-            }
-          }}
-        />
-      }
+      <StandingWidget
+        isOpened={!!standingWidgetLeague}
+        leagueId={standingWidgetLeague}
+        onOpenChange={(newState) => {
+          if (newState) {
+            setStandingWidgetLeague(competitionTo365LeagueId(column.competition));
+          } else {
+            setStandingWidgetLeague(null);
+          }
+        }}
+      />
     </div>
   );
 };
+
+const ColumnSkeleton = () => (
+  <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8" aria-busy="true" aria-label="טוען טור">
+    <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_300px]">
+      <section className="overflow-hidden rounded-2xl border bg-card">
+        <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-6">
+          <div className="flex items-center justify-between gap-3 md:justify-start">
+            <Skeleton className="size-10 rounded-xl" />
+            <div className="flex flex-col items-center gap-2 md:items-start">
+              <Skeleton className="h-7 w-28" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="size-10 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-3 gap-2 md:w-96">
+            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[54px] rounded-xl" />)}
+          </div>
+        </div>
+        <div className="border-t bg-muted/40 px-4 py-3 md:px-6">
+          <Skeleton className="h-9 w-56 rounded-lg" />
+        </div>
+        <ul className="divide-y border-t">
+          {Array.from({ length: 8 }, (_, i) => (
+            <li key={i} className="flex items-center gap-3 px-4 py-2.5 md:gap-4 md:px-6">
+              <Skeleton className="h-4 w-5" />
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Skeleton className="h-4 w-3/5 max-w-56" />
+                <Skeleton className="h-3 w-2/5 max-w-36" />
+              </div>
+              <Skeleton className="h-[50px] w-[130px] rounded-xl md:w-[142px]" />
+            </li>
+          ))}
+        </ul>
+      </section>
+      <aside className="rounded-2xl border bg-card p-5">
+        <Skeleton className="mb-4 h-5 w-24" />
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex items-center gap-2.5 py-2">
+            <Skeleton className="size-7 rounded-full" />
+            <Skeleton className="h-4 flex-1" />
+          </div>
+        ))}
+      </aside>
+    </div>
+  </div>
+);
