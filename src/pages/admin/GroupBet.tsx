@@ -3,7 +3,7 @@ import { Teams } from '@/components/Teams';
 import { Link, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Minus, Plus } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { BetResult, Column } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,32 @@ import { useSeasonDataQuery } from '@/hooks/useQueries';
 import { autoFillGroupBet, formVotes, formWeights, readAlgoSettings, writeAlgoSettings, type AlgoSettings } from '@/lib/stats';
 
 type OrderBy = 'game_num' | 'game_time';
+type Limits = { doubles: number; triples: number };
+
+const Stepper = ({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) => (
+    <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <div className="flex items-center rounded-lg bg-muted p-0.5">
+            <button
+                aria-label={`הורד ${label}`}
+                disabled={value <= min}
+                onClick={() => onChange(value - 1)}
+                className="flex size-8 items-center justify-center rounded-md enabled:hover:bg-card disabled:opacity-40"
+            >
+                <Minus className="size-3.5" aria-hidden />
+            </button>
+            <span className="w-7 text-center font-semibold tabular-nums" aria-live="polite">{value}</span>
+            <button
+                aria-label={`הוסף ${label}`}
+                disabled={value >= max}
+                onClick={() => onChange(value + 1)}
+                className="flex size-8 items-center justify-center rounded-md enabled:hover:bg-card disabled:opacity-40"
+            >
+                <Plus className="size-3.5" aria-hidden />
+            </button>
+        </div>
+    </div>
+);
 const OUTCOMES = ['1', 'X', '2'] as const;
 
 export const GroupBet = () => {
@@ -27,6 +53,8 @@ export const GroupBet = () => {
     const [orderBy, setOrderBy] = useState<OrderBy>('game_num');
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
     const [column, setColumn] = useState<Column | null>(null);
+    // the group bet's own doubles/triples budget (defaults to the players' limits)
+    const [limits, setLimits] = useState<Limits>({ doubles: 0, triples: 0 });
 
     const [algo, setAlgo] = useState<AlgoSettings>(readAlgoSettings);
     const updateAlgo = (patch: Partial<AlgoSettings>) => {
@@ -55,6 +83,10 @@ export const GroupBet = () => {
                 setLoadError(true);
             } else if (data) {
                 setColumn(data);
+                setLimits({
+                    doubles: data.group_max_doubles ?? data.max_doubles ?? 0,
+                    triples: data.group_max_triples ?? data.max_triples ?? 0,
+                });
                 const formattedBets: Record<number, BetResult[]> = {};
                 (data.group_bet ?? []).forEach((bet: { game_num: number; value: BetResult[] }) => {
                     formattedBets[bet.game_num] = bet.value;
@@ -106,8 +138,8 @@ export const GroupBet = () => {
         setUserBet(autoFillGroupBet(
             column.games.map((g) => g.game_num),
             votes,
-            column.max_doubles ?? 0,
-            column.max_triples ?? 0,
+            limits.doubles,
+            limits.triples,
         ));
         setNotice(null);
     };
@@ -122,7 +154,12 @@ export const GroupBet = () => {
         }));
         const { data, error } = await supabase
             .from('columns')
-            .update({ group_bet: groupBet })
+            .update({
+                group_bet: groupBet,
+                // store only when it differs, so the group bet keeps following the players' limits otherwise
+                group_max_doubles: limits.doubles === (column.max_doubles ?? 0) ? null : limits.doubles,
+                group_max_triples: limits.triples === (column.max_triples ?? 0) ? null : limits.triples,
+            })
             .eq('id', column.id)
             .select('id');
         setSaving(false);
@@ -150,8 +187,16 @@ export const GroupBet = () => {
     const canSave =
         !saving &&
         counts.filled >= total &&
-        counts.doubles <= (column.max_doubles ?? 0) &&
-        counts.triples <= (column.max_triples ?? 0);
+        counts.doubles <= limits.doubles &&
+        counts.triples <= limits.triples;
+    const playerLimits = { doubles: column.max_doubles ?? 0, triples: column.max_triples ?? 0 };
+    const customLimits = limits.doubles !== playerLimits.doubles || limits.triples !== playerLimits.triples;
+    // number of toto rows the group column costs: 2 per double, 3 per triple
+    const rows = 2 ** limits.doubles * 3 ** limits.triples;
+    const updateLimits = (patch: Partial<Limits>) => {
+        setLimits({ ...limits, ...patch });
+        setNotice(null);
+    };
     const isDeadlinePassed = new Date(column.deadline) < new Date();
 
     return (
@@ -172,10 +217,32 @@ export const GroupBet = () => {
                     filled={counts.filled}
                     total={total}
                     doubles={counts.doubles}
-                    maxDoubles={column.max_doubles ?? 0}
+                    maxDoubles={limits.doubles}
                     triples={counts.triples}
-                    maxTriples={column.max_triples ?? 0}
+                    maxTriples={limits.triples}
                 />
+            </section>
+
+            {/* Budget */}
+            <section className="space-y-3 rounded-2xl border bg-card p-4 md:p-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="text-base font-bold">תקציב הטופס המשותף</h2>
+                    <span className="text-sm text-muted-foreground tabular-nums">{rows.toLocaleString('he-IL')} טורים</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <Stepper label="כפולים" value={limits.doubles} min={0} max={total} onChange={(v) => updateLimits({ doubles: v })} />
+                    <Stepper label="משולשים" value={limits.triples} min={0} max={total} onChange={(v) => updateLimits({ triples: v })} />
+                    {customLimits && (
+                        <Button variant="ghost" size="sm" onClick={() => updateLimits(playerLimits)}>
+                            כמו לשחקנים ({playerLimits.doubles} כפולים · {playerLimits.triples} משולשים)
+                        </Button>
+                    )}
+                </div>
+                {customLimits && (
+                    <p className="text-sm text-muted-foreground">
+                        השבוע הטופס המשותף שונה מהשחקנים ({playerLimits.doubles} כפולים · {playerLimits.triples} משולשים). נשמר יחד עם הטופס.
+                    </p>
+                )}
             </section>
 
             {isDeadlinePassed && (

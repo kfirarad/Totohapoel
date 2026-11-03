@@ -9,6 +9,9 @@ export interface Column {
   created_by?: string;
   max_doubles?: number;
   max_triples?: number;
+  /** group bet's own budget; null = same as the players' limits */
+  group_max_doubles?: number | null;
+  group_max_triples?: number | null;
   games?: Game[];
   group_bet: GameBetValue[] | null;
   group_bet_correct_guesses: number | null;
