@@ -5,7 +5,7 @@ export type SeasonColumn = {
   name: string;
   deadline: string;
   games: Game[] | null;
-  group_bet_correct_guesses: number | null;
+  group_bet: { game_num: string | number; value: BetResult[] }[] | null;
 };
 
 export type SeasonBet = {
@@ -65,6 +65,13 @@ const scoreBet = (bet: SeasonBet, column: SeasonColumn) => {
   return { correct, graded, singles, singlesCorrect };
 };
 
+/** group bet hits computed from its picks and the results (not the stored, recalc-dependent count); null = no group bet */
+export const groupScore = (column: SeasonColumn): number | null => {
+  const picks = column.group_bet?.filter((b) => b.value?.length);
+  if (!picks?.length) return null;
+  return scoreBet({ bet_values: picks } as SeasonBet, column).correct;
+};
+
 export const computePlayerStats = (
   columns: SeasonColumn[],
   bets: SeasonBet[],
@@ -89,6 +96,7 @@ export const computePlayerStats = (
       ...scoreBet(bet, column),
     }));
     const top = Math.max(0, ...scored.map((s) => s.correct));
+    const group = groupScore(column);
 
     for (const { bet, correct, graded, singles, singlesCorrect } of scored) {
       if (!graded) continue;
@@ -109,9 +117,9 @@ export const computePlayerStats = (
       p.singlesCorrect += singlesCorrect;
       p.bestWeek = Math.max(p.bestWeek, correct);
       if (top > 0 && correct === top) p.wins++;
-      if (column.group_bet_correct_guesses != null) {
+      if (group != null) {
         p.groupComparisons++;
-        if (correct > column.group_bet_correct_guesses) p.beatGroup++;
+        if (correct > group) p.beatGroup++;
       }
       if (recent.has(column.id)) {
         p.formCorrect += correct;
@@ -233,8 +241,10 @@ export type HistoryRow = {
   deadline: string;
   correct: number;
   graded: number;
-  /** group column's correct guesses, as last recalculated by an admin */
+  /** group bet's correct guesses; null when the column has no group bet */
   group: number | null;
+  /** mean correct guesses of everyone who played that column (1 decimal) */
+  average: number;
 };
 
 /** One row per closed column the player bet on, oldest first */
@@ -244,13 +254,17 @@ export const playerHistory = (
   userId: string,
   now = new Date()
 ): HistoryRow[] => {
-  const mine = new Map(bets.filter((b) => b.user_id === userId).map((b) => [b.column_id, b]));
+  const byColumn = new Map<string, SeasonBet[]>();
+  for (const b of bets) byColumn.set(b.column_id, [...(byColumn.get(b.column_id) ?? []), b]);
+
   return closedColumns(columns, now).flatMap((column) => {
-    const bet = mine.get(column.id);
+    const columnBets = byColumn.get(column.id) ?? [];
+    const bet = columnBets.find((b) => b.user_id === userId);
     if (!bet) return [];
     const { correct, graded } = scoreBet(bet, column);
-    return graded
-      ? [{ columnId: column.id, name: column.name, deadline: column.deadline, correct, graded, group: column.group_bet_correct_guesses }]
-      : [];
+    if (!graded) return [];
+    const scores = columnBets.map((b) => scoreBet(b, column)).filter((s) => s.graded);
+    const average = Math.round((scores.reduce((sum, s) => sum + s.correct, 0) / scores.length) * 10) / 10;
+    return [{ columnId: column.id, name: column.name, deadline: column.deadline, correct, graded, group: groupScore(column), average }];
   });
 };

@@ -5,6 +5,7 @@ import {
   computePlayerStats,
   formVotes,
   formWeights,
+  groupScore,
   playerHistory,
   type SeasonBet,
   type SeasonColumn,
@@ -13,8 +14,9 @@ import {
 const game = (game_num: number, result: Game["result"]) =>
   ({ game_num, result }) as Game;
 
-const col = (id: string, deadline: string, results: Game["result"][], group: number | null = null): SeasonColumn => ({
-  id, name: id, deadline, group_bet_correct_guesses: group,
+const col = (id: string, deadline: string, results: Game["result"][], groupPicks: string[][] | null = null): SeasonColumn => ({
+  id, name: id, deadline,
+  group_bet: groupPicks && groupPicks.map((value, i) => ({ game_num: i + 1, value: value as Game["result"][] })),
   games: results.map((r, i) => game(i + 1, r)),
 });
 
@@ -25,8 +27,8 @@ const bet = (user_id: string, column_id: string, picks: string[][]): SeasonBet =
 
 const now = new Date("2026-06-01");
 const columns = [
-  col("c1", "2026-01-01", ["1", "X", "2"], 1),
-  col("c2", "2026-02-01", ["1", "1", "1"], 3),
+  col("c1", "2026-01-01", ["1", "X", "2"], [["1"], ["1"], ["1"]]), // group hits 1
+  col("c2", "2026-02-01", ["1", "1", "1"], [["1"], ["1"], ["1"]]), // group hits 3
   col("open", "2026-12-01", [null, null, null]),
 ];
 const bets = [
@@ -79,8 +81,15 @@ test("auto-fill respects limits and hedges the least certain games", () => {
 
 test("player history lists only closed columns the player bet on", () => {
   const rows = playerHistory(columns, bets, "a", now);
-  expect(rows.map((r) => [r.columnId, r.correct, r.graded, r.group])).toEqual([
-    ["c1", 2, 3, 1],
-    ["c2", 2, 3, 3],
+  expect(rows.map((r) => [r.columnId, r.correct, r.graded, r.group, r.average])).toEqual([
+    ["c1", 2, 3, 1, 1], // a 2, b 0
+    ["c2", 2, 3, 3, 2.5], // a 2, b 3
   ]);
+});
+
+test("group score comes from the group picks and results; no group bet is null", () => {
+  expect(groupScore(columns[0])).toBe(1);
+  expect(groupScore(columns[1])).toBe(3);
+  expect(groupScore(columns[2])).toBeNull();
+  expect(groupScore({ ...columns[0], group_bet: [{ game_num: 1, value: [] }] })).toBeNull();
 });
