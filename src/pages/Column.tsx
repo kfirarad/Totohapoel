@@ -1,5 +1,5 @@
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { Teams } from "@/components/Teams";
+import { Teams, teamWeight } from "@/components/Teams";
 import { cn, getDayName } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -629,43 +629,75 @@ export const Column = () => {
               const startsIn = new Date(game.game_time).getTime() - Date.now();
               const correct =
                 isBetsLoading && pickSource === "viewed" ? null : betOutcome(displayedBets[game.game_num], game.result);
+              const picksLoading = isBetsLoading && pickSource === "viewed";
+              const outcomeIcon =
+                correct === true ? (
+                  <CircleCheck className="size-4 shrink-0 text-success" aria-label="ניחוש נכון" />
+                ) : correct === false ? (
+                  <CircleX className="size-4 shrink-0 text-destructive" aria-label="ניחוש שגוי" />
+                ) : null;
+              const meta = (
+                <>
+                  {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), "HH:mm")} ·{" "}
+                  <button
+                    className="hover:text-foreground hover:underline"
+                    onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                  >
+                    {game.competition}
+                  </button>
+                </>
+              );
+              const betButtonsProps = {
+                gameNum: game.game_num,
+                userBet: displayedBets,
+                result: game.result,
+                disabled: isDeadlinePassed || !isCurrentUserColumn,
+                onBetPlace: handlePlaceBet,
+              };
               return (
                 <li
                   key={game.game_num}
                   className={cn(
-                    "px-4 py-2.5 transition-colors md:px-6",
+                    "px-4 py-3 transition-colors md:px-6 md:py-2.5",
                     correct === true && "bg-success-soft",
                     correct === false && "bg-error/60"
                   )}
                 >
-                  <div className="flex items-center gap-3 md:gap-4">
+                  {/* mobile: scoreboard — 1 under the home team, X in the middle, 2 under the away team */}
+                  <div className="flex flex-col gap-2 md:hidden">
+                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span className="flex shrink-0 items-center gap-1 font-semibold tabular-nums">
+                        {outcomeIcon}
+                        משחק {game.game_num}
+                      </span>
+                      <span className="truncate">{meta}</span>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-1 text-center text-[15px] leading-snug">
+                      <span className={teamWeight(game, "1")}>{game.home_team}</span>
+                      <span className="text-xs text-muted-foreground">נגד</span>
+                      <span className={teamWeight(game, "2")}>{game.away_team}</span>
+                    </div>
+                    {picksLoading ? (
+                      <Skeleton className="h-10 w-full rounded-[10px]" />
+                    ) : (
+                      <BetButtons layout="board" {...betButtonsProps} />
+                    )}
+                  </div>
+
+                  {/* desktop: one row */}
+                  <div className="hidden items-center gap-4 md:flex">
                     <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{game.game_num}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 font-semibold">
-                        {correct === true && <CircleCheck className="size-4 shrink-0 text-success" aria-label="ניחוש נכון" />}
-                        {correct === false && <CircleX className="size-4 shrink-0 text-destructive" aria-label="ניחוש שגוי" />}
+                        {outcomeIcon}
                         <span className="min-w-0"><Teams game={game} /></span>
                       </div>
-                      <div className="truncate text-xs text-muted-foreground md:text-sm">
-                        {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), "HH:mm")} ·{" "}
-                        <button
-                          className="hover:text-foreground hover:underline"
-                          onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
-                        >
-                          {game.competition}
-                        </button>
-                      </div>
+                      <div className="truncate text-sm text-muted-foreground">{meta}</div>
                     </div>
-                    {isBetsLoading && pickSource === "viewed" ? (
-                      <Skeleton className="h-[50px] w-[130px] shrink-0 rounded-xl md:w-[142px]" />
+                    {picksLoading ? (
+                      <Skeleton className="h-[50px] w-[142px] shrink-0 rounded-xl" />
                     ) : (
-                      <BetButtons
-                        gameNum={game.game_num}
-                        userBet={displayedBets}
-                        result={game.result}
-                        disabled={isDeadlinePassed || !isCurrentUserColumn}
-                        onBetPlace={handlePlaceBet}
-                      />
+                      <BetButtons {...betButtonsProps} />
                     )}
                   </div>
                   {showLiveMatchWidget &&

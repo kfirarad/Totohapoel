@@ -6,9 +6,12 @@ import type { Game } from "@/types/database.types";
  * From md: "home – away" on one line.
  * Once a result exists the winner is bold and the loser regular; a draw keeps both equal.
  */
+/** winner bold, loser regular, draw / no result equal */
+export const teamWeight = (game: Pick<Game, "result">, side: "1" | "2") =>
+  !game.result || game.result === "X" ? "font-semibold" : game.result === side ? "font-bold" : "font-normal";
+
 export const Teams = ({ game }: { game: Pick<Game, "home_team" | "away_team" | "result"> }) => {
-  const weight = (side: "1" | "2") =>
-    !game.result || game.result === "X" ? "font-semibold" : game.result === side ? "font-bold" : "font-normal";
+  const weight = (side: "1" | "2") => teamWeight(game, side);
 
   return (
     <span className="flex min-w-0 flex-col items-center text-center leading-snug md:flex-row md:flex-wrap md:items-baseline md:gap-x-1 md:text-start">
