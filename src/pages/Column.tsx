@@ -644,7 +644,7 @@ export const Column = () => {
                       <div className="flex items-center gap-1.5 font-semibold">
                         {correct === true && <CircleCheck className="size-4 shrink-0 text-success" aria-label="ניחוש נכון" />}
                         {correct === false && <CircleX className="size-4 shrink-0 text-destructive" aria-label="ניחוש שגוי" />}
-                        <span className="truncate"><Teams game={game} /></span>
+                        <span className="min-w-0"><Teams game={game} /></span>
                       </div>
                       <div className="truncate text-xs text-muted-foreground md:text-sm">
                         {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), "HH:mm")} ·{" "}
