@@ -1,5 +1,7 @@
 import path from "path"
-import react from "@vitejs/plugin-react"
+import babel from "@rolldown/plugin-babel"
+import tailwindcss from "@tailwindcss/vite"
+import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
 export default defineConfig({
@@ -8,24 +10,13 @@ export default defineConfig({
     allowedHosts: ["kfirs-macbook-pro.vulture-atria.ts.net", "localhost"],
   },
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          ["babel-plugin-react-compiler", {}],
-        ],
-      },
-    }),
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
+    tailwindcss(),
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-      },
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
 })

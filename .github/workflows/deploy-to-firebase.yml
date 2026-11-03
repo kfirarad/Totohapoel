@@ -14,18 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - uses: oven-sh/setup-bun@v2
+
       - name: Install dependencies
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: "install"
+        run: bun install --frozen-lockfile
 
       - name: Build
-        uses: borales/actions-yarn@v4
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        with:
-          cmd: "build"
+        run: bun run build
+
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

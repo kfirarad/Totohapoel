@@ -17,7 +17,7 @@ interface ColumnSummaryProps {
 
 export const ColumnSummary = ({ stats, showScore, columnId }: ColumnSummaryProps) => {
     return (
-        <div className="bg-white rounded-lg shadow p-4 space-y-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 space-y-4">
             <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">סיכום הטור</h3>
                 <span className="text-sm text-muted-foreground">

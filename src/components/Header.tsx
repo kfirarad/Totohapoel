@@ -24,7 +24,7 @@ const Header = () => {
     }
 
     return (
-        <header className="w-full flex items-center justify-between p-4 shadow-sm bg-gray-200">
+        <header className="w-full flex items-center justify-between p-4 shadow-xs bg-gray-200">
             <Link to="/">
                 <div className="flex items-center space-x-2">
                     <Volleyball className="h-6 w-6" />
