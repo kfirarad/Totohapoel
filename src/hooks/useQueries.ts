@@ -45,23 +45,23 @@ const fetchColumn = async (id?: string) => {
     currentColumn = data;
   }
 
-  // Fetch previous column
-  const { data: previousColumn } = await supabase
-    .from("columns")
-    .select("*")
-    .lt("deadline", currentColumn.deadline)
-    .order("deadline", { ascending: false })
-    .limit(1)
-    .single();
-
-  // Fetch next column
-  const { data: nextColumn } = await supabase
-    .from("columns")
-    .select("*")
-    .gt("deadline", currentColumn.deadline)
-    .order("deadline", { ascending: true })
-    .limit(1)
-    .single();
+  // Fetch previous/next column ids in parallel (only ids are used for navigation)
+  const [{ data: previousColumn }, { data: nextColumn }] = await Promise.all([
+    supabase
+      .from("columns")
+      .select("id")
+      .lt("deadline", currentColumn.deadline)
+      .order("deadline", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("columns")
+      .select("id")
+      .gt("deadline", currentColumn.deadline)
+      .order("deadline", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   return {
     ...currentColumn,
@@ -79,7 +79,10 @@ const fetchUserBets = async (columnId: string, user_id: string) => {
     )
     .eq("column_id", columnId)
     .eq("user_id", user_id)
-    .single();
+    // Latest row wins: tolerates legacy duplicate rows and returns null (not an error) when no bet exists yet
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   return data;
 };
@@ -271,30 +274,33 @@ export const usePlaceBetMutation = () => {
       betValues,
       userId,
       columnId,
-      betId,
     }: {
       betValues: {
         game_num: string;
         value: BetResult[];
-      };
+      }[];
       userId: string;
       columnId: string;
-      betId?: string;
     }) => {
-      if (betId) {
-        const { error } = await supabase
-          .from("user_bets")
-          .update({ bet_values: betValues })
-          .eq("id", betId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("user_bets")
-          .insert([
-            { bet_values: betValues, user_id: userId, column_id: columnId },
-          ]);
-        if (error) throw error;
-      }
+      // Match by user+column instead of a cached row id, so a stale/failed fetch can't cause a duplicate insert.
+      // .select() makes a silent 0-row update (e.g. RLS) detectable.
+      const { data: updated, error: updateError } = await supabase
+        .from("user_bets")
+        .update({ bet_values: betValues })
+        .eq("user_id", userId)
+        .eq("column_id", columnId)
+        .select("id");
+      if (updateError) throw updateError;
+      if (updated.length > 0) return true;
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("user_bets")
+        .insert([
+          { bet_values: betValues, user_id: userId, column_id: columnId },
+        ])
+        .select("id");
+      if (insertError) throw insertError;
+      if (!inserted?.length) throw new Error("bet not saved");
       return true;
     },
     onSuccess: (_, { columnId, userId }) => {

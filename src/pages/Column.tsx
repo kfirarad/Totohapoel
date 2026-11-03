@@ -42,6 +42,34 @@ type OrderBy = "game_num" | "game_time" | "triples";
 
 const initialSettings = JSON.parse(localStorage.getItem("settings") || `{}`);
 
+type Bets = Record<number, BetResult[]>;
+
+// Order-insensitive fingerprint, ignoring empty games, to compare picks with the saved column
+const betsFingerprint = (bets: Bets) =>
+  JSON.stringify(
+    Object.entries(bets)
+      .filter(([, v]) => v.length > 0)
+      .map(([k, v]) => [Number(k), [...v].sort()])
+      .sort((a, b) => (a[0] as number) - (b[0] as number))
+  );
+
+const readDraft = (key: string): Bets | null => {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+};
+
+const writeDraft = (key: string, bets: Bets | null) => {
+  try {
+    if (bets) localStorage.setItem(key, JSON.stringify(bets));
+    else localStorage.removeItem(key);
+  } catch {
+    // storage unavailable (private mode / quota) - draft is a convenience only
+  }
+};
+
 const competitionTo365LeagueId = (leagueName: string) => {
   switch (leagueName) {
     case "ליגה לאומית":
@@ -136,7 +164,7 @@ export const Column = () => {
   }, [columnId, refetchColumn]);
 
   const {
-    data: betsData = [],
+    data: betsData,
     isLoading: isBetsLoading,
     refetch: refetchUserBets,
   } = useUserBetsQuery(column?.id ?? "", userIdParam || user?.id || "");
@@ -160,7 +188,7 @@ export const Column = () => {
   const { data: voteStats = {}, isLoading: isVoteStatsLoading } =
     useVoteStatsQuery(column?.id ?? "");
 
-  const { mutate: placeBet } = usePlaceBetMutation();
+  const { mutateAsync: placeBet, isPending: isSaving } = usePlaceBetMutation();
 
   const { data: columnStats = [], isLoading: isStatsLoading } =
     useColumnStatsQuery(column);
@@ -177,7 +205,7 @@ export const Column = () => {
   ).length;
 
   const formatBetsFromBetsData = (
-    betsValues: {
+    betsValues?: {
       game_num: number;
       value: BetResult[];
     }[]
@@ -203,31 +231,46 @@ export const Column = () => {
   const handlePlaceBet = (gameId: number, value: BetResult) => {
     if (!isCurrentUserColumn || isDeadlinePassed) return;
 
-    setUserBet((prevBet) => {
-      const newValue = { ...prevBet };
-      let bet = newValue[gameId] || [];
-      if (bet.includes(value)) {
-        bet = bet.filter((v) => v !== value);
-      } else {
-        bet = [...bet, value];
-      }
-      newValue[gameId] = bet;
-      return newValue;
-    });
+    const bet = userBet[gameId] || [];
+    const newValue = {
+      ...userBet,
+      [gameId]: bet.includes(value)
+        ? bet.filter((v) => v !== value)
+        : [...bet, value],
+    };
+    setUserBet(newValue);
+    if (draftKey) {
+      writeDraft(
+        draftKey,
+        betsFingerprint(newValue) === betsFingerprint(serverBets)
+          ? null
+          : newValue
+      );
+    }
   };
 
   const submitBet = async () => {
-    if (!user?.id || isDeadlinePassed) return;
+    if (!user?.id || isDeadlinePassed || isSaving) return;
 
-    await placeBet({
-      betValues: Object.entries(userBet).map(([game_num, bet]) => ({
-        game_num,
-        value: bet,
-      })),
-      betId: betsData?.id,
-      columnId: column.id,
-      userId: user.id,
-    });
+    try {
+      await placeBet({
+        betValues: Object.entries(userBet).map(([game_num, bet]) => ({
+          game_num,
+          value: bet,
+        })),
+        columnId: column.id,
+        userId: user.id,
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "הטופס לא נשמר",
+        description: "אירעה שגיאה בשמירה, נסה שוב",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (draftKey) writeDraft(draftKey, null);
     toast({
       className: "bg-blue-800 text-white color-white",
       title: "יאללה הפועל!",
@@ -239,11 +282,24 @@ export const Column = () => {
   const userId = userIdParam || user?.id;
   const isCurrentUserColumn = userId === user?.id;
 
+  const serverBets = formatBetsFromBetsData(betsData?.bet_values);
+  // Draft only while the column is still editable by its owner; keyed per column so last week's picks never leak in
+  const draftKey =
+    column?.id && user?.id && isCurrentUserColumn && !isDeadlinePassed
+      ? `bet-draft:${column.id}:${user.id}`
+      : null;
+  const hasUnsavedChanges =
+    !!draftKey && betsFingerprint(userBet) !== betsFingerprint(serverBets);
+
   useEffect(() => {
-    if (betsData?.bet_values) {
-      setUserBet(formatBetsFromBetsData(betsData.bet_values));
+    if (isBetsLoading) return;
+    const server = formatBetsFromBetsData(betsData?.bet_values);
+    const draft = draftKey ? readDraft(draftKey) : null;
+    if (draft && betsFingerprint(draft) === betsFingerprint(server)) {
+      writeDraft(draftKey!, null);
     }
-  }, [betsData]);
+    setUserBet(draft || server);
+  }, [betsData, draftKey, isBetsLoading]);
 
   useEffect(() => {
     const filledBets = Object.values(userBet).filter(
@@ -306,8 +362,47 @@ export const Column = () => {
   if (columnError) return <div>Error: {columnError.message}</div>;
   if (!column) return <div>לא נמצא טור פעיל</div>;
 
+  const canSubmit =
+    !isSaving &&
+    doublesAndTriplesCount.filledBets >= column.games?.length &&
+    doublesAndTriplesCount.doubles <= column.max_doubles &&
+    doublesAndTriplesCount.triples <= column.max_triples;
+  const unsentMessage = !draftKey
+    ? null
+    : !betsData
+    ? "הטופס עוד לא נשלח"
+    : hasUnsavedChanges
+    ? "השינויים בטופס עוד לא נשמרו"
+    : null;
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className={cn("container mx-auto px-4 py-8", unsentMessage && "pb-24")}>
+      {unsentMessage && (
+        <div
+          role="status"
+          className="fixed bottom-4 inset-x-4 z-50 mx-auto max-w-md flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 shadow-lg"
+        >
+          <span className="font-medium">⚠️ {unsentMessage}</span>
+          <div className="flex gap-2 shrink-0">
+            {betsData && hasUnsavedChanges && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isSaving}
+                onClick={() => {
+                  setUserBet(serverBets);
+                  if (draftKey) writeDraft(draftKey, null);
+                }}
+              >
+                בטל שינויים
+              </Button>
+            )}
+            <Button size="sm" disabled={!canSubmit} onClick={submitBet}>
+              {isSaving ? "שומר..." : "שלח טופס"}
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
@@ -356,7 +451,7 @@ export const Column = () => {
       {!isCurrentUserColumn && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold">
-            הטור של {betsData.profiles.name}
+            הטור של {betsData?.profiles?.name}
           </h2>
         </div>
       )}
@@ -436,15 +531,10 @@ export const Column = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={
-                      doublesAndTriplesCount.filledBets <
-                        column?.games?.length ||
-                      doublesAndTriplesCount.doubles > column.max_doubles ||
-                      doublesAndTriplesCount.triples > column.max_triples
-                    }
+                    disabled={!canSubmit}
                     onClick={submitBet}
                   >
-                    שלח טופס
+                    {isSaving ? "שומר..." : "שלח טופס"}
                   </Button>
                 </div>
               </div>
