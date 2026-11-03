@@ -1,377 +1,295 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Teams } from '@/components/Teams';
+import { Link, useParams } from 'react-router-dom';
+import { format } from 'date-fns';
+import { he } from 'date-fns/locale';
+import { ChevronRight } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { BetResult, Column } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn, getDayName } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { BetButtons } from '@/components/BetButtons';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Banner } from '@/components/Banner';
+import { LimitTiles } from '@/components/LimitTiles';
+import { Segmented } from '@/components/Segmented';
+import { useSeasonDataQuery } from '@/hooks/useQueries';
+import { autoFillGroupBet, formVotes, formWeights, readAlgoSettings, writeAlgoSettings, type AlgoSettings } from '@/lib/stats';
 
 type OrderBy = 'game_num' | 'game_time';
+const OUTCOMES = ['1', 'X', '2'] as const;
 
 export const GroupBet = () => {
-    const navigate = useNavigate();
-    const { toast } = useToast();
-    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [notice, setNotice] = useState<'ok' | 'fail' | null>(null);
     const [orderBy, setOrderBy] = useState<OrderBy>('game_num');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-    const [showInfo, setShowInfo] = useState(true);
-    
     const [userBet, setUserBet] = useState<Record<number, BetResult[]>>({});
-    const [doublesAndTriplesCount, setDoublesAndTriplesCount] = useState({
-        filledBets: 0,
-        doubles: 0,
-        triples: 0,
-    });
-
     const [column, setColumn] = useState<Column | null>(null);
 
+    const [algo, setAlgo] = useState<AlgoSettings>(readAlgoSettings);
+    const updateAlgo = (patch: Partial<AlgoSettings>) => {
+        const next = { ...algo, ...patch };
+        setAlgo(next);
+        writeAlgoSettings(next);
+    };
+    const { data: season, isLoading: isSeasonLoading } = useSeasonDataQuery();
+    const votes = useMemo(() => {
+        if (!season || !column?.id) return null;
+        const weightOf = formWeights(season.columns, season.bets, new Date(column.deadline), algo.formWeeks, algo.power);
+        return formVotes(season.bets.filter((b) => b.column_id === column.id), weightOf);
+    }, [season, column?.id, column?.deadline, algo]);
+
+    // /admin/group-bet/:columnId edits that column; without an id, the newest active one
+    const { columnId } = useParams();
     useEffect(() => {
         const fetchLatestColumn = async () => {
-            try {
-                // Fetch the latest active column
-                const { data: columnData, error: columnError } = await supabase
-                    .from('columns')
-                    .select('*')
-                    .eq('is_active', true)
-                    .order('deadline', { ascending: false })
-                    .limit(1)
-                    .single();
+            const query = supabase.from('columns').select('*');
+            const { data, error } = await (columnId
+                ? query.eq('id', columnId).maybeSingle()
+                : query.eq('is_active', true).order('deadline', { ascending: false }).limit(1).maybeSingle());
 
-                if (columnError) {
-                    toast({
-                        title: 'Error',
-                        description: 'Failed to load latest column',
-                        variant: 'destructive'
-                    });
-                    return;
-                }
-
-                setColumn(columnData);
-
-                // Check if group_bet already exists
-                if (columnData.group_bet && columnData.group_bet.length > 0) {
-                    const formattedBets: Record<number, BetResult[]> = {};
-                    columnData.group_bet.forEach((bet: { game_num: number; value: BetResult[] }) => {
-                        formattedBets[bet.game_num] = bet.value;
-                    });
-                    setUserBet(formattedBets);
-                }
-            } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: 'An error occurred while fetching data',
-                    variant: 'destructive'
+            if (error) {
+                console.error(error);
+                setLoadError(true);
+            } else if (data) {
+                setColumn(data);
+                const formattedBets: Record<number, BetResult[]> = {};
+                (data.group_bet ?? []).forEach((bet: { game_num: number; value: BetResult[] }) => {
+                    formattedBets[bet.game_num] = bet.value;
                 });
-            } finally {
-                setLoading(false);
+                setUserBet(formattedBets);
             }
+            setLoading(false);
         };
-
+        setLoading(true);
         fetchLatestColumn();
-    }, [toast]);
+    }, [columnId]);
 
     useEffect(() => {
-        const filledBets = Object.values(userBet).filter(
-            (bet) => bet.length > 0
-        ).length;
-        const doubles = Object.values(userBet).filter(
-            (bet) => bet.length === 2
-        ).length;
-        const triples = Object.values(userBet).filter(
-            (bet) => bet.length === 3
-        ).length;
-        setDoublesAndTriplesCount({ filledBets, doubles, triples });
+        if (notice !== 'ok') return;
+        const t = setTimeout(() => setNotice(null), 3500);
+        return () => clearTimeout(t);
+    }, [notice]);
+
+    const counts = useMemo(() => {
+        const values = Object.values(userBet);
+        return {
+            filled: values.filter((b) => b.length > 0).length,
+            doubles: values.filter((b) => b.length === 2).length,
+            triples: values.filter((b) => b.length === 3).length,
+        };
     }, [userBet]);
 
-    const handlePlaceBet = (gameId: number, value: BetResult) => {
-        setUserBet((prevBet) => {
-            const newValue = { ...prevBet };
-            let bet = newValue[gameId] || [];
-            if (bet.includes(value)) {
-                bet = bet.filter((v) => v !== value);
-            } else {
-                bet = [...bet, value];
-            }
-            newValue[gameId] = bet;
-            return newValue;
+    const games = useMemo(
+        () =>
+            [...(column?.games ?? [])].sort((a, b) =>
+                orderBy === 'game_time'
+                    ? new Date(a.game_time).getTime() - new Date(b.game_time).getTime() || a.game_num - b.game_num
+                    : a.game_num - b.game_num
+            ),
+        [column?.games, orderBy]
+    );
+
+    const handlePlaceBet = (gameNum: number, value: BetResult) => {
+        const bet = userBet[gameNum] || [];
+        setUserBet({
+            ...userBet,
+            [gameNum]: bet.includes(value) ? bet.filter((v) => v !== value) : [...bet, value],
         });
+        setNotice(null);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const fillFromAlgo = () => {
+        if (!votes || !column?.games) return;
+        setUserBet(autoFillGroupBet(
+            column.games.map((g) => g.game_num),
+            votes,
+            column.max_doubles ?? 0,
+            column.max_triples ?? 0,
+        ));
+        setNotice(null);
+    };
+
+    const save = async () => {
+        if (!column) return;
         setSaving(true);
-        
-        try {
-            if (!column) throw new Error('No column data found');
-
-            // Format the user bet data to match the expected structure
-            const groupBet = Object.entries(userBet).map(([game_num, value]) => ({
-                game_num: parseInt(game_num),
-                value,
-            }));
-
-            // Update the column with the group bet data
-            const { error } = await supabase
-                .from('columns')
-                .update({
-                    group_bet: groupBet
-                })
-                .eq('id', column.id);
-
-            if (error) throw error;
-
-            toast({
-                title: 'Success',
-                description: 'Group bet saved successfully',
-                variant: 'default'
-            });
-        } catch (error: any) {
-            toast({
-                title: 'Error',
-                description: error?.message || 'Failed to save group bet',
-                variant: 'destructive'
-            });
-        } finally {
-            setSaving(false);
+        setNotice(null);
+        const groupBet = Object.entries(userBet).map(([game_num, value]) => ({
+            game_num: parseInt(game_num),
+            value,
+        }));
+        const { data, error } = await supabase
+            .from('columns')
+            .update({ group_bet: groupBet })
+            .eq('id', column.id)
+            .select('id');
+        setSaving(false);
+        if (error || !data?.length) {
+            console.error(error);
+            setNotice('fail');
+        } else {
+            setNotice('ok');
         }
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return (
+            <div className="space-y-4" aria-busy="true">
+                <Skeleton className="h-28 rounded-2xl" />
+                <Skeleton className="h-32 rounded-2xl" />
+                <Skeleton className="h-96 rounded-2xl" />
+            </div>
+        );
     }
+    if (loadError) return <div className="p-4">שגיאה בטעינת הטור</div>;
+    if (!column) return <div className="p-4 text-muted-foreground">לא נמצא טור פעיל</div>;
 
-    if (!column) {
-        return <div>No active column found</div>;
-    }
-
+    const total = column.games?.length ?? 0;
+    const canSave =
+        !saving &&
+        counts.filled >= total &&
+        counts.doubles <= (column.max_doubles ?? 0) &&
+        counts.triples <= (column.max_triples ?? 0);
     const isDeadlinePassed = new Date(column.deadline) < new Date();
 
-    const sortedGames = column.games.sort((a, b) => {
-        if (a[orderBy] === b[orderBy]) {
-            return a.game_num - b.game_num;
-        }
-        if (orderBy === 'game_time') {
-            return sortOrder === 'asc'
-                ? new Date(a.game_time).getTime() - new Date(b.game_time).getTime()
-                : new Date(b.game_time).getTime() - new Date(a.game_time).getTime();
-        }
-        return sortOrder === 'asc'
-            ? a.game_num - b.game_num
-            : b.game_num - a.game_num;
-    });
-
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">
-                    Group Bet - {column.name}
-                </h1>
-                <div className="space-x-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => navigate('/admin/columns')}
-                    >
-                        Back to Columns
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={saving || 
-                            doublesAndTriplesCount.filledBets < column.games.length ||
-                            doublesAndTriplesCount.doubles > column.max_doubles ||
-                            doublesAndTriplesCount.triples > column.max_triples}
-                    >
-                        {saving ? 'Saving...' : 'Save Group Bet'}
-                    </Button>
+        <div className="space-y-4 pb-28">
+            {/* Header */}
+            <section className="flex flex-col gap-4 rounded-2xl border bg-card p-4 md:flex-row md:items-center md:justify-between md:p-6">
+                <div>
+                    <Link to="/admin/columns" className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+                        <ChevronRight className="size-4" aria-hidden />
+                        טורים
+                    </Link>
+                    <h1 className="text-xl font-bold tracking-tight md:text-2xl">הטופס המשותף · {column.name}</h1>
+                    <p className="text-sm text-muted-foreground">
+                        נסגר ב-{format(new Date(column.deadline), 'd בMMMM, HH:mm', { locale: he })}
+                    </p>
                 </div>
-            </div>
+                <LimitTiles
+                    filled={counts.filled}
+                    total={total}
+                    doubles={counts.doubles}
+                    maxDoubles={column.max_doubles ?? 0}
+                    triples={counts.triples}
+                    maxTriples={column.max_triples ?? 0}
+                />
+            </section>
 
             {isDeadlinePassed && (
-                <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
-                    <p className="font-bold">Information</p>
-                    <p>The deadline for this column has passed. You can still edit the group bet as an admin.</p>
-                </div>
+                <Banner tone="warn">מועד הסגירה עבר · כמנהל עדיין אפשר לערוך את הטופס המשותף</Banner>
             )}
 
-            <div className="rounded-lg border bg-card">
-                {/* Doubles and Triples Counter */}
-                <div className="mb-4 sticky top-0 z-20 bg-card p-4 rounded-lg border-b-2">
-                    <div className="flex justify-between items-center">
-                        <div className="flex gap-4 items-center">
-                            <div>
-                                <span
-                                    className={cn([
-                                        "font-medium",
-                                        doublesAndTriplesCount.filledBets < column.games.length
-                                            ? "text-red-500"
-                                            : "text-green-500",
-                                    ])}
-                                >
-                                    {doublesAndTriplesCount.filledBets === column.games.length && <>✅</>}{" "}
-                                    {doublesAndTriplesCount.filledBets}/{column.games.length}
-                                </span>{" "}
-                                filled
-                            </div>
-                            <div>
-                                <span
-                                    className={cn([
-                                        "font-medium",
-                                        doublesAndTriplesCount.doubles < column.max_doubles
-                                            ? "text-black"
-                                            : doublesAndTriplesCount.doubles > column.max_doubles
-                                                ? "text-red-500"
-                                                : "text-green-500",
-                                    ])}
-                                >
-                                    {" "}
-                                    {doublesAndTriplesCount.doubles === column.max_doubles && <>✅</>}
-                                    {doublesAndTriplesCount.doubles > column.max_doubles && <>❌</>}{" "}
-                                    {doublesAndTriplesCount.doubles}/{column.max_doubles}
-                                </span>{" "}
-                                doubles
-                            </div>
-                            <div>
-                                <span
-                                    className={cn([
-                                        "font-medium",
-                                        doublesAndTriplesCount.triples < column.max_triples
-                                            ? "text-black"
-                                            : doublesAndTriplesCount.triples > column.max_triples
-                                                ? "text-red-500"
-                                                : "text-green-500",
-                                    ])}
-                                >
-                                    {" "}
-                                    {doublesAndTriplesCount.triples === column.max_triples && <>✅</>}
-                                    {doublesAndTriplesCount.triples > column.max_triples && <>❌</>}{" "}
-                                    {doublesAndTriplesCount.triples}/{column.max_triples}
-                                </span>{" "}
-                                triples
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                id="showInfo"
-                                checked={showInfo}
-                                onCheckedChange={() => setShowInfo(!showInfo)}
-                            />
-                            <label
-                                htmlFor="showInfo"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                                Show Game Details
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="flex mt-4 gap-4 items-center">
-                        <div className="w-1/3">
-                            <div className="text-sm text-muted-foreground">Sort by</div>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline">
-                                        {orderBy === 'game_num' ? 'Game #' : 'Game Time'}
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56">
-                                    <DropdownMenuRadioGroup value={orderBy} onValueChange={(value) => setOrderBy(value as OrderBy)}>
-                                        <DropdownMenuRadioItem value="game_num">Game #</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="game_time">Game Time</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-
-                        <div className="w-1/3">
-                            <div className="text-sm text-muted-foreground">Order</div>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline">
-                                        {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56">
-                                    <DropdownMenuRadioGroup value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
-                                        <DropdownMenuRadioItem value="asc">Ascending</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="desc">Descending</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
+            {/* Algorithm */}
+            <section className="space-y-3 rounded-2xl border bg-card p-4 md:p-6">
+                <h2 className="text-base font-bold">אלגוריתם כושר</h2>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                    <Segmented
+                        label="מחזורים אחרונים"
+                        value={String(algo.formWeeks)}
+                        onChange={(v) => updateAlgo({ formWeeks: Number(v) })}
+                        options={[3, 5, 10].map((n) => ({ value: String(n), label: String(n) }))}
+                    />
+                    <Segmented
+                        label="חדות"
+                        value={String(algo.power)}
+                        onChange={(v) => updateAlgo({ power: Number(v) })}
+                        options={[
+                            { value: '1', label: 'יחסי' },
+                            { value: '2', label: 'בינוני' },
+                            { value: '3', label: 'חד' },
+                        ]}
+                    />
+                    <Button variant="outline" disabled={!votes} onClick={fillFromAlgo}>
+                        {isSeasonLoading ? 'טוען היסטוריה...' : 'מלא לפי האלגוריתם'}
+                    </Button>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                    משקל ההצבעה של כל שחקן = אחוז הפגיעה שלו ב-{algo.formWeeks} המחזורים האחרונים, בחזקת {algo.power}. שחקנים
+                    ללא היסטוריה מקבלים את המשקל הממוצע. המילוי בוחר סינגל לתוצאה המובילה, משולשים במשחקים הכי פתוחים
+                    וכפולים איפה שהתוצאה השנייה הכי חזקה. כדאי לעבור על הטופס לפני השמירה.
+                </p>
+            </section>
 
-                {/* Games List */}
-                <div className="divide-y">
-                    {sortedGames.map((game) => (
-                        <div key={game.game_num} className="grid grid-cols-1 md:grid-cols-[60px_2fr_2fr_1fr] gap-4 p-4">
-                            <div className="text-right md:text-center font-medium">
-                                <span className="md:hidden text-muted-foreground text-sm">
-                                    #
-                                </span>
-                                {game.game_num}
-                            </div>
-
-                            {showInfo && (
-                                <>
-                                    {/* Game Info */}
-                                    <div className="flex flex-col gap-1">
-                                        <div className="font-medium">
-                                            {game.home_team} vs {game.away_team}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {getDayName(new Date(game.game_time))}, {format(new Date(game.game_time), "HH:mm")}
-                                        </div>
-                                        <div className="text-sm text-blue-600">
-                                            {game.competition}
-                                        </div>
+            {/* Games */}
+            <section className="overflow-hidden rounded-2xl border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3 md:px-6">
+                    <Segmented
+                        label="סדר לפי"
+                        value={orderBy}
+                        onChange={setOrderBy}
+                        options={[
+                            { value: 'game_num', label: 'מס׳' },
+                            { value: 'game_time', label: 'שעה' },
+                        ]}
+                    />
+                    {votes && <span className="text-xs text-muted-foreground">אחוזים לפי האלגוריתם</span>}
+                </div>
+                <ul className="divide-y">
+                    {games.map((game) => {
+                        const v = votes?.[game.game_num];
+                        const shares = OUTCOMES.map((o) => (v?.total ? v[o] / v.total : 0));
+                        const lead = Math.max(...shares);
+                        return (
+                            <li key={game.game_num} className="flex items-center gap-3 px-4 py-2.5 md:gap-4 md:px-6">
+                                <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{game.game_num}</span>
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate font-semibold">
+                                        <Teams game={game} />
                                     </div>
-
-                                    {/* Result if available */}
-                                    <div className="flex items-center">
-                                        {game.result && (
-                                            <div className="text-sm font-medium">
-                                                Result: <span className="text-green-600">{game.result}</span>
-                                            </div>
-                                        )}
+                                    <div className="truncate text-xs text-muted-foreground md:text-sm">
+                                        {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), 'HH:mm')} · {game.competition}
+                                        {game.result && <> · תוצאה: <span className="font-semibold text-foreground">{game.result}</span></>}
                                     </div>
-                                </>
-                            )}
-
-                            {!showInfo && (
-                                <div className="md:col-span-3 flex justify-between items-center">
-                                    <div className="font-medium">
-                                        {game.home_team} vs {game.away_team}
-                                    </div>
-                                    {game.result && (
-                                        <div className="text-sm font-medium">
-                                            Result: <span className="text-green-600">{game.result}</span>
-                                        </div>
-                                    )}
                                 </div>
-                            )}
+                                <div className="flex shrink-0 flex-col gap-1">
+                                    <BetButtons
+                                        gameNum={game.game_num}
+                                        userBet={userBet}
+                                        result={game.result}
+                                        disabled={false}
+                                        onBetPlace={handlePlaceBet}
+                                    />
+                                    {v?.total ? (
+                                        // one % under each button, leader emphasized
+                                        <div className="grid grid-cols-3 px-[3px] text-center text-[11px] tabular-nums">
+                                            {shares.map((share, i) => (
+                                                <span
+                                                    key={OUTCOMES[i]}
+                                                    className={cn(share === lead ? 'font-semibold text-foreground' : 'text-muted-foreground')}
+                                                >
+                                                    {Math.round(share * 100)}%
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </section>
 
-                            {/* Bet Buttons */}
-                            <div className={cn(showInfo ? "" : "md:col-span-1")}>
-                                <BetButtons
-                                    gameNum={game.game_num}
-                                    userBet={userBet}
-                                    result={game.result}
-                                    disabled={false}
-                                    onBetPlace={handlePlaceBet}
-                                />
-                            </div>
-                        </div>
-                    ))}
+            {/* Save bar */}
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur">
+                <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:gap-4 md:px-8">
+                    <div className="flex-1">
+                        {notice === 'ok' && (
+                            <Banner tone="success" onClose={() => setNotice(null)}>הטופס המשותף נשמר</Banner>
+                        )}
+                        {notice === 'fail' && (
+                            <Banner tone="error" action={{ label: 'נסה שוב', onClick: save, disabled: !canSave }}>
+                                הטופס המשותף לא נשמר
+                            </Banner>
+                        )}
+                    </div>
+                    <Button className="h-12 rounded-xl px-6 text-base md:h-11" disabled={!canSave} onClick={save}>
+                        {saving ? 'שומר...' : 'שמור טופס משותף'}
+                    </Button>
                 </div>
             </div>
-        </form>
+        </div>
     );
 };

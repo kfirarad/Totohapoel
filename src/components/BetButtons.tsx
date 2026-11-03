@@ -9,6 +9,10 @@ interface BetButtonsProps {
     onBetPlace: (gameNum: number, value: BetResult) => void;
 }
 
+/** null = no result yet; otherwise whether the bet includes the result */
+export const betOutcome = (picks: BetResult[] | undefined, result: BetResult | null) =>
+    result ? !!picks?.includes(result) : null;
+
 export const BetButtons = ({
     gameNum,
     userBet,
@@ -16,27 +20,37 @@ export const BetButtons = ({
     disabled,
     onBetPlace
 }: BetButtonsProps) => {
-
+    const correct = betOutcome(userBet[gameNum], result);
     return (
-        <div className="flex flex-row gap-2 justify-center items-center">
-            {(['1', 'X', '2'] as const).map((value) => (
-                <button
-                    key={value}
-                    onClick={() => onBetPlace(gameNum, value)}
-                    disabled={disabled}
-                    className={cn(
-                        'px-4 py-2 rounded font-medium transition-colors',
-                        userBet[gameNum]?.includes(value)
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted hover:bg-muted/80',
-                        disabled && 'opacity-50 cursor-not-allowed',
-                        result === value && userBet[gameNum]?.includes(value) && 'ring-4 ring-green-500',
-                        result === value && !userBet[gameNum]?.includes(value) && 'ring-4 ring-red-500'
-                    )}
-                >
-                    {value}
-                </button>
-            ))}
+        <div role="group" aria-label={`ניחוש למשחק ${gameNum}`} className="flex shrink-0 gap-0.5 rounded-xl bg-muted p-[3px]">
+            {(['1', 'X', '2'] as const).map((value) => {
+                const picked = !!userBet[gameNum]?.includes(value);
+                const isResult = result === value;
+                return (
+                    <button
+                        key={value}
+                        aria-pressed={picked}
+                        aria-label={`משחק ${gameNum}: ${value}${isResult ? ' (תוצאה)' : ''}`}
+                        onClick={() => onBetPlace(gameNum, value)}
+                        disabled={disabled}
+                        className={cn(
+                            'h-11 w-10 rounded-[9px] text-[15px] font-semibold transition-colors md:w-11',
+                            'disabled:cursor-default',
+                            picked
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-foreground enabled:hover:bg-card',
+                            // after the result: hit = green, picks on a missed game = red,
+                            // extra picks on a hit game fade, the real result is outlined green
+                            picked && isResult && 'bg-success text-success-foreground',
+                            picked && !isResult && correct === false && 'bg-error text-error-foreground',
+                            picked && !isResult && correct === true && 'opacity-35',
+                            !picked && isResult && 'ring-2 ring-inset ring-success'
+                        )}
+                    >
+                        {value}
+                    </button>
+                );
+            })}
         </div>
     );
 };

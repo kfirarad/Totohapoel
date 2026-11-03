@@ -39,7 +39,7 @@ const BetButton = ({
             disabled={disabled}
             className={`
                 ${small ? 'px-2 py-1 text-sm' : 'px-4 py-2'} rounded relative
-                ${selected ? 'bg-blue-400 text-white' : 'bg-gray-100'}
+                ${selected ? 'bg-primary text-primary-foreground' : 'bg-muted'}
                 ${disabled ? 'opacity-90 cursor-not-allowed' : ''}
                 ${isCorrect ? 'ring-2 ring-green-500 bg-opacity-40' : ''}                
                 ${!selected && isAnswer ? 'ring-2 ring-red-500' : ''}
@@ -66,13 +66,13 @@ export const GameRow = ({
             <TableCell className="font-medium p-4">
                 {gameNum}
             </TableCell>
-            <TableCell className="text-sm text-gray-600">
+            <TableCell className="text-sm text-muted-foreground">
                 <div>{competition}</div>
                 <div>{getDayName(new Date(gameTime))}, {format(new Date(gameTime), 'HH:mm')}</div>
             </TableCell>
             <TableCell className="font-medium flex flex-col items-center justify-center md:flex-row md:gap-2 text-center">
                 <div>{homeTeam}</div>
-                <div className="text-gray-500">vs</div>
+                <div className="text-muted-foreground">נגד</div>
                 <div>{awayTeam}</div>
             </TableCell>
             <TableCell>

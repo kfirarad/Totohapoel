@@ -1,8 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { supabase } from "@/services/supabase";
 import { BetResult, Column, Game } from "@/types/database.types";
 import { User } from "@supabase/supabase-js";
-import { VoteStats } from "@/components/VoteStats";
+
+type VoteCounts = { total: number; "1": number; X: number; "2": number };
+export interface VoteStats {
+  weighted: VoteCounts;
+  classic: VoteCounts;
+  doubles: number;
+  triples: number;
+  singles: number;
+  totalColumns: number;
+}
+import type { SeasonBet, SeasonColumn } from "@/lib/stats";
 
 // Query keys
 export const queryKeys = {
@@ -12,7 +28,7 @@ export const queryKeys = {
     ["user_bets", columnId, userId] as const,
   voteStats: (columnId: string) => ["voteStats", columnId] as const,
   columnStats: (columnId: string) => ["columnStats", columnId] as const,
-  userStats: (userId?: string) => ["userStats", userId] as const,
+  seasonData: ["seasonData"] as const,
 };
 
 const betValue = {
@@ -75,7 +91,7 @@ const fetchUserBets = async (columnId: string, user_id: string) => {
     .from("user_bets")
     .select(
       `*,
-            profiles(id, name)`
+            profiles(id, name, avatar_url)`
     )
     .eq("column_id", columnId)
     .eq("user_id", user_id)
@@ -184,7 +200,7 @@ const fetchColumnStats = async (column: Column) => {
     .select(
       `
             bet_values,
-            profiles(id, name),
+            profiles(id, name, avatar_url),
             user_id
             `
     )
@@ -197,7 +213,7 @@ const fetchColumnStats = async (column: Column) => {
   const userStats = bets.reduce(
     (acc, bet) => {
       const {
-        profiles: { id: userId, name },
+        profiles: { id: userId, name, avatar_url },
         bet_values: betValues,
       } = bet;
 
@@ -206,6 +222,7 @@ const fetchColumnStats = async (column: Column) => {
           user: {
             id: userId,
             name: name,
+            avatar_url,
           },
           totalBets: 0,
           correctBets: 0,
@@ -224,7 +241,7 @@ const fetchColumnStats = async (column: Column) => {
     {} as Record<
       string,
       {
-        user: { id: string; name: string };
+        user: { id: string; name: string; avatar_url: string | null };
         totalBets: number;
         correctBets: number;
       }
@@ -234,19 +251,30 @@ const fetchColumnStats = async (column: Column) => {
 };
 
 // Query Hooks
-export const useColumnQuery = (id?: string) => {
-  return useQuery({
+// Shared options so pages can prefetch exactly what the hooks will read
+export const columnQueryOptions = (id?: string) =>
+  queryOptions({
     queryKey: queryKeys.column(id),
-    queryFn: () => fetchColumn(id),    
+    queryFn: () => fetchColumn(id),
   });
-};
 
-export const useUserBetsQuery = (columnId: string, userId: string) => {
-  return useQuery({
+export const userBetsQueryOptions = (columnId: string, userId: string) =>
+  queryOptions({
     queryKey: queryKeys.user_bets(columnId, userId),
     queryFn: () => fetchUserBets(columnId, userId),
     enabled: !!columnId && !!userId,
   });
+
+export const useColumnQuery = (id?: string) => {
+  return useQuery({
+    ...columnQueryOptions(id),
+    // keep showing the current column while the next one loads
+    placeholderData: keepPreviousData,
+  });
+};
+
+export const useUserBetsQuery = (columnId: string, userId: string) => {
+  return useQuery(userBetsQueryOptions(columnId, userId));
 };
 
 export const useVoteStatsQuery = (columnId: string) => {
@@ -291,7 +319,7 @@ export const usePlaceBetMutation = () => {
         .eq("column_id", columnId)
         .select("id");
       if (updateError) throw updateError;
-      if (updated.length > 0) return true;
+      if (updated?.length) return true;
 
       const { data: inserted, error: insertError } = await supabase
         .from("user_bets")
@@ -415,29 +443,47 @@ export const useRecalculateCorrectGuessesMutation = () => {
   });
 };
 
-export const useUserStatsQuery = (userId?: string) => {
+
+// PostgREST caps responses (1000 rows by default), so page through everything
+const fetchAllRows = async <T,>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+) => {
+  const PAGE = 1000;
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE) return rows;
+  }
+};
+
+/** All columns and bets, for season stats and the form-weighted algo */
+export const useSeasonDataQuery = (enabled = true) => {
   return useQuery({
-    queryKey: queryKeys.userStats(userId),
+    queryKey: queryKeys.seasonData,
+    enabled,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data: bets, error } = await supabase
-        .from("user_bets")
-        .select(
-          "correct_guesses, columns(name, deadline, group_bet_correct_guesses)"
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: true })
-        .returns<
-          {
-            correct_guesses: number;
-            columns: {
-              name: string;
-              deadline: string;
-              group_bet_correct_guesses: number;
-            };
-          }[]
-        >();
-      if (error) throw error;
-      return bets;
+      const [columns, bets] = await Promise.all([
+        fetchAllRows<SeasonColumn>((from, to) =>
+          supabase
+            .from("columns")
+            .select("id, name, deadline, games, group_bet_correct_guesses")
+            .order("deadline")
+            .range(from, to)
+            .returns<SeasonColumn[]>()
+        ),
+        fetchAllRows<SeasonBet>((from, to) =>
+          supabase
+            .from("user_bets")
+            .select("user_id, column_id, bet_values, profiles(name, avatar_url)")
+            .order("id")
+            .range(from, to)
+            .returns<SeasonBet[]>()
+        ),
+      ]);
+      return { columns, bets };
     },
   });
 };

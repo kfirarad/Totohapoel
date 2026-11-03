@@ -11,15 +11,15 @@ export const AdminLayout = () => {
     }
 
     const navItems = [
-        { path: '/admin/columns', label: 'Columns' },
-        { path: '/admin/users', label: 'Users' },
-        { path: '/admin/group-bet', label: 'Group Bet' },
+        { path: '/admin/columns', label: 'טורים' },
+        { path: '/admin/users', label: 'משתמשים' },
+        { path: '/admin/group-bet', label: 'הטופס המשותף' },
     ];
 
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
             {/* Mobile Top Bar */}
-            <div className="md:hidden bg-gray-100 border-b">
+            <div className="md:hidden bg-muted border-b">
                 <nav className="flex overflow-x-auto">
                     {navItems.map((item) => (
                         <Link
@@ -29,7 +29,7 @@ export const AdminLayout = () => {
                                 'px-4 py-3 text-sm whitespace-nowrap transition-colors',
                                 location.pathname.startsWith(item.path)
                                     ? 'bg-primary text-primary-foreground'
-                                    : 'hover:bg-gray-200'
+                                    : 'hover:bg-muted'
                             )}
                         >
                             {item.label}
@@ -39,7 +39,7 @@ export const AdminLayout = () => {
             </div>
 
             {/* Desktop Sidebar */}
-            <aside className="hidden md:block w-64 bg-gray-100 border-r">
+            <aside className="hidden md:block w-64 bg-muted border-r">
                 <nav className="p-4">
                     {navItems.map((item) => (
                         <Link
@@ -49,7 +49,7 @@ export const AdminLayout = () => {
                                 'block px-4 py-2 my-1 rounded-md transition-colors',
                                 location.pathname.startsWith(item.path)
                                     ? 'bg-primary text-primary-foreground'
-                                    : 'hover:bg-gray-200'
+                                    : 'hover:bg-muted'
                             )}
                         >
                             {item.label}

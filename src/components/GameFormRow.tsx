@@ -32,7 +32,7 @@ const BetButton = ({
             onClick={onClick}
             className={`
                 ${small ? 'px-2 py-1 text-sm' : 'px-4 py-2'} rounded relative
-                ${selected ? 'bg-blue-400 text-white' : 'bg-gray-100'}
+                ${selected ? 'bg-primary text-primary-foreground' : 'bg-muted'}
             `}
         >
             {value}
@@ -62,21 +62,21 @@ export const GameFormRow = ({
                     value={competition}
                     onChange={(e) => onGameChange('competition', e.target.value)}
                     onPaste={onPaste}
-                    placeholder="Paste game details here..."
+                    placeholder="הדבק כאן פרטי משחק..."
                 />
             </TableCell>
             <TableCell>
                 <Input
                     value={homeTeam}
                     onChange={(e) => onGameChange('home_team', e.target.value)}
-                    placeholder="Home Team"
+                    placeholder="קבוצת בית"
                 />
             </TableCell>
             <TableCell>
                 <Input
                     value={awayTeam}
                     onChange={(e) => onGameChange('away_team', e.target.value)}
-                    placeholder="Away Team"
+                    placeholder="קבוצת חוץ"
                 />
             </TableCell>
             <TableCell>
