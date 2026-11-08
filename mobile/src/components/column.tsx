@@ -17,10 +17,11 @@ function GameShell({ game, children, right }: { game: Game; children: React.Reac
         <T muted size={12}><T bold size={12}>{game.game_num}</T> · {game.competition}</T>
         {right ?? <T muted size={12}>{formatGameTime(game.game_time)}</T>}
       </View>
+      {/* Same 3-column grid as the pick buttons: home over "1", vs over "X", away over "2". */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <T bold style={{ flex: 1, textAlign: 'center' }} numberOfLines={1}>{game.home_team}</T>
-        <T muted size={12}>{t('vs')}</T>
-        <T bold style={{ flex: 1, textAlign: 'center' }} numberOfLines={1}>{game.away_team}</T>
+        <T bold style={{ flex: 1, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{game.home_team}</T>
+        <T muted size={12} style={{ flex: 1, textAlign: 'center' }}>{t('vs')}</T>
+        <T bold style={{ flex: 1, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{game.away_team}</T>
       </View>
       {children}
     </View>
