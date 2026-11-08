@@ -639,6 +639,18 @@ export const Column = () => {
               pickValue={pickSource}
               onPickChange={setPickSource}
               participants={columnStats.length}
+              voters={Object.fromEntries(
+                games.map((g) => [
+                  g.game_num,
+                  Object.fromEntries(
+                    (["1", "X", "2"] as const).map((o) => [
+                      o,
+                      columnStats.filter((u) => u.picks[g.game_num]?.includes(o)).map((u) => ({ name: u.user.name, picks: u.picks[g.game_num].length }))
+                        .sort((a, b) => a.picks - b.picks), // singles, then doubles, then triples
+                    ])
+                  ),
+                ])
+              )}
             />
           ) : (
             <ul key={column.id} className="divide-y border-t animate-in fade-in duration-300">

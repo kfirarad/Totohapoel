@@ -226,9 +226,11 @@ const fetchColumnStats = async (column: Column) => {
           },
           totalBets: 0,
           correctBets: 0,
+          picks: {},
         };
       }
       betValues.forEach((gameBet) => {
+        acc[userId].picks[gameBet.game_num] = gameBet.value;
         const game = games?.find((game) => game.game_num == gameBet.game_num);
         if (game && game.result && gameBet.value.includes(game.result)) {
           acc[userId].correctBets++;
@@ -244,6 +246,7 @@ const fetchColumnStats = async (column: Column) => {
         user: { id: string; name: string; avatar_url: string | null };
         totalBets: number;
         correctBets: number;
+        picks: Record<string, BetResult[]>;
       }
     >
   );

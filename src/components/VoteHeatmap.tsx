@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Layers2, Layers3 } from "lucide-react";
 import { Teams } from "@/components/Teams";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/Segmented";
@@ -56,6 +56,7 @@ export const VoteHeatmap = <T extends string>({
   pickValue,
   onPickChange,
   participants,
+  voters,
 }: {
   games: Game[];
   votes: Record<number, Votes | undefined>;
@@ -68,10 +69,20 @@ export const VoteHeatmap = <T extends string>({
   pickValue: T;
   onPickChange: (value: T) => void;
   participants: number;
+  /** voters per outcome per game (picks = 1/2/3 options chosen), shown when a row is expanded */
+  voters?: Record<number, Record<string, { name: string; picks: number }[]>>;
 }) => {
   const [sort, setSort] = useState<"num" | "open">("num");
   // hide the pick frames to look at the group's votes alone
   const [showPicks, setShowPicks] = useState(true);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpanded = (n: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
+      return next;
+    });
 
   const total = games.reduce(
     (acc, g) => {
@@ -197,16 +208,29 @@ export const VoteHeatmap = <T extends string>({
             const shares = OUTCOMES.map((o) => (v?.total ? v[o] / v.total : 0));
             const lead = Math.max(...shares);
             const mine = picks[game.game_num] ?? [];
+            const names = voters?.[game.game_num];
+            const isOpen = expanded.has(game.game_num);
             return (
+              <div key={game.game_num} className="flex flex-col gap-1">
               <div
                 role="row"
-                key={game.game_num}
                 className="grid grid-cols-[22px_minmax(0,1fr)_repeat(3,50px)] items-center gap-1 md:grid-cols-[28px_minmax(0,1fr)_repeat(3,72px)]"
               >
                 <span role="cell" className="text-xs text-muted-foreground tabular-nums">{game.game_num}</span>
                 <div role="cell" className="flex min-w-0 flex-col gap-1 pe-1.5">
-                  <span className="min-w-0 text-[13px] font-semibold md:text-sm">
-                    <Teams game={game} />
+                  <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold md:text-sm">
+                    <span className="min-w-0"><Teams game={game} /></span>
+                    {names && (
+                      <button
+                        onClick={() => toggleExpanded(game.game_num)}
+                        aria-expanded={isOpen}
+                        aria-label={isOpen ? "הסתר מצביעים" : "הצג מצביעים"}
+                        title={isOpen ? "הסתר מצביעים" : "הצג מצביעים"}
+                        className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <ChevronDown className={cn("size-4 transition-transform", isOpen && "rotate-180")} aria-hidden />
+                      </button>
+                    )}
                   </span>
                   {h && (
                     <>
@@ -251,6 +275,38 @@ export const VoteHeatmap = <T extends string>({
                     </div>
                   );
                 })}
+              </div>
+              {isOpen && names && (
+                <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/60 p-2.5 text-xs animate-in fade-in">
+                  {OUTCOMES.map((o) => (
+                    <div key={o} className="flex min-w-0 flex-col gap-1">
+                      <span className="font-semibold">
+                        {o} <span className="font-normal text-muted-foreground tabular-nums">({names[o]?.length ?? 0})</span>
+                      </span>
+                      {names[o]?.length ? (
+                        <ul className="flex flex-col gap-0.5 text-muted-foreground">
+                          {names[o].map((n, i) => {
+                            const hedgeLabel = HEDGE[n.picks - 1]?.label;
+                            const HedgeIcon = n.picks > 2 ? Layers3 : Layers2;
+                            return (
+                              <li key={i} className={cn("flex min-w-0 items-center gap-1", game.result === o && "text-success")}>
+                                <span className="truncate">{n.name}</span>
+                                {n.picks > 1 && (
+                                  <HedgeIcon role="img" aria-label={hedgeLabel} className="size-3.5 shrink-0 text-primary">
+                                    <title>{hedgeLabel}</title>
+                                  </HedgeIcon>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               </div>
             );
           })}
