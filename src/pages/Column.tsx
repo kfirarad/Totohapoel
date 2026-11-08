@@ -126,6 +126,8 @@ export const Column = () => {
     return () => clearTimeout(t);
   }, [notice]);
 
+  const [gameFilter, setGameFilter] = useState<"all" | "correct" | "incorrect" | "future">("all");
+
   const [calcType, setCalcType] = useState<"weighted" | "classic" | "form">("classic");
   useEffect(() => {
     localStorage.setItem(
@@ -590,6 +592,19 @@ export const Column = () => {
                 ]}
               />
             )}
+            {isDeadlinePassed && !showVotes && (
+              <Segmented
+                label="סינון"
+                value={gameFilter}
+                onChange={setGameFilter}
+                options={[
+                  { value: "all", label: "הכל" },
+                  { value: "correct", label: "נכונים" },
+                  { value: "incorrect", label: "שגויים" },
+                  { value: "future", label: "עתידיים" },
+                ]}
+              />
+            )}
             {isDeadlinePassed && (
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox
@@ -627,7 +642,14 @@ export const Column = () => {
             />
           ) : (
             <ul key={column.id} className="divide-y border-t animate-in fade-in duration-300">
-            {orderedGames.map((game) => {
+            {orderedGames
+              .filter((game) => {
+                if (!isDeadlinePassed || gameFilter === "all") return true;
+                if (gameFilter === "future") return !game.result;
+                const outcome = betOutcome(displayedBets[game.game_num], game.result);
+                return gameFilter === "correct" ? outcome === true : outcome === false;
+              })
+              .map((game) => {
               const correct =
                 isBetsLoading && pickSource === "viewed" ? null : betOutcome(displayedBets[game.game_num], game.result);
               const picksLoading = isBetsLoading && pickSource === "viewed";
