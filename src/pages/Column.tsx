@@ -108,8 +108,10 @@ export const Column = () => {
     initialSettings.showVoteStats || false
   );
   const [showLiveMatchWidget, setShowLiveMatchWidget] = useState(
-    initialSettings.showLiveMatchWidget || true
+    initialSettings.showLiveFrames ?? false
   );
+  // per-game manual override of the live match frame (toggled by pressing the match)
+  const [liveFrameOverride, setLiveFrameOverride] = useState<Record<number, boolean>>({});
   const [showGroupBet, setShowGroupBet] = useState(
     initialSettings.showGroupBet || false
   );
@@ -132,7 +134,7 @@ export const Column = () => {
         orderBy,
         showVoteStats,
         showGroupBet,
-        showLiveMatchWidget,
+        showLiveFrames: showLiveMatchWidget,
       })
     );
   }, [orderBy, showVoteStats, showGroupBet, showLiveMatchWidget]);
@@ -626,7 +628,6 @@ export const Column = () => {
           ) : (
             <ul key={column.id} className="divide-y border-t animate-in fade-in duration-300">
             {orderedGames.map((game) => {
-              const startsIn = new Date(game.game_time).getTime() - Date.now();
               const correct =
                 isBetsLoading && pickSource === "viewed" ? null : betOutcome(displayedBets[game.game_num], game.result);
               const picksLoading = isBetsLoading && pickSource === "viewed";
@@ -654,11 +655,18 @@ export const Column = () => {
                 disabled: isDeadlinePassed || !isCurrentUserColumn,
                 onBetPlace: handlePlaceBet,
               };
+              const showLiveFrame =
+                !!game.live_tracker_id && (liveFrameOverride[game.game_num] ?? showLiveMatchWidget);
               return (
                 <li
                   key={game.game_num}
+                  onClick={(e) => {
+                    if (!game.live_tracker_id || (e.target as HTMLElement).closest("button, iframe")) return;
+                    setLiveFrameOverride((o) => ({ ...o, [game.game_num]: !showLiveFrame }));
+                  }}
                   className={cn(
                     "px-4 py-3 transition-colors md:px-6 md:py-2.5",
+                    game.live_tracker_id && "cursor-pointer",
                     correct === true && "bg-success-soft",
                     correct === false && "bg-error/60"
                   )}
@@ -700,10 +708,7 @@ export const Column = () => {
                       <BetButtons {...betButtonsProps} />
                     )}
                   </div>
-                  {showLiveMatchWidget &&
-                    game.live_tracker_id &&
-                    startsIn < 30 * 60 * 1000 &&
-                    startsIn > -120 * 60 * 1000 && (
+                  {showLiveFrame && (
                       <div className="mt-2">
                         <LiveMatchWidget matchId={game.live_tracker_id} />
                       </div>
