@@ -1,5 +1,5 @@
 // Server-side rules against the local stack: `bunx supabase start`, then `bun test supabase/tests`.
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const env = JSON.parse(await Bun.$`bunx supabase status -o json`.cwd(`${import.meta.dir}/../..`).quiet().text());
@@ -38,6 +38,13 @@ let b: Awaited<ReturnType<typeof user>>;
 let typeId: string;
 let openCol: string;
 let closedCol: string;
+
+// Leave the local dev DB as we found it.
+afterAll(async () => {
+  await service.from('columns').delete().like('name', `%${run}%`);
+  await service.from('groups').delete().in('created_by', [a.id, b.id]);
+  await Promise.all([a, b].map((u) => service.auth.admin.deleteUser(u.id)));
+});
 
 beforeAll(async () => {
   [a, b] = await Promise.all([user('a'), user('b')]);
