@@ -12,7 +12,7 @@
       "usesAppleSignIn": true,
       "supportsTablet": false,
       "associatedDomains": [
-        "applinks:totochaverim.app"
+        "applinks:groupbet.kfir.app"
       ],
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
@@ -39,7 +39,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "totochaverim.app",
+              "host": "groupbet.kfir.app",
               "pathPrefix": "/join"
             }
           ],
