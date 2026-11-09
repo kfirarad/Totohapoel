@@ -54,7 +54,6 @@
       ]
     },
     "web": {
-      "output": "server",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -99,11 +98,6 @@
     },
     "owner": "kfir",
     "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
       "supportsRTL": true,
       "eas": {
         "projectId": "982f715d-357a-4765-a718-6d060de07913"
