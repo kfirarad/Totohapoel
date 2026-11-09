@@ -79,6 +79,12 @@
       ],
       "expo-apple-authentication",
       [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.897800971628-4lhsjdilvh683f53hgebvm0gl7ftqe8j"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Choose a photo for your profile or group"
