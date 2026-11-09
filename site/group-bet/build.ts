@@ -57,7 +57,7 @@ We do not collect location, contacts, advertising identifiers or analytics.
 
 ## Photos, camera and microphone
 
-When you set a profile or group picture, the app asks for access to your photo library and uploads only the one picture you pick. The app does not use the camera and never records or listens to audio. Your phone may list a camera or microphone permission because the photo picker component we use declares them; Group Bet never asks for or uses them.
+When you set a profile or group picture, the app asks for access to your photo library and uploads only the one picture you pick. The app does not ask for access to the camera or microphone and never records or listens to audio.
 
 ## How it is used
 
@@ -98,7 +98,7 @@ If this policy changes, the new version is posted here with a new effective date
 
 ## תמונות, מצלמה ומיקרופון
 
-כשבוחרים תמונת פרופיל או תמונת קבוצה, האפליקציה מבקשת גישה לספריית התמונות ומעלה רק את התמונה שבחרת. האפליקציה לא משתמשת במצלמה ולעולם לא מקליטה או מאזינה לשמע. ייתכן שהטלפון יציג הרשאת מצלמה או מיקרופון, כי רכיב בחירת התמונות שאנחנו משתמשים בו מצהיר עליהן; טוטו חברים לעולם לא מבקשת אותן ולא משתמשת בהן.
+כשבוחרים תמונת פרופיל או תמונת קבוצה, האפליקציה מבקשת גישה לספריית התמונות ומעלה רק את התמונה שבחרת. האפליקציה לא מבקשת גישה למצלמה או למיקרופון ולעולם לא מקליטה או מאזינה לשמע.
 
 ## שימוש במידע
 

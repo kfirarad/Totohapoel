@@ -48,9 +48,6 @@
             "DEFAULT"
           ]
         }
-      ],
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -87,7 +84,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Choose a photo for your profile or group"
+          "photosPermission": "Choose a photo for your profile or group",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       "expo-notifications"
