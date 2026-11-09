@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Button, Segmented, T } from '@/components/ui';
-import { devSignIn, signInWithApple, signInWithGoogle } from '@/lib/auth';
+import { devSignIn, googleReady, signInWithApple, signInWithGoogle } from '@/lib/auth';
 import { setLang, type Lang } from '@/lib/i18n';
 import { useColors } from '@/lib/theme';
 
@@ -42,7 +42,7 @@ export default function SignIn() {
             onPress={run(signInWithApple)}
           />
         )}
-        <Button title={t('signInGoogle')} onPress={run(signInWithGoogle)} loading={busy} />
+        {googleReady && <Button title={t('signInGoogle')} onPress={run(signInWithGoogle)} loading={busy} />}
         {__DEV__ && !!process.env.EXPO_PUBLIC_DEV_PASSWORD && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button small kind="ghost" style={{ flex: 1 }} title="Dev A" onPress={run(() => devSignIn('a'))} />

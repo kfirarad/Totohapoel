@@ -4,7 +4,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { createContext, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 
-const googleReady = !!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID && !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+export const googleReady = !!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID && !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 if (googleReady)
   GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
