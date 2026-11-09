@@ -23,3 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 supabase/.db-password
+site/group-bet/dist
