@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { BetResult } from "@/types/database.types";
+import { useMarket } from "@/markets/useMarket";
 
 interface BetButtonsProps {
     gameNum: number;
@@ -23,12 +25,14 @@ export const BetButtons = ({
     onBetPlace,
     layout = "inline",
 }: BetButtonsProps) => {
+    const { t } = useTranslation();
+    const { outcomeLabels } = useMarket();
     const board = layout === "board";
     const correct = betOutcome(userBet[gameNum], result);
     return (
         <div
             role="group"
-            aria-label={`ניחוש למשחק ${gameNum}`}
+            aria-label={t("bet.groupLabel", { num: gameNum })}
             className={board ? "grid w-full grid-cols-3 gap-1" : "flex shrink-0 gap-0.5 rounded-xl bg-muted p-[3px]"}
         >
             {(['1', 'X', '2'] as const).map((value) => {
@@ -38,7 +42,7 @@ export const BetButtons = ({
                     <button
                         key={value}
                         aria-pressed={picked}
-                        aria-label={`משחק ${gameNum}: ${value}${isResult ? ' (תוצאה)' : ''}`}
+                        aria-label={t(isResult ? "bet.buttonLabelResult" : "bet.buttonLabel", { num: gameNum, outcome: outcomeLabels[value] })}
                         onClick={() => onBetPlace(gameNum, value)}
                         disabled={disabled}
                         className={cn(
@@ -57,7 +61,7 @@ export const BetButtons = ({
                             !picked && isResult && 'ring-2 ring-inset ring-success'
                         )}
                     >
-                        {value}
+                        {outcomeLabels[value]}
                     </button>
                 );
             })}

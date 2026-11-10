@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/services/supabase';
 import { Avatar } from '@/components/Avatar';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ const fetchPlayers = async () => {
 };
 
 export const UsersList = () => {
+    const { t } = useTranslation();
     const { data: players = [], isLoading, error } = useQuery({
         queryKey: ['players'],
         queryFn: fetchPlayers,
@@ -34,19 +36,19 @@ export const UsersList = () => {
         ? players.filter((p) => `${p.name ?? ''} ${p.email ?? ''}`.toLowerCase().includes(q))
         : players;
 
-    if (isLoading) return <div className="p-4 text-muted-foreground">טוען...</div>;
-    if (error) return <div className="p-4">שגיאה בטעינת המשתמשים</div>;
+    if (isLoading) return <div className="p-4 text-muted-foreground">{t('common.loading')}</div>;
+    if (error) return <div className="p-4">{t('admin.users.loadError')}</div>;
 
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <h1 className="text-2xl font-bold">
-                    משתמשים <span className="text-base font-normal text-muted-foreground">({players.length})</span>
+                    {t('admin.nav.users')} <span className="text-base font-normal text-muted-foreground">({players.length})</span>
                 </h1>
                 <Input
                     type="search"
-                    placeholder="חיפוש לפי שם או אימייל"
-                    aria-label="חיפוש משתמשים"
+                    placeholder={t('admin.users.searchPlaceholder')}
+                    aria-label={t('admin.users.searchLabel')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="max-w-xs"
@@ -62,12 +64,12 @@ export const UsersList = () => {
                             <div className="truncate text-sm text-muted-foreground"><bdi>{p.email}</bdi></div>
                         </div>
                         {p.is_admin && (
-                            <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-semibold">מנהל</span>
+                            <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-semibold">{t('admin.users.admin')}</span>
                         )}
                     </li>
                 ))}
                 {!filtered.length && (
-                    <li className="px-4 py-6 text-center text-sm text-muted-foreground">לא נמצאו משתמשים</li>
+                    <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t('admin.users.none')}</li>
                 )}
             </ul>
         </div>

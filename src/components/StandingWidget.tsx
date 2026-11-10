@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
@@ -30,6 +31,7 @@ export const StandingWidget: React.FC<StandingWidgetProps> = ({
 const ScoreAxisWidget: React.FC<{ leagueId: string }> = React.memo(
   ({ leagueId }) => {
     const widgetId = "widget-1dpmmjcitn6h";
+    const { t } = useTranslation();
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -47,8 +49,11 @@ const ScoreAxisWidget: React.FC<{ leagueId: string }> = React.memo(
       const footerDiv = document.createElement("div");
       footerDiv.className = "widget-main-link";
       footerDiv.style.cssText = "padding: 6px 12px;font-weight: 500;";
-      footerDiv.innerHTML =
-        'נתונים חיים: <a href="https://www.scoreaxis.com/" style="color: inherit;">Scoreaxis</a>';
+      const link = document.createElement("a");
+      link.href = "https://www.scoreaxis.com/";
+      link.style.color = "inherit";
+      link.textContent = "Scoreaxis";
+      footerDiv.append(`${t("standings.liveData")} `, link);
 
       // Append script and footer to container
       containerRef.current.appendChild(script);
@@ -60,7 +65,7 @@ const ScoreAxisWidget: React.FC<{ leagueId: string }> = React.memo(
           containerRef.current.innerHTML = "";
         }
       };
-    }, [leagueId]);
+    }, [leagueId, t]);
 
     return (
       <div

@@ -1,7 +1,8 @@
-import { format } from 'date-fns';
 import { BetResult } from '@/types/database.types';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { getDayName } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useMarketDates } from '@/i18n/dates';
+import { useMarket } from '@/markets/useMarket';
 
 interface GameRowProps {
     gameNum: number;
@@ -32,6 +33,7 @@ const BetButton = ({
 }) => {
     const isCorrect = result && selected && result === value;
     const isAnswer = result === value;
+    const { outcomeLabels } = useMarket();
 
     return (
         <button
@@ -45,7 +47,7 @@ const BetButton = ({
                 ${!selected && isAnswer ? 'ring-2 ring-red-500' : ''}
             `}
         >
-            {value}
+            {value && outcomeLabels[value]}
         </button>
     );
 };
@@ -61,6 +63,8 @@ export const GameRow = ({
     userBet,
     onPlaceBet
 }: GameRowProps) => {
+    const { t } = useTranslation();
+    const dates = useMarketDates();
     return (
         <TableRow>
             <TableCell className="font-medium p-4">
@@ -68,11 +72,11 @@ export const GameRow = ({
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">
                 <div>{competition}</div>
-                <div>{getDayName(new Date(gameTime))}, {format(new Date(gameTime), 'HH:mm')}</div>
+                <div>{dates.dayName(gameTime)}, {dates.time(gameTime)}</div>
             </TableCell>
             <TableCell className="font-medium flex flex-col items-center justify-center md:flex-row md:gap-2 text-center">
                 <div>{homeTeam}</div>
-                <div className="text-muted-foreground">נגד</div>
+                <div className="text-muted-foreground">{t('common.vs')}</div>
                 <div>{awayTeam}</div>
             </TableCell>
             <TableCell>

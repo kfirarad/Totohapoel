@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { ChevronDown, Eye, EyeOff, Layers2, Layers3 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Teams } from "@/components/Teams";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/Segmented";
 import type { BetResult, Game } from "@/types/database.types";
+import { useMarket } from "@/markets/useMarket";
 
 type Votes = { "1": number; X: number; "2": number; total: number };
 type Hedge = { singles: number; doubles: number; triples: number };
@@ -21,9 +23,9 @@ const HEAT = [
 const heatStep = (share: number) => (share >= 0.7 ? 4 : share >= 0.5 ? 3 : share >= 0.3 ? 2 : share >= 0.1 ? 1 : 0);
 
 const HEDGE = [
-  { key: "singles", label: "סינגל", className: "bg-hedge-1" },
-  { key: "doubles", label: "כפול", className: "bg-hedge-2" },
-  { key: "triples", label: "משולש", className: "bg-hedge-3" },
+  { key: "singles", labelKey: "votes.hedge.singles", className: "bg-hedge-1" },
+  { key: "doubles", labelKey: "votes.hedge.doubles", className: "bg-hedge-2" },
+  { key: "triples", labelKey: "votes.hedge.triples", className: "bg-hedge-3" },
 ] as const;
 
 /** 0 = everyone single, 1 = everyone triple */
@@ -62,7 +64,7 @@ export const VoteHeatmap = <T extends string>({
   votes: Record<number, Votes | undefined>;
   hedge: Record<number, Hedge | undefined>;
   picks: Record<number, BetResult[]>;
-  /** legend label for the framed picks, e.g. "הבחירה שלי" */
+  /** legend label for the framed picks, e.g. "my pick" */
   pickLabel: string;
   /** whose picks can be framed; omitted when there's only one source */
   pickOptions?: { value: T; label: string }[];
@@ -72,6 +74,8 @@ export const VoteHeatmap = <T extends string>({
   /** voters per outcome per game (picks = 1/2/3 options chosen), shown when a row is expanded */
   voters?: Record<number, Record<string, { name: string; picks: number }[]>>;
 }) => {
+  const { t } = useTranslation();
+  const { outcomeLabels } = useMarket();
   const [sort, setSort] = useState<"num" | "open">("num");
   // hide the pick frames to look at the group's votes alone
   const [showPicks, setShowPicks] = useState(true);
@@ -97,7 +101,7 @@ export const VoteHeatmap = <T extends string>({
     { singles: 0, doubles: 0, triples: 0 }
   );
   const totalN = total.singles + total.doubles + total.triples;
-  const totalText = HEDGE.map((h) => `${totalN ? Math.round((total[h.key] / totalN) * 100) : 0}% ${h.label}`).join(" · ");
+  const totalText = HEDGE.map((h) => t("votes.sharePct", { pct: totalN ? Math.round((total[h.key] / totalN) * 100) : 0, label: t(h.labelKey) })).join(" · ");
 
   const rows =
     sort === "open"
@@ -111,25 +115,25 @@ export const VoteHeatmap = <T extends string>({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <Segmented
-              label="סדר"
+              label={t("votes.sort")}
               value={sort}
               onChange={setSort}
               options={[
-                { value: "num", label: "מס׳" },
-                { value: "open", label: "הכי פתוח" },
+                { value: "num", label: t("common.numberShort") },
+                { value: "open", label: t("votes.sortOpen") },
               ]}
             />
             {showPicks && pickOptions && (
-              <Segmented label="מסומן" value={pickValue} onChange={onPickChange} options={pickOptions} />
+              <Segmented label={t("votes.marked")} value={pickValue} onChange={onPickChange} options={pickOptions} />
             )}
           </div>
-          <span className="text-sm text-muted-foreground">{participants} משתתפים</span>
+          <span className="text-sm text-muted-foreground">{t("votes.participants", { count: participants })}</span>
         </div>
 
         {totalN > 0 && (
           <div className="flex flex-col gap-1.5 rounded-xl bg-muted/60 px-3 py-2.5">
             <div className="flex flex-wrap justify-between gap-x-3 text-xs">
-              <span className="font-semibold">פיזור בטור כולו</span>
+              <span className="font-semibold">{t("votes.totalSpread")}</span>
               <span className="text-muted-foreground tabular-nums">{totalText}</span>
             </div>
             <HedgeBar hedge={total} className="h-2" />
@@ -138,7 +142,7 @@ export const VoteHeatmap = <T extends string>({
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            קולות 0%
+            {t("votes.legendFrom")}
             <span className="flex gap-0.5" aria-hidden>
               {HEAT.map((c, i) => (
                 <span key={i} className={cn("h-2.5 w-3 rounded-sm", c.split(" ")[0])} />
@@ -150,14 +154,14 @@ export const VoteHeatmap = <T extends string>({
             {HEDGE.map((h) => (
               <span key={h.key} className="flex items-center gap-1">
                 <span className={cn("size-2.5 rounded-sm", h.className)} aria-hidden />
-                {h.label}
+                {t(h.labelKey)}
               </span>
             ))}
           </span>
           <button
             onClick={() => setShowPicks(!showPicks)}
             aria-pressed={showPicks}
-            title={showPicks ? "הסתר סימון" : "הצג סימון"}
+            title={showPicks ? t("votes.hidePicks") : t("votes.showPicks")}
             className={cn(
               "-mx-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground",
               !showPicks && "line-through"
@@ -169,35 +173,35 @@ export const VoteHeatmap = <T extends string>({
           </button>
           {showPicks ? (
             <span className="flex items-center gap-1.5">
-              תוצאה:
+              {t("votes.resultColon")}
               <span className="flex items-center gap-1">
                 <span className="h-[3px] w-3 rounded-full bg-success" aria-hidden />
-                פגיעה
+                {t("votes.hit")}
               </span>
               <span className="flex items-center gap-1">
                 <span className="h-[3px] w-3 rounded-full bg-destructive" aria-hidden />
-                החטאה
+                {t("votes.miss")}
               </span>
             </span>
           ) : (
             <span className="flex items-center gap-1">
               <span className="h-[3px] w-3 rounded-full bg-foreground" aria-hidden />
-              תוצאה
+              {t("votes.result")}
             </span>
           )}
         </div>
       </div>
 
       {/* Grid */}
-      <div role="table" aria-label="הצבעות לפי משחק" className="px-4 pb-4 md:px-6">
+      <div role="table" aria-label={t("votes.tableLabel")} className="px-4 pb-4 md:px-6">
         <div
           role="row"
           className="grid grid-cols-[22px_minmax(0,1fr)_repeat(3,50px)] items-center gap-1 pb-1.5 text-xs font-semibold text-muted-foreground md:grid-cols-[28px_minmax(0,1fr)_repeat(3,72px)]"
         >
           <span role="columnheader">#</span>
-          <span role="columnheader">משחק · פיזור</span>
+          <span role="columnheader">{t("votes.gameHeader")}</span>
           {OUTCOMES.map((o) => (
-            <span role="columnheader" key={o} className="text-center">{o}</span>
+            <span role="columnheader" key={o} className="text-center">{outcomeLabels[o]}</span>
           ))}
         </div>
 
@@ -224,8 +228,8 @@ export const VoteHeatmap = <T extends string>({
                       <button
                         onClick={() => toggleExpanded(game.game_num)}
                         aria-expanded={isOpen}
-                        aria-label={isOpen ? "הסתר מצביעים" : "הצג מצביעים"}
-                        title={isOpen ? "הסתר מצביעים" : "הצג מצביעים"}
+                        aria-label={isOpen ? t("votes.hideVoters") : t("votes.showVoters")}
+                        title={isOpen ? t("votes.hideVoters") : t("votes.showVoters")}
                         className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <ChevronDown className={cn("size-4 transition-transform", isOpen && "rotate-180")} aria-hidden />
@@ -236,7 +240,7 @@ export const VoteHeatmap = <T extends string>({
                     <>
                       <HedgeBar hedge={h} className="h-[5px]" />
                       <span className="truncate text-[11px] text-muted-foreground tabular-nums">
-                        {h.singles} סינגל · {h.doubles} כפול · {h.triples} משולש
+                        {t("votes.hedgeCounts", { singles: h.singles, doubles: h.doubles, triples: h.triples })}
                       </span>
                     </>
                   )}
@@ -246,7 +250,13 @@ export const VoteHeatmap = <T extends string>({
                   const isResult = game.result === o;
                   const pct = Math.round(shares[i] * 100);
                   const hit = !!game.result && mine.includes(game.result);
-                  const label = `משחק ${game.game_num}, ${o}: ${pct}%${isMine ? `, ${pickLabel}` : ""}${isResult ? (showPicks ? `, התוצאה (${hit ? "פגיעה" : "החטאה"})` : ", התוצאה") : ""}`;
+                  const label = [
+                    t("votes.cellLabel", { num: game.game_num, outcome: outcomeLabels[o], pct }),
+                    ...(isMine ? [pickLabel] : []),
+                    ...(isResult
+                      ? [showPicks ? t("votes.theResultWith", { verdict: hit ? t("votes.hit") : t("votes.miss") }) : t("votes.theResult")]
+                      : []),
+                  ].join(", ");
                   return (
                     <div
                       role="cell"
@@ -281,12 +291,13 @@ export const VoteHeatmap = <T extends string>({
                   {OUTCOMES.map((o) => (
                     <div key={o} className="flex min-w-0 flex-col gap-1">
                       <span className="font-semibold">
-                        {o} <span className="font-normal text-muted-foreground tabular-nums">({names[o]?.length ?? 0})</span>
+                        {outcomeLabels[o]} <span className="font-normal text-muted-foreground tabular-nums">({names[o]?.length ?? 0})</span>
                       </span>
                       {names[o]?.length ? (
                         <ul className="flex flex-col gap-0.5 text-muted-foreground">
                           {names[o].map((n, i) => {
-                            const hedgeLabel = HEDGE[n.picks - 1]?.label;
+                            const hedgeKey = HEDGE[n.picks - 1]?.labelKey;
+                            const hedgeLabel = hedgeKey && t(hedgeKey);
                             const HedgeIcon = n.picks > 2 ? Layers3 : Layers2;
                             return (
                               <li key={i} className={cn("flex min-w-0 items-center gap-1", game.result === o && "text-success")}>

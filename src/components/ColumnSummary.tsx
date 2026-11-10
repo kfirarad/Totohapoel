@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/Avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,7 @@ const oneDecimal = (n: number) => String(Math.round(n * 10) / 10);
 type ExtraRow = { key: string; score: number; node: ReactNode };
 
 export const ColumnSummary = ({ stats, showScore, columnId, loading, groupBet }: ColumnSummaryProps) => {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     // warm the player's picks on hover/focus so opening their column feels instant
     const prefetch = (userId: string) => queryClient.prefetchQuery(userBetsQueryOptions(columnId, userId));
@@ -61,7 +63,7 @@ export const ColumnSummary = ({ stats, showScore, columnId, loading, groupBet }:
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground" aria-hidden>
                         <Users className="size-3.5" />
                     </span>
-                    <span className="flex-1 truncate text-sm font-semibold">הטופס המשותף</span>
+                    <span className="flex-1 truncate text-sm font-semibold">{t("glossary:theGroupBet")}</span>
                     {showScore && <span className="font-semibold tabular-nums">{groupBet.score}</span>}
                 </button>
             ),
@@ -83,8 +85,8 @@ export const ColumnSummary = ({ stats, showScore, columnId, loading, groupBet }:
         );
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
         const med = median(scores);
-        extras.push({ key: "average", score: avg, node: reference("ממוצע", "x̄", avg) });
-        extras.push({ key: "median", score: med, node: reference("חציון", "Me", med) });
+        extras.push({ key: "average", score: avg, node: reference(t("summary.average"), "x̄", avg) });
+        extras.push({ key: "median", score: med, node: reference(t("summary.median"), "Me", med) });
     }
 
     // players stay in their order; each reference row goes before the first player who scored less
@@ -116,7 +118,7 @@ export const ColumnSummary = ({ stats, showScore, columnId, loading, groupBet }:
     return (
         <section className="rounded-2xl border bg-card p-5">
             <div className="mb-3 flex items-baseline justify-between">
-                <h2 className="text-base font-bold">משתתפים</h2>
+                <h2 className="text-base font-bold">{t("summary.participants")}</h2>
                 {!loading && <span className="text-sm text-muted-foreground tabular-nums">{stats.length}</span>}
             </div>
             <ul>

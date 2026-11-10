@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { Column } from '@/types/database.types';
+import { useMarketDates } from '@/i18n/dates';
 
 const fetchColumns = async () => {
     const { data, error } = await supabase
@@ -17,6 +18,8 @@ const fetchColumns = async () => {
 };
 
 export const ColumnsList = () => {
+    const { t } = useTranslation();
+    const dates = useMarketDates();
     const {
         data: columns = [],
         isLoading,
@@ -27,19 +30,19 @@ export const ColumnsList = () => {
     });
 
     if (isLoading) {
-        return <div>טוען...</div>;
+        return <div>{t('common.loading')}</div>;
     }
 
     if (error) {
-        return <div>שגיאה בטעינת הטורים</div>;
+        return <div>{t('admin.columns.loadError')}</div>;
     }
 
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">טורים</h1>
+                <h1 className="text-2xl font-bold">{t('glossary:columns')}</h1>
                 <Link to="/admin/columns/new">
-                    <Button>טור חדש</Button>
+                    <Button>{t('admin.columns.new')}</Button>
                 </Link>
             </div>
             <div className="grid gap-4">
@@ -55,7 +58,7 @@ export const ColumnsList = () => {
                                     <h3 className="text-lg font-semibold">{column.name}</h3>
                                 </Link>
                                 <p className="text-sm text-muted-foreground">
-                                    מועד סגירה: {format(new Date(column.deadline), 'PPpp')}
+                                    {t('admin.columns.deadline', { date: dates.format(column.deadline, 'PPpp') })}
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -63,10 +66,10 @@ export const ColumnsList = () => {
                                     to={`/admin/group-bet/${column.id}`}
                                     className="relative z-10 rounded px-2 py-1 text-sm font-medium bg-brand/10 hover:bg-brand/20"
                                 >
-                                    טופס משותף
+                                    {t('glossary:groupBet')}
                                 </Link>
                                 <span className="px-2 py-1 rounded text-sm bg-muted tabular-nums">
-                                    {column.user_bets?.[0]?.count ?? 0} שיחקו
+                                    {t('admin.columns.played', { count: column.user_bets?.[0]?.count ?? 0 })}
                                 </span>
                                 <span
                                     className={`px-2 py-1 rounded text-sm ${column.is_active
@@ -74,7 +77,7 @@ export const ColumnsList = () => {
                                             : 'bg-gray-100 text-gray-800'
                                         }`}
                                 >
-                                    {column.is_active ? 'פעיל' : 'לא פעיל'}
+                                    {column.is_active ? t('common.active') : t('common.inactive')}
                                 </span>
                                 <span
                                     className={`px-2 py-1 rounded text-sm ${new Date(column.deadline) < new Date()
@@ -82,7 +85,7 @@ export const ColumnsList = () => {
                                             : 'bg-blue-100 text-blue-800'
                                         }`}
                                 >
-                                    {new Date(column.deadline) < new Date() ? 'נסגר' : 'פתוח'}
+                                    {new Date(column.deadline) < new Date() ? t('admin.columns.closed') : t('admin.columns.open')}
                                 </span>
                             </div>
                         </div>

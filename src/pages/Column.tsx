@@ -1,10 +1,12 @@
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { Teams, teamWeight } from "@/components/Teams";
-import { cn, getDayName } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { he } from "date-fns/locale";
+import { useMarketDates } from "@/i18n/dates";
+import { standingsLeagueId } from "@/markets/il/standings";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useColumnQuery,
@@ -74,31 +76,12 @@ const writeDraft = (key: string, bets: Bets | null) => {
   }
 };
 
-const competitionTo365LeagueId = (leagueName: string) => {
-  switch (leagueName) {
-    case "ליגה לאומית":
-      return "62322cdc012d6104ac3acad6";
-    case "ספרדית ראשונה":
-      return "62322c053617da0b83221cc6";
-    case "גרמנית ראשונה":
-      return "62321f50f7016c22d3650732";
-    case "פרמייר ליג":
-      return "6232265abf1fa71a672159ec";
-    case "ליגת Winner":
-      return "623238c3a59f94038c2c2afe";
-    case "איטלקית ראשונה":
-      return "62322b827aee66235a2be718";
-    case "צרפתית ראשונה":
-      return "62322b4efd209951602c9096";
-    default:
-      return null;
-  }
-};
-
 export const Column = () => {
   const { columnId, userId: userIdParam } = useParams();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
+  const dates = useMarketDates();
 
   const [orderBy, setOrderBy] = useState<OrderBy>(
     initialSettings.orderBy || "game_num"
@@ -385,8 +368,8 @@ export const Column = () => {
   }, [column?.games?.length, column?.group_bet, showGroupBet]);
 
   if (isColumnLoading) return <ColumnSkeleton />;
-  if (columnError) return <div className="p-8">שגיאה: {columnError.message}</div>;
-  if (!column) return <div className="p-8">לא נמצא טור פעיל</div>;
+  if (columnError) return <div className="p-8">{t("column.error", { message: columnError.message })}</div>;
+  if (!column) return <div className="p-8">{t("column.noActive")}</div>;
 
   const games: Game[] = column.games ?? [];
   const canSubmit =
@@ -398,9 +381,9 @@ export const Column = () => {
   const unsentMessage = !draftKey
     ? null
     : !betsData
-    ? "הטופס עוד לא נשלח"
+    ? t("column.notSent")
     : hasUnsavedChanges
-    ? "השינויים בטופס עוד לא נשמרו"
+    ? t("column.unsavedChanges")
     : null;
   const canSeeVotes = !!profile?.is_admin || isDeadlinePassed;
   const showVotes = canSeeVotes && showVoteStats;
@@ -410,9 +393,9 @@ export const Column = () => {
   const hits = (bets: Bets) =>
     gamesWithResults.filter((g: Game) => bets[g.game_num]?.includes(g.result as BetResult)).length;
   const pickOptions: { value: PickSource; label: string; score: number }[] = [
-    { value: "viewed", label: isCurrentUserColumn ? "אני" : viewedName, score: correctGuesses },
-    ...(!isCurrentUserColumn ? [{ value: "me" as const, label: "הטור שלי", score: hits(myBets) }] : []),
-    ...(hasGroupBet ? [{ value: "group" as const, label: "הטופס המשותף", score: correctGroupGuesses }] : []),
+    { value: "viewed", label: isCurrentUserColumn ? t("column.me") : viewedName, score: correctGuesses },
+    ...(!isCurrentUserColumn ? [{ value: "me" as const, label: t("header.myColumn"), score: hits(myBets) }] : []),
+    ...(hasGroupBet ? [{ value: "group" as const, label: t("glossary:theGroupBet"), score: correctGroupGuesses }] : []),
   ];
   const canSwitchPicks = pickOptions.length > 1;
   const deadline = new Date(column.deadline);
@@ -453,16 +436,20 @@ export const Column = () => {
           {/* Column header */}
           <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-6">
             <div className="flex items-center justify-between gap-3 md:justify-start">
-              {navButton(previousColumn, "טור קודם", ChevronRight)}
+              {navButton(previousColumn, t("column.previous"), ChevronRight)}
               <div className="text-center md:text-start">
                 <h1 className="text-xl font-bold tracking-tight md:text-2xl">{column.name}</h1>
                 <p className="text-sm text-muted-foreground">
                   {isDeadlinePassed
-                    ? `נסגר ב-${format(deadline, "d בMMMM, HH:mm", { locale: he })}`
-                    : `נסגר ${getDayName(deadline)} ${format(deadline, "HH:mm")} · ${formatDistanceToNowStrict(deadline, { locale: he, addSuffix: true })}`}
+                    ? t("column.closedAt", { date: dates.format(deadline, t("dates.dayMonthTime")) })
+                    : t("column.closesAt", {
+                        day: dates.dayName(deadline),
+                        time: dates.time(deadline),
+                        distance: formatDistanceToNowStrict(deadline, { locale: dates.locale, addSuffix: true }),
+                      })}
                 </p>
               </div>
-              {navButton(nextColumn, "טור הבא", ChevronLeft)}
+              {navButton(nextColumn, t("column.next"), ChevronLeft)}
             </div>
 
             {isEditable ? (
@@ -479,21 +466,21 @@ export const Column = () => {
               gamesWithResults.length > 0 && (
                 <div
                   role={canSwitchPicks ? "group" : undefined}
-                  aria-label={canSwitchPicks ? "ניחושים נכונים" : undefined}
+                  aria-label={canSwitchPicks ? t("column.correctGuesses") : undefined}
                   className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-muted p-1 md:min-w-64"
                 >
-                  {pickOptions.map((t) => {
-                    const selected = canSwitchPicks && pickSource === t.value;
-                    const pct = Math.round((t.score / gamesWithResults.length) * 100);
+                  {pickOptions.map((tile) => {
+                    const selected = canSwitchPicks && pickSource === tile.value;
+                    const pct = Math.round((tile.score / gamesWithResults.length) * 100);
                     const content = (
                       <>
                         <span className="w-full truncate text-xs text-muted-foreground">
-                          {canSwitchPicks ? t.label : "ניחושים נכונים"}
+                          {canSwitchPicks ? tile.label : t("column.correctGuesses")}
                         </span>
                         <span className="flex items-baseline gap-2">
                           <span className="text-3xl font-bold leading-tight tracking-tight tabular-nums">{pct}%</span>
                           <span className="text-sm text-muted-foreground tabular-nums">
-                            {t.score} מתוך {gamesWithResults.length}
+                            {t("column.scoreOf", { score: tile.score, total: gamesWithResults.length })}
                           </span>
                         </span>
                         <span className="mt-1 h-1 w-full overflow-hidden rounded-full bg-border" aria-hidden>
@@ -504,9 +491,9 @@ export const Column = () => {
                     // with more than one source, each score tile doubles as the switch
                     return canSwitchPicks ? (
                       <button
-                        key={t.value}
+                        key={tile.value}
                         aria-pressed={selected}
-                        onClick={() => setPickSource(t.value)}
+                        onClick={() => setPickSource(tile.value)}
                         className={cn(
                           "flex min-w-0 flex-col items-start rounded-lg px-3 py-2 text-start",
                           selected ? "bg-card shadow-xs" : "hover:bg-card/50"
@@ -515,7 +502,7 @@ export const Column = () => {
                         {content}
                       </button>
                     ) : (
-                      <div key={t.value} className="flex flex-col items-start px-3 py-2">{content}</div>
+                      <div key={tile.value} className="flex flex-col items-start px-3 py-2">{content}</div>
                     );
                   })}
                 </div>
@@ -528,7 +515,7 @@ export const Column = () => {
               <span className="flex items-center gap-1">
                 {!isCurrentUserColumn && (
                   <>
-                    הטור של{" "}
+                    {t("column.columnOf")}{" "}
                     {isBetsLoading ? <Skeleton className="inline-block h-4 w-24" /> : <strong>{betsData?.profiles?.name}</strong>}
                   </>
                 )}
@@ -539,11 +526,11 @@ export const Column = () => {
                   size="sm"
                   onClick={() => navigate(column.id === currentColumn?.id ? "/column" : `/column/${column.id}`)}
                 >
-                  חזרה לטור שלי
+                  {t("column.backToMine")}
                 </Button>
               ) : (
                 <Button variant="ghost" size="sm" onClick={() => navigate("/column")}>
-                  חזרה למחזור הנוכחי
+                  {t("column.backToCurrent")}
                 </Button>
               )}
             </div>
@@ -552,18 +539,18 @@ export const Column = () => {
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t bg-muted/40 px-4 py-3 md:px-6">
             {!showVotes && <Segmented
-              label="סדר לפי"
+              label={t("common.orderBy")}
               value={orderBy}
               onChange={setOrderBy}
               options={[
-                { value: "game_num", label: "מס׳" },
-                { value: "game_time", label: "שעה" },
-                ...(canSeeVotes ? [{ value: "triples" as const, label: "כפולים/משולשים" }] : []),
+                { value: "game_num", label: t("common.numberShort") },
+                { value: "game_time", label: t("common.time") },
+                ...(canSeeVotes ? [{ value: "triples" as const, label: t("column.order.hedges") }] : []),
               ]}
             />}
             {canSwitchPicks && !showVotes && !(isDeadlinePassed && gamesWithResults.length > 0) && (
               <Segmented
-                label="טופס"
+                label={t("column.form")}
                 value={pickSource}
                 onChange={setPickSource}
                 options={pickOptions.map(({ value, label }) => ({ value, label }))}
@@ -571,37 +558,37 @@ export const Column = () => {
             )}
             {canSeeVotes && (
               <Segmented
-                label="תצוגה"
+                label={t("column.view.label")}
                 value={showVoteStats ? "votes" : "picks"}
                 onChange={(v) => setShowVoteStats(v === "votes")}
                 options={[
-                  { value: "picks", label: "טור" },
-                  { value: "votes", label: "הצבעות" },
+                  { value: "picks", label: t("glossary:column") },
+                  { value: "votes", label: t("column.view.votes") },
                 ]}
               />
             )}
             {showVotes && (
               <Segmented
-                label="חישוב"
+                label={t("column.calc.label")}
                 value={calcType}
                 onChange={setCalcType}
                 options={[
-                  { value: "classic", label: "קלאסי" },
-                  { value: "weighted", label: "משוקלל" },
-                  { value: "form", label: "לפי כושר" },
+                  { value: "classic", label: t("column.calc.classic") },
+                  { value: "weighted", label: t("column.calc.weighted") },
+                  { value: "form", label: t("column.calc.form") },
                 ]}
               />
             )}
             {isDeadlinePassed && !showVotes && (
               <Segmented
-                label="סינון"
+                label={t("column.filter.label")}
                 value={gameFilter}
                 onChange={setGameFilter}
                 options={[
-                  { value: "all", label: "הכל" },
-                  { value: "correct", label: "נכונים" },
-                  { value: "incorrect", label: "שגויים" },
-                  { value: "future", label: "עתידיים" },
+                  { value: "all", label: t("column.filter.all") },
+                  { value: "correct", label: t("column.filter.correct") },
+                  { value: "incorrect", label: t("column.filter.incorrect") },
+                  { value: "future", label: t("column.filter.future") },
                 ]}
               />
             )}
@@ -611,7 +598,7 @@ export const Column = () => {
                   checked={showLiveMatchWidget}
                   onCheckedChange={() => setShowLiveMatchWidget(!showLiveMatchWidget)}
                 />
-                משחקים חיים
+                {t("column.liveGames")}
               </label>
             )}
           </div>
@@ -630,10 +617,10 @@ export const Column = () => {
               picks={displayedBets}
               pickLabel={
                 pickSource === "group"
-                  ? "הטופס המשותף"
+                  ? t("glossary:theGroupBet")
                   : pickSource === "me" || isCurrentUserColumn
-                  ? "הבחירה שלי"
-                  : `הבחירה של ${viewedName}`
+                  ? t("column.myPick")
+                  : t("column.pickOf", { name: viewedName })
               }
               pickOptions={canSwitchPicks ? pickOptions.map(({ value, label }) => ({ value, label })) : undefined}
               pickValue={pickSource}
@@ -667,16 +654,16 @@ export const Column = () => {
               const picksLoading = isBetsLoading && pickSource === "viewed";
               const outcomeIcon =
                 correct === true ? (
-                  <CircleCheck className="size-4 shrink-0 text-success" aria-label="ניחוש נכון" />
+                  <CircleCheck className="size-4 shrink-0 text-success" aria-label={t("column.guessCorrect")} />
                 ) : correct === false ? (
-                  <CircleX className="size-4 shrink-0 text-destructive" aria-label="ניחוש שגוי" />
+                  <CircleX className="size-4 shrink-0 text-destructive" aria-label={t("column.guessWrong")} />
                 ) : null;
               const meta = (
                 <>
-                  {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), "HH:mm")} ·{" "}
+                  {dates.dayName(game.game_time)} {dates.time(game.game_time)} ·{" "}
                   <button
                     className="hover:text-foreground hover:underline"
-                    onClick={() => setStandingWidgetLeague(competitionTo365LeagueId(game.competition))}
+                    onClick={() => setStandingWidgetLeague(standingsLeagueId(game.competition))}
                   >
                     {game.competition}
                   </button>
@@ -710,13 +697,13 @@ export const Column = () => {
                     <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                       <span className="flex shrink-0 items-center gap-1 font-semibold tabular-nums">
                         {outcomeIcon}
-                        משחק {game.game_num}
+                        {t("common.gameN", { num: game.game_num })}
                       </span>
                       <span className="truncate">{meta}</span>
                     </div>
                     <div className="grid grid-cols-3 items-center gap-1 text-center text-[15px] leading-snug">
                       <span className={teamWeight(game, "1")}>{game.home_team}</span>
-                      <span className="text-xs text-muted-foreground">נגד</span>
+                      <span className="text-xs text-muted-foreground">{t("common.vs")}</span>
                       <span className={teamWeight(game, "2")}>{game.away_team}</span>
                     </div>
                     {picksLoading ? (
@@ -776,21 +763,21 @@ export const Column = () => {
             <div className="flex-1">
               {notice === "ok" ? (
                 <Banner tone="success" onClose={() => setNotice(null)}>
-                  הטופס נשלח בהצלחה · יאללה הפועל!
+                  {t("column.sentOk")}
                 </Banner>
               ) : notice === "fail" ? (
-                <Banner tone="error" action={{ label: "נסה שוב", onClick: submitBet, disabled: !canSubmit }}>
-                  הטופס לא נשמר · בדוק חיבור ונסה שוב
+                <Banner tone="error" action={{ label: t("common.retry"), onClick: submitBet, disabled: !canSubmit }}>
+                  {t("column.sendFailed")}
                 </Banner>
               ) : unsentMessage ? (
                 <Banner
                   tone="warn"
-                  action={betsData && hasUnsavedChanges ? { label: "בטל שינויים", onClick: discardChanges, disabled: isSaving } : undefined}
+                  action={betsData && hasUnsavedChanges ? { label: t("column.discardChanges"), onClick: discardChanges, disabled: isSaving } : undefined}
                 >
                   {unsentMessage}
                 </Banner>
               ) : (
-                <p className="text-sm font-medium text-success">הטופס נשלח · אפשר לערוך עד סגירת המחזור</p>
+                <p className="text-sm font-medium text-success">{t("column.sentEditable")}</p>
               )}
             </div>
             <Button
@@ -798,7 +785,7 @@ export const Column = () => {
               disabled={!canSubmit || (!unsentMessage && notice !== "fail")}
               onClick={submitBet}
             >
-              {isSaving ? "שומר..." : "שלח טופס"}
+              {isSaving ? t("common.saving") : t("column.send")}
             </Button>
           </div>
         </div>
@@ -809,7 +796,7 @@ export const Column = () => {
         leagueId={standingWidgetLeague}
         onOpenChange={(newState) => {
           if (newState) {
-            setStandingWidgetLeague(competitionTo365LeagueId(column.competition));
+            setStandingWidgetLeague(standingsLeagueId(column.competition));
           } else {
             setStandingWidgetLeague(null);
           }
@@ -819,8 +806,10 @@ export const Column = () => {
   );
 };
 
-const ColumnSkeleton = () => (
-  <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8" aria-busy="true" aria-label="טוען טור">
+const ColumnSkeleton = () => {
+  const { t } = useTranslation();
+  return (
+  <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8" aria-busy="true" aria-label={t("column.loading")}>
     <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_300px]">
       <section className="overflow-hidden rounded-2xl border bg-card">
         <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-6">
@@ -863,4 +852,5 @@ const ColumnSkeleton = () => (
       </aside>
     </div>
   </div>
-);
+  );
+};

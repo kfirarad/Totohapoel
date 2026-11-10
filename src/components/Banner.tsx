@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AlertCircle, CheckCircle2, X, XCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 const tones = {
@@ -20,6 +21,7 @@ export const Banner = ({
   action?: { label: string; onClick: () => void; disabled?: boolean };
   onClose?: () => void;
 }) => {
+  const { t } = useTranslation();
   const { className, Icon, role } = tones[tone];
   return (
     <div role={role} className={cn("flex min-h-11 items-center gap-2 rounded-xl border px-3 py-1.5", className)}>
@@ -37,7 +39,7 @@ export const Banner = ({
       {onClose && (
         <button
           onClick={onClose}
-          aria-label="סגור"
+          aria-label={t("common.close")}
           className="flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/10"
         >
           <X className="size-3.5" aria-hidden />

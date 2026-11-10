@@ -2,6 +2,7 @@
 // Their API sits behind bot protection, so data reaches us from the admin's browser
 // (bookmarklet or clipboard), never from a server.
 
+import i18n from "@/i18n";
 import { zonedLocalToIso } from "../time";
 import { ilConfig } from "./config";
 
@@ -38,7 +39,8 @@ export const drawToColumn = (draw: WinnerDraw) => {
   const deadline = israelTimeToIso(draw.closeDateTime);
   const [y, mo, d] = draw.closeDateTime.slice(0, 10).split("-").map(Number);
   return {
-    name: `טוטו ${d}/${mo}/${String(y).slice(2)}`,
+    // stored on the column, so always in the market's language, whatever the admin's UI language
+    name: i18n.getFixedT(ilConfig.defaultLocale, "glossary")("columnName", { day: d, month: mo, year: String(y).slice(2) }),
     deadline,
     games: draw.rows.map((row) => ({
       game_num: row.rowNumber,

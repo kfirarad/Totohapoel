@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Teams } from '@/components/Teams';
 import { Link, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, Minus, Plus } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { BetResult, Column } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn, getDayName } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useMarketDates } from '@/i18n/dates';
+import { useMarket } from '@/markets/useMarket';
 import { BetButtons } from '@/components/BetButtons';
 import { Banner } from '@/components/Banner';
 import { LimitTiles } from '@/components/LimitTiles';
@@ -19,12 +20,14 @@ import { autoFillGroupBet, formVotes, formWeights, readAlgoSettings, writeAlgoSe
 type OrderBy = 'game_num' | 'game_time';
 type Limits = { doubles: number; triples: number };
 
-const Stepper = ({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) => (
+const Stepper = ({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) => {
+    const { t } = useTranslation();
+    return (
     <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">{label}</span>
         <div className="flex items-center rounded-lg bg-muted p-0.5">
             <button
-                aria-label={`הורד ${label}`}
+                aria-label={t('groupBet.decrease', { label })}
                 disabled={value <= min}
                 onClick={() => onChange(value - 1)}
                 className="flex size-8 items-center justify-center rounded-md enabled:hover:bg-card disabled:opacity-40"
@@ -33,7 +36,7 @@ const Stepper = ({ label, value, min, max, onChange }: { label: string; value: n
             </button>
             <span className="w-7 text-center font-semibold tabular-nums" aria-live="polite">{value}</span>
             <button
-                aria-label={`הוסף ${label}`}
+                aria-label={t('groupBet.increase', { label })}
                 disabled={value >= max}
                 onClick={() => onChange(value + 1)}
                 className="flex size-8 items-center justify-center rounded-md enabled:hover:bg-card disabled:opacity-40"
@@ -42,10 +45,14 @@ const Stepper = ({ label, value, min, max, onChange }: { label: string; value: n
             </button>
         </div>
     </div>
-);
+    );
+};
 const OUTCOMES = ['1', 'X', '2'] as const;
 
 export const GroupBet = () => {
+    const { t, i18n } = useTranslation();
+    const dates = useMarketDates();
+    const { outcomeLabels } = useMarket();
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -180,8 +187,8 @@ export const GroupBet = () => {
             </div>
         );
     }
-    if (loadError) return <div className="p-4">שגיאה בטעינת הטור</div>;
-    if (!column) return <div className="p-4 text-muted-foreground">לא נמצא טור פעיל</div>;
+    if (loadError) return <div className="p-4">{t('groupBet.loadError')}</div>;
+    if (!column) return <div className="p-4 text-muted-foreground">{t('column.noActive')}</div>;
 
     const total = column.games?.length ?? 0;
     const canSave =
@@ -206,11 +213,11 @@ export const GroupBet = () => {
                 <div>
                     <Link to="/admin/columns" className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
                         <ChevronRight className="size-4" aria-hidden />
-                        טורים
+                        {t('glossary:columns')}
                     </Link>
-                    <h1 className="text-xl font-bold tracking-tight md:text-2xl">הטופס המשותף · {column.name}</h1>
+                    <h1 className="text-xl font-bold tracking-tight md:text-2xl">{t('groupBet.title', { name: column.name })}</h1>
                     <p className="text-sm text-muted-foreground">
-                        נסגר ב-{format(new Date(column.deadline), 'd בMMMM, HH:mm', { locale: he })}
+                        {t('column.closedAt', { date: dates.format(column.deadline, t('dates.dayMonthTime')) })}
                     </p>
                 </div>
                 <LimitTiles
@@ -226,57 +233,55 @@ export const GroupBet = () => {
             {/* Budget */}
             <section className="space-y-3 rounded-2xl border bg-card p-4 md:p-6">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="text-base font-bold">תקציב הטופס המשותף</h2>
-                    <span className="text-sm text-muted-foreground tabular-nums">{rows.toLocaleString('he-IL')} טורים</span>
+                    <h2 className="text-base font-bold">{t('groupBet.budget')}</h2>
+                    <span className="text-sm text-muted-foreground tabular-nums">{t('groupBet.rows', { count: rows, rows: rows.toLocaleString(i18n.language) })}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                    <Stepper label="כפולים" value={limits.doubles} min={0} max={total} onChange={(v) => updateLimits({ doubles: v })} />
-                    <Stepper label="משולשים" value={limits.triples} min={0} max={total} onChange={(v) => updateLimits({ triples: v })} />
+                    <Stepper label={t('limits.doubles')} value={limits.doubles} min={0} max={total} onChange={(v) => updateLimits({ doubles: v })} />
+                    <Stepper label={t('limits.triples')} value={limits.triples} min={0} max={total} onChange={(v) => updateLimits({ triples: v })} />
                     {customLimits && (
                         <Button variant="ghost" size="sm" onClick={() => updateLimits(playerLimits)}>
-                            כמו לשחקנים ({playerLimits.doubles} כפולים · {playerLimits.triples} משולשים)
+                            {t('groupBet.sameAsPlayers', { doubles: playerLimits.doubles, triples: playerLimits.triples })}
                         </Button>
                     )}
                 </div>
                 {customLimits && (
                     <p className="text-sm text-muted-foreground">
-                        השבוע הטופס המשותף שונה מהשחקנים ({playerLimits.doubles} כפולים · {playerLimits.triples} משולשים). נשמר יחד עם הטופס.
+                        {t('groupBet.customLimits', { doubles: playerLimits.doubles, triples: playerLimits.triples })}
                     </p>
                 )}
             </section>
 
             {isDeadlinePassed && (
-                <Banner tone="warn">מועד הסגירה עבר · כמנהל עדיין אפשר לערוך את הטופס המשותף</Banner>
+                <Banner tone="warn">{t('groupBet.deadlinePassed')}</Banner>
             )}
 
             {/* Algorithm */}
             <section className="space-y-3 rounded-2xl border bg-card p-4 md:p-6">
-                <h2 className="text-base font-bold">אלגוריתם כושר</h2>
+                <h2 className="text-base font-bold">{t('groupBet.algo.title')}</h2>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
                     <Segmented
-                        label="מחזורים אחרונים"
+                        label={t('groupBet.algo.recentDraws')}
                         value={String(algo.formWeeks)}
                         onChange={(v) => updateAlgo({ formWeeks: Number(v) })}
                         options={[3, 5, 10].map((n) => ({ value: String(n), label: String(n) }))}
                     />
                     <Segmented
-                        label="חדות"
+                        label={t('groupBet.algo.sharpness')}
                         value={String(algo.power)}
                         onChange={(v) => updateAlgo({ power: Number(v) })}
                         options={[
-                            { value: '1', label: 'יחסי' },
-                            { value: '2', label: 'בינוני' },
-                            { value: '3', label: 'חד' },
+                            { value: '1', label: t('groupBet.algo.proportional') },
+                            { value: '2', label: t('groupBet.algo.medium') },
+                            { value: '3', label: t('groupBet.algo.sharp') },
                         ]}
                     />
                     <Button variant="outline" disabled={!votes} onClick={fillFromAlgo}>
-                        {isSeasonLoading ? 'טוען היסטוריה...' : 'מלא לפי האלגוריתם'}
+                        {isSeasonLoading ? t('groupBet.algo.loadingHistory') : t('groupBet.algo.fill')}
                     </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    משקל ההצבעה של כל שחקן = אחוז הפגיעה שלו ב-{algo.formWeeks} המחזורים האחרונים, בחזקת {algo.power}. שחקנים
-                    ללא היסטוריה מקבלים את המשקל הממוצע. המילוי בוחר סינגל לתוצאה המובילה, משולשים במשחקים הכי פתוחים
-                    וכפולים איפה שהתוצאה השנייה הכי חזקה. כדאי לעבור על הטופס לפני השמירה.
+                    {t('groupBet.algo.explanation', { weeks: algo.formWeeks, power: algo.power })}
                 </p>
             </section>
 
@@ -284,15 +289,15 @@ export const GroupBet = () => {
             <section className="overflow-hidden rounded-2xl border bg-card">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3 md:px-6">
                     <Segmented
-                        label="סדר לפי"
+                        label={t('common.orderBy')}
                         value={orderBy}
                         onChange={setOrderBy}
                         options={[
-                            { value: 'game_num', label: 'מס׳' },
-                            { value: 'game_time', label: 'שעה' },
+                            { value: 'game_num', label: t('common.numberShort') },
+                            { value: 'game_time', label: t('common.time') },
                         ]}
                     />
-                    {votes && <span className="text-xs text-muted-foreground">אחוזים לפי האלגוריתם</span>}
+                    {votes && <span className="text-xs text-muted-foreground">{t('groupBet.algo.percentages')}</span>}
                 </div>
                 <ul className="divide-y">
                     {games.map((game) => {
@@ -307,8 +312,8 @@ export const GroupBet = () => {
                                         <Teams game={game} />
                                     </div>
                                     <div className="truncate text-xs text-muted-foreground md:text-sm">
-                                        {getDayName(new Date(game.game_time))} {format(new Date(game.game_time), 'HH:mm')} · {game.competition}
-                                        {game.result && <> · תוצאה: <span className="font-semibold text-foreground">{game.result}</span></>}
+                                        {dates.dayName(game.game_time)} {dates.time(game.game_time)} · {game.competition}
+                                        {game.result && <> · {t('votes.resultColon')} <span className="font-semibold text-foreground">{outcomeLabels[game.result]}</span></>}
                                     </div>
                                 </div>
                                 <div className="flex shrink-0 flex-col gap-1">
@@ -344,16 +349,16 @@ export const GroupBet = () => {
                 <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:gap-4 md:px-8">
                     <div className="flex-1">
                         {notice === 'ok' && (
-                            <Banner tone="success" onClose={() => setNotice(null)}>הטופס המשותף נשמר</Banner>
+                            <Banner tone="success" onClose={() => setNotice(null)}>{t('groupBet.saved')}</Banner>
                         )}
                         {notice === 'fail' && (
-                            <Banner tone="error" action={{ label: 'נסה שוב', onClick: save, disabled: !canSave }}>
-                                הטופס המשותף לא נשמר
+                            <Banner tone="error" action={{ label: t('common.retry'), onClick: save, disabled: !canSave }}>
+                                {t('groupBet.saveFailed')}
                             </Banner>
                         )}
                     </div>
                     <Button className="h-12 rounded-xl px-6 text-base md:h-11" disabled={!canSave} onClick={save}>
-                        {saving ? 'שומר...' : 'שמור טופס משותף'}
+                        {saving ? t('common.saving') : t('groupBet.save')}
                     </Button>
                 </div>
             </div>
