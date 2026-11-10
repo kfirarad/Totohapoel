@@ -15,6 +15,8 @@ import {
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, isLanguage, setLanguage } from '@/i18n'
+import { GroupSwitcher } from '@/components/GroupSwitcher'
+import { useGroup } from '@/groups/useGroup'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -23,8 +25,9 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
     )
 
 const Header = () => {
-    const { user, signIn, signOut, profile } = useAuth()
+    const { user, signIn, signOut, profile, setProfileLocale } = useAuth()
     const { t, i18n } = useTranslation()
+    const { group, isGroupAdmin } = useGroup()
 
     const handleLogin = async () => {
         try {
@@ -50,12 +53,14 @@ const Header = () => {
                     <span className="text-lg font-bold tracking-tight">{t('app.name')}</span>
                 </Link>
 
-                {user && (
+                {user && <GroupSwitcher />}
+
+                {user && group && (
                     <nav className="order-last -mx-3 flex w-full gap-1 overflow-x-auto md:order-none md:mx-0 md:w-auto">
                         <NavLink to="/column" className={navClass}>{t('header.myColumn')}</NavLink>
                         <NavLink to="/stats" className={navClass}>{t('header.stats')}</NavLink>
                         <NavLink to="/profile" className={navClass}>{t('header.profile')}</NavLink>
-                        {profile?.is_admin && <NavLink to="/admin" className={navClass}>{t('header.admin')}</NavLink>}
+                        {(isGroupAdmin || profile?.is_admin) && <NavLink to="/admin" className={navClass}>{t('header.admin')}</NavLink>}
                     </nav>
                 )}
 
@@ -79,7 +84,11 @@ const Header = () => {
                                 </DropdownMenuLabel>
                                 <DropdownMenuRadioGroup
                                     value={i18n.resolvedLanguage}
-                                    onValueChange={(lng) => isLanguage(lng) && setLanguage(lng)}
+                                    onValueChange={(lng) => {
+                                        if (!isLanguage(lng)) return
+                                        setLanguage(lng)
+                                        setProfileLocale(lng)
+                                    }}
                                 >
                                     {LANGUAGES.map((lng) => (
                                         <DropdownMenuRadioItem key={lng} value={lng} lang={lng}>

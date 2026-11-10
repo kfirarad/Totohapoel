@@ -15,6 +15,8 @@ import { Banner } from '@/components/Banner';
 import { LimitTiles } from '@/components/LimitTiles';
 import { Segmented } from '@/components/Segmented';
 import { useSeasonDataQuery } from '@/hooks/useQueries';
+import { useCurrentGroup } from '@/groups/useGroup';
+import { toGroupColumn, type GroupColumnRow } from '@/groups/groupColumn';
 import { autoFillGroupBet, formVotes, formWeights, readAlgoSettings, writeAlgoSettings, type AlgoSettings } from '@/lib/stats';
 
 type OrderBy = 'game_num' | 'game_time';
@@ -53,6 +55,7 @@ export const GroupBet = () => {
     const { t, i18n } = useTranslation();
     const dates = useMarketDates();
     const { outcomeLabels } = useMarket();
+    const group = useCurrentGroup();
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -80,23 +83,26 @@ export const GroupBet = () => {
     const { columnId } = useParams();
     useEffect(() => {
         const fetchLatestColumn = async () => {
-            const query = supabase.from('columns').select('*');
-            const { data, error } = await (columnId
+            // the group's view of the column (its limits and its group bet)
+            const query = supabase.from('columns').select('*, group_columns!inner(*)').eq('group_columns.group_id', group.id);
+            const { data: row, error } = await (columnId
                 ? query.eq('id', columnId).maybeSingle()
-                : query.eq('is_active', true).eq('is_archived', false).order('deadline', { ascending: false }).limit(1).maybeSingle());
+                : query.eq('group_columns.is_active', true).eq('group_columns.is_archived', false)
+                    .order('deadline', { ascending: false }).limit(1).maybeSingle());
 
             if (error) {
                 console.error(error);
                 setLoadError(true);
-            } else if (data) {
+            } else if (row) {
+                const data = toGroupColumn(row as GroupColumnRow, group);
                 setColumn(data);
                 setLimits({
                     doubles: data.group_max_doubles ?? data.max_doubles ?? 0,
                     triples: data.group_max_triples ?? data.max_triples ?? 0,
                 });
                 const formattedBets: Record<number, BetResult[]> = {};
-                (data.group_bet ?? []).forEach((bet: { game_num: number; value: BetResult[] }) => {
-                    formattedBets[bet.game_num] = bet.value;
+                (data.group_bet ?? []).forEach((bet) => {
+                    formattedBets[Number(bet.game_num)] = bet.value;
                 });
                 setUserBet(formattedBets);
             }
@@ -104,7 +110,7 @@ export const GroupBet = () => {
         };
         setLoading(true);
         fetchLatestColumn();
-    }, [columnId]);
+    }, [columnId, group]);
 
     useEffect(() => {
         if (notice !== 'ok') return;
@@ -160,15 +166,16 @@ export const GroupBet = () => {
             value,
         }));
         const { data, error } = await supabase
-            .from('columns')
+            .from('group_columns')
             .update({
                 group_bet: groupBet,
                 // store only when it differs, so the group bet keeps following the players' limits otherwise
-                group_max_doubles: limits.doubles === (column.max_doubles ?? 0) ? null : limits.doubles,
-                group_max_triples: limits.triples === (column.max_triples ?? 0) ? null : limits.triples,
+                group_bet_max_doubles: limits.doubles === (column.max_doubles ?? 0) ? null : limits.doubles,
+                group_bet_max_triples: limits.triples === (column.max_triples ?? 0) ? null : limits.triples,
             })
-            .eq('id', column.id)
-            .select('id');
+            .eq('group_id', group.id)
+            .eq('column_id', column.id)
+            .select('column_id');
         setSaving(false);
         if (error || !data?.length) {
             console.error(error);
@@ -237,8 +244,8 @@ export const GroupBet = () => {
                     <span className="text-sm text-muted-foreground tabular-nums">{t('groupBet.rows', { count: rows, rows: rows.toLocaleString(i18n.language) })}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                    <Stepper label={t('limits.doubles')} value={limits.doubles} min={0} max={total} onChange={(v) => updateLimits({ doubles: v })} />
-                    <Stepper label={t('limits.triples')} value={limits.triples} min={0} max={total} onChange={(v) => updateLimits({ triples: v })} />
+                    <Stepper label={t('limits.doubles')} value={limits.doubles} min={0} max={column.operator_max_doubles ?? total} onChange={(v) => updateLimits({ doubles: v })} />
+                    <Stepper label={t('limits.triples')} value={limits.triples} min={0} max={column.operator_max_triples ?? total} onChange={(v) => updateLimits({ triples: v })} />
                     {customLimits && (
                         <Button variant="ghost" size="sm" onClick={() => updateLimits(playerLimits)}>
                             {t('groupBet.sameAsPlayers', { doubles: playerLimits.doubles, triples: playerLimits.triples })}

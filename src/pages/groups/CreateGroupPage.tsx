@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/Segmented";
 import { useToast } from "@/hooks/use-toast";
 import { createGroup, type JoinPolicy } from "@/groups/api";
-import { useGroup } from "@/groups/GroupContext";
+import { useGroup } from "@/groups/useGroup";
 import { marketName } from "@/groups/marketName";
 import { DEFAULT_MARKET, getMarket, markets } from "@/markets/registry";
 
@@ -20,7 +20,7 @@ export const CreateGroupPage = ({ firstGroup = false }: { firstGroup?: boolean }
 
   const [name, setName] = useState("");
   const [market, setMarket] = useState<string>(DEFAULT_MARKET);
-  const limits = getMarket(market as typeof DEFAULT_MARKET).defaultLimits;
+  const limits = getMarket(market).defaultLimits;
   const [maxDoubles, setMaxDoubles] = useState(limits.maxDoubles);
   const [maxTriples, setMaxTriples] = useState(limits.maxTriples);
   const [joinPolicy, setJoinPolicy] = useState<JoinPolicy>("open");
@@ -37,7 +37,7 @@ export const CreateGroupPage = ({ firstGroup = false }: { firstGroup?: boolean }
 
   const pickMarket = (code: string) => {
     setMarket(code);
-    const l = getMarket(code as typeof DEFAULT_MARKET).defaultLimits;
+    const l = getMarket(code).defaultLimits;
     setMaxDoubles(l.maxDoubles);
     setMaxTriples(l.maxTriples);
   };
@@ -69,7 +69,7 @@ export const CreateGroupPage = ({ firstGroup = false }: { firstGroup?: boolean }
             value={market}
             onChange={(e) => pickMarket(e.target.value)}
           >
-            {Object.values(markets).map((m) => (
+            {Object.values(markets).map(({ config: m }) => (
               <option key={m.code} value={m.code}>
                 {marketName(m.code, i18n.language)} · {m.operator} {m.product}
               </option>

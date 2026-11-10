@@ -143,7 +143,8 @@
     "discardChanges": "בטל שינויים",
     "sentEditable": "הטופס נשלח · אפשר לערוך עד סגירת המחזור",
     "send": "שלח טופס",
-    "loading": "טוען טור"
+    "loading": "טוען טור",
+    "archived": "בארכיון"
   },
   "stats": {
     "title": "סטטיסטיקה",
@@ -218,7 +219,8 @@
   "admin": {
     "nav": {
       "users": "משתמשים",
-      "teams": "קבוצות"
+      "teams": "קבוצות",
+      "sync": "סנכרון"
     },
     "columns": {
       "loadError": "שגיאה בטעינת הטורים",
@@ -227,7 +229,19 @@
       "played_one": "{{count}} שיחק",
       "played_other": "{{count}} שיחקו",
       "closed": "נסגר",
-      "open": "פתוח"
+      "open": "פתוח",
+      "show": "הצג",
+      "archiveTab": "ארכיון ({{count}})",
+      "none": "אין טורים",
+      "noneArchived": "אין טורים בארכיון",
+      "archive": "ארכיון",
+      "restore": "שחזור",
+      "archiveConfirm": "להעביר את \"{{name}}\" לארכיון? הטור יוסתר משחקני הקבוצה ומהסטטיסטיקות",
+      "toggleActive": "החלפת מצב פעיל",
+      "editLimits": "מגבלות הקבוצה בטור הזה",
+      "limits": "עד {{doubles}} כפולים ו-{{triples}} משולשים",
+      "groupDefault": "ברירת המחדל של הקבוצה",
+      "operatorMax": "מקסימום {{max}}"
     },
     "columnForm": {
       "loadFailed": "טעינת הטור נכשלה",
@@ -243,8 +257,8 @@
       "editTitle": "עריכת טור",
       "name": "שם הטור",
       "deadline": "מועד סגירה",
-      "maxDoubles": "מס׳ כפולים",
-      "maxTriples": "מס׳ משולשים",
+      "maxDoubles": "מקסימום כפולים (מפעיל)",
+      "maxTriples": "מקסימום משולשים (מפעיל)",
       "games": "משחקים",
       "pasteJson": "הדבק JSON",
       "dragToBookmarks": "גרור לסרגל הסימניות",
@@ -276,7 +290,8 @@
       "homeTeam": "קבוצת בית",
       "awayTeam": "קבוצת חוץ",
       "liveTrackerPlaceholder": "מזהה / קוד הטמעה של ScoreAxis",
-      "pasteGameHere": "הדבק כאן פרטי משחק..."
+      "pasteGameHere": "הדבק כאן פרטי משחק...",
+      "operatorLimitsHint": "המקסימום שהמפעיל מתיר בטור הזה. כל קבוצה קובעת את המגבלה שלה, עד המקסימום הזה. הפעלה והעברה לארכיון נעשות בכל קבוצה בנפרד"
     },
     "users": {
       "loadError": "שגיאה בטעינת המשתמשים",
@@ -305,6 +320,21 @@
       "colScoreAxis": "מזהה ScoreAxis",
       "none": "לא נמצאו קבוצות",
       "empty": "עוד אין קבוצות — הן נוספות אוטומטית בחיפוש ב-ScoreAxis"
+    },
+    "sync": {
+      "title": "סנכרון מול המפעילים",
+      "hint": "ייבוא טורים ותוצאות אוטומטי, לכל שוק שיש לו חיבור שרת. ישראל (ווינר) עדיין מיובאת דרך הסימנייה",
+      "none": "עוד לא היו ריצות",
+      "status": {
+        "ok": "הצליח",
+        "skipped": "דולג",
+        "running": "רץ",
+        "error": "שגיאה"
+      },
+      "kind": {
+        "import": "ייבוא טורים",
+        "results": "תוצאות"
+      }
     }
   }
 }

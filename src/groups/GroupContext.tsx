@@ -1,29 +1,20 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchMyGroups, type MyGroup } from "./api";
-
-type GroupContextValue = {
-  groups: MyGroup[];
-  /** the group the app is showing; null while loading or when I'm in no group */
-  group: MyGroup | null;
-  isLoading: boolean;
-  isGroupAdmin: boolean;
-  selectGroup: (id: string) => void;
-  refreshGroups: () => Promise<unknown>;
-};
-
-const GroupContext = createContext<GroupContextValue | undefined>(undefined);
+import { fetchMyGroups } from "./api";
+import i18n, { resolveLanguage, setLanguage } from "@/i18n";
+import { getMarket } from "@/markets/registry";
+import { GroupContext } from "./useGroup";
 
 const CURRENT_GROUP = "currentGroup";
 const readStored = () => {
   try { return localStorage.getItem(CURRENT_GROUP); } catch { return null; }
 };
 
-export const groupsQueryKey = (userId?: string) => ["myGroups", userId] as const;
+const groupsQueryKey = (userId?: string) => ["myGroups", userId] as const;
 
 export const GroupProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(readStored);
 
@@ -36,6 +27,17 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
 
   // the stored choice if I'm still in that group, else the first one
   const group = groups.find((g) => g.id === selectedId) ?? groups[0] ?? null;
+
+  // show the language the user picked, else the group's, else its market's
+  useEffect(() => {
+    if (!profile) return;
+    const lng = resolveLanguage({
+      profile: profile.locale,
+      group: group?.locale,
+      market: group ? getMarket(group.market).defaultLocale : null,
+    });
+    if (lng !== i18n.language) setLanguage(lng);
+  }, [profile, group]);
 
   const selectGroup = useCallback(
     (id: string) => {
@@ -60,17 +62,4 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return <GroupContext.Provider value={value}>{children}</GroupContext.Provider>;
-};
-
-export const useGroup = () => {
-  const ctx = useContext(GroupContext);
-  if (!ctx) throw new Error("useGroup must be used within a GroupProvider");
-  return ctx;
-};
-
-/** The current group, for pages that only render once a group exists */
-export const useCurrentGroup = () => {
-  const { group } = useGroup();
-  if (!group) throw new Error("no current group");
-  return group;
 };

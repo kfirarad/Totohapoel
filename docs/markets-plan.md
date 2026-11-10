@@ -1,6 +1,6 @@
 # Multi-market plan: Toto markets beyond Israel
 
-Status: **draft for review** · 2026-11-10 (rev 3: decisions made; markets A-Z)
+Status: Phase 0 built · 2026-11-11 (rev 4)
 
 ## 1. Goal
 
@@ -187,7 +187,7 @@ Endpoint facts below come from public reference repos and forums, not official d
 
 ## 5. Phases
 
-**Phase 0: Foundations.** Israel keeps working throughout.
+**Phase 0: Foundations.** Israel keeps working throughout. **Status: built** (see "Deploying Phase 0" below).
 1. Install i18n, extract all Hebrew into `he/common.json`, write `en`, and set `lang`/`dir` at runtime.
 2. Market registry with `il` as its only entry. Move `winner.ts` into `markets/il`. Remove hard-coded `Asia/Jerusalem` and `locale: he`.
 3. Run the migration in §3.5 (markets, **groups**, invites and join requests, `group_columns`, `user_bets.group_id`, RLS) and backfill the existing data into one Israeli group.
@@ -237,3 +237,25 @@ Endpoint facts below come from public reference repos and forums, not official d
 - Svenska Spel draw API patterns: <https://www.sweclockers.com/forum/trad/1645429-oppet-api-for-stryktipset>, <https://github.com/andreyhgl/stryktipset-results>, <https://github.com/kotlinski/pot-bot>
 - Veikkaus reference robot: <https://github.com/veikkaus/sport-games-robot>, <https://github.com/miikama/veikkaaja>
 - SELAE results page and `game_id=LAQU`: <https://www.loteriasyapuestas.es/es/resultados-medios/resultados-ultimos-sorteos>
+
+## Deploying Phase 0
+
+The database and the app change together: after the migration the old app can't save bets (a bet now needs a group), and the new app needs the new tables. Pushing to `main` deploys the app, so:
+
+1. **Back up** the database (Dashboard → Database → Backups).
+2. In the SQL editor, run in order:
+   - `supabase/migrations/20261110000000_columns_is_archived.sql` (skip it if you already ran it)
+   - `supabase/migrations/20261111000000_markets_and_groups.sql`
+   - `supabase/migrations/20261111000100_market_sync.sql`
+   - `supabase/migrations/20261111000300_drop_legacy_column_fields.sql`
+3. **Right away, merge to `main`** so the new app deploys.
+4. Check: sign in, see the "טוטו הפועל" group, open the current column, save a bet, and open Group → invite link.
+5. **Optional, can wait:** enable `pg_cron` and `pg_net`, deploy `supabase functions deploy market-sync`, then run `20261111000200_market_sync_cron.sql`, following the steps in its header. Until a market has a server adapter, every run is logged as "skipped".
+
+**What the migration does to existing data**
+- One closed group, "טוטו הפועל" (market `il`). Every profile becomes a member, and current `is_admin` users become group admins.
+- Duplicate bets (same user and column) keep the newest. The older ones move to `user_bets_legacy_duplicates`.
+- Each column's limits become the group's per-column override. The column's operator maximum becomes the larger of the players' limit and the group bet's budget.
+- **Access rules on `profiles`, `columns` and `user_bets` are replaced.** Anonymous reads stop. Players see others' bets only after the deadline, and group admins see them anytime, as the UI already does.
+
+**Testing the migrations locally:** `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run.sh`. It runs every migration against a stand-in of the production schema plus about 30 behaviour and access checks.

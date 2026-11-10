@@ -2,21 +2,29 @@ import { Link, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { useGroup } from '@/groups/useGroup';
 
 export const AdminLayout = () => {
     const { profile } = useAuth();
     const location = useLocation();
     const { t } = useTranslation();
+    const { isGroupAdmin } = useGroup();
+    const isSuperAdmin = !!profile?.is_admin;
 
-    if (!profile?.is_admin) {
+    if (!isGroupAdmin && !isSuperAdmin) {
         return <Navigate to="/" />;
     }
 
     const navItems = [
         { path: '/admin/columns', label: t('glossary:columns') },
-        { path: '/admin/users', label: t('admin.nav.users') },
-        { path: '/admin/teams', label: t('admin.nav.teams') },
         { path: '/admin/group-bet', label: t('glossary:theGroupBet') },
+        ...(isSuperAdmin
+            ? [
+                { path: '/admin/users', label: t('admin.nav.users') },
+                { path: '/admin/teams', label: t('admin.nav.teams') },
+                { path: '/admin/sync', label: t('admin.nav.sync') },
+            ]
+            : []),
     ];
 
     return (

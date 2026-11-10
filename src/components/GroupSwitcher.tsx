@@ -4,7 +4,7 @@ import { Check, ChevronDown, Plus, Settings } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGroup } from "@/groups/GroupContext";
+import { useGroup } from "@/groups/useGroup";
 
 /** Header control: which group the app is showing */
 export const GroupSwitcher = () => {

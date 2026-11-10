@@ -6,7 +6,7 @@ import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { joinGroup, previewGroup } from "@/groups/api";
-import { useGroup } from "@/groups/GroupContext";
+import { useGroup } from "@/groups/useGroup";
 import { marketName } from "@/groups/marketName";
 
 /** /join/:code — the only way into a group */

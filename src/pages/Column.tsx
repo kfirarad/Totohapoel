@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMarketDates } from "@/i18n/dates";
 import { standingsLeagueId } from "@/markets/il/standings";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentGroup, useGroup } from "@/groups/useGroup";
 import {
   useColumnQuery,
   usePlaceBetMutation,
@@ -79,7 +80,9 @@ const writeDraft = (key: string, bets: Bets | null) => {
 export const Column = () => {
   const { columnId, userId: userIdParam } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const group = useCurrentGroup();
+  const { isGroupAdmin } = useGroup();
   const { t } = useTranslation();
   const dates = useMarketDates();
 
@@ -168,7 +171,7 @@ export const Column = () => {
   useEffect(() => setCompareMine(false), [userIdParam]);
 
   // the current round (what /column shows), to know whether "back to current" makes sense
-  const { data: currentColumn } = useQuery(columnQueryOptions());
+  const { data: currentColumn } = useQuery(columnQueryOptions(group));
 
   useEffect(() => {
     const channels = supabase
@@ -203,27 +206,25 @@ export const Column = () => {
   const { data: columnStats = [], isLoading: isStatsLoading } =
     useColumnStatsQuery(column);
 
-  const isDeadlinePassed = new Date(column?.deadline) < new Date();
+  const isDeadlinePassed = !!column && new Date(column.deadline) < new Date();
 
   // Calculate correct guesses
-  //@ts-expect-error - games is not always defined
   const gamesWithResults =
     column?.games?.filter((game) => game.result !== null) || [];
-  //@ts-expect-error - games is not always defined
   const correctGuesses = gamesWithResults.filter((game) =>
     userBet[game.game_num]?.includes(game.result as BetResult)
   ).length;
 
   const formatBetsFromBetsData = (
     betsValues?: {
-      game_num: number;
+      game_num: number | string;
       value: BetResult[];
-    }[]
+    }[] | null
   ) => {
     if (!betsValues) return {};
     const bets: Record<number, BetResult[]> = {};
     betsValues.forEach((bet) => {
-      bets[bet.game_num] = bet.value;
+      bets[Number(bet.game_num)] = bet.value;
     });
     return bets;
   };
@@ -267,7 +268,7 @@ export const Column = () => {
           game_num,
           value: bet,
         })),
-        columnId: column.id,
+        columnId: column!.id!,
         userId: user.id,
       });
     } catch (e) {
@@ -327,10 +328,10 @@ export const Column = () => {
   useEffect(() => {
     for (const neighbour of [previousColumn, nextColumn]) {
       if (!neighbour?.id) continue;
-      queryClient.prefetchQuery(columnQueryOptions(neighbour.id));
-      if (viewedUserId) queryClient.prefetchQuery(userBetsQueryOptions(neighbour.id, viewedUserId));
+      queryClient.prefetchQuery(columnQueryOptions(group, neighbour.id));
+      if (viewedUserId) queryClient.prefetchQuery(userBetsQueryOptions(group.id, neighbour.id, viewedUserId));
     }
-  }, [queryClient, previousColumn?.id, nextColumn?.id, viewedUserId]);
+  }, [queryClient, group, previousColumn?.id, nextColumn?.id, viewedUserId]);
 
   const orderedGames: Game[] = useMemo(
     () =>
@@ -375,8 +376,8 @@ export const Column = () => {
   const canSubmit =
     !isSaving &&
     doublesAndTriplesCount.filledBets >= games.length &&
-    doublesAndTriplesCount.doubles <= column.max_doubles &&
-    doublesAndTriplesCount.triples <= column.max_triples;
+    doublesAndTriplesCount.doubles <= (column.max_doubles ?? 0) &&
+    doublesAndTriplesCount.triples <= (column.max_triples ?? 0);
   const isEditable = !!draftKey;
   const unsentMessage = !draftKey
     ? null
@@ -385,7 +386,7 @@ export const Column = () => {
     : hasUnsavedChanges
     ? t("column.unsavedChanges")
     : null;
-  const canSeeVotes = !!profile?.is_admin || isDeadlinePassed;
+  const canSeeVotes = isGroupAdmin || isDeadlinePassed;
   const showVotes = canSeeVotes && showVoteStats;
   // an entry with no picks (e.g. a half-started admin edit) isn't a group bet
   const hasGroupBet = !!column.group_bet?.some((b: { value?: BetResult[] }) => b.value?.length);
@@ -443,7 +444,7 @@ export const Column = () => {
                   {column.name}
                   {column.is_archived && (
                     <span className="ms-2 inline-block rounded-md bg-muted px-1.5 py-0.5 align-middle text-xs font-medium text-muted-foreground">
-                      בארכיון
+                      {t("column.archived")}
                     </span>
                   )}
                 </h1>
@@ -753,7 +754,7 @@ export const Column = () => {
           <ColumnSummary
             stats={columnStats as UserStats[]}
             showScore={isDeadlinePassed}
-            columnId={column.id}
+            columnId={column.id!}
             loading={isStatsLoading}
             groupBet={
               hasGroupBet
@@ -803,11 +804,8 @@ export const Column = () => {
         isOpened={!!standingWidgetLeague}
         leagueId={standingWidgetLeague}
         onOpenChange={(newState) => {
-          if (newState) {
-            setStandingWidgetLeague(standingsLeagueId(column.competition));
-          } else {
-            setStandingWidgetLeague(null);
-          }
+          // opened only by a game's standings button, which sets the league itself
+          if (!newState) setStandingWidgetLeague(null);
         }}
       />
     </div>

@@ -8,11 +8,15 @@ type Profile = {
     name: string
     is_admin: boolean
     avatar_url: string | null
+    /** UI language the user picked; null = follow the group / market */
+    locale: string | null
 }
 
 interface AuthContextType {
     user: User | null
     profile: Profile | null
+    /** save the user's UI language on their profile (follows them across devices) */
+    setProfileLocale: (locale: string) => Promise<void>
     signIn: () => Promise<User | null>
     signOut: () => Promise<void>
 }
@@ -106,8 +110,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         loadProfile()
     }, [user])
 
+    const setProfileLocale = async (locale: string) => {
+        if (!user) return
+        const { error } = await supabase.from('profiles').update({ locale }).eq('id', user.id)
+        if (error) console.error(error)
+        else setProfile((p) => (p ? { ...p, locale } : p))
+    }
+
     return (
-        <AuthContext.Provider value={{ user, profile, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, profile, signIn, signOut, setProfileLocale }}>
             {children}
         </AuthContext.Provider>
     )

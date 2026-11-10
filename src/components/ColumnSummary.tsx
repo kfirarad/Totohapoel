@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { userBetsQueryOptions } from "@/hooks/useQueries";
+import { useCurrentGroup } from "@/groups/useGroup";
 
 interface UserStats {
     user: {
@@ -41,7 +42,8 @@ export const ColumnSummary = ({ stats, showScore, columnId, loading, groupBet }:
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     // warm the player's picks on hover/focus so opening their column feels instant
-    const prefetch = (userId: string) => queryClient.prefetchQuery(userBetsQueryOptions(columnId, userId));
+    const groupId = useCurrentGroup().id;
+    const prefetch = (userId: string) => queryClient.prefetchQuery(userBetsQueryOptions(groupId, columnId, userId));
 
     const scores = stats.map((s) => s.correctBets);
     const extras: ExtraRow[] = [];

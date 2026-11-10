@@ -143,7 +143,8 @@
     "discardChanges": "Discard changes",
     "sentEditable": "Column sent · you can edit it until the round closes",
     "send": "Send column",
-    "loading": "Loading column"
+    "loading": "Loading column",
+    "archived": "Archived"
   },
   "stats": {
     "title": "Stats",
@@ -218,7 +219,8 @@
   "admin": {
     "nav": {
       "users": "Users",
-      "teams": "Teams"
+      "teams": "Teams",
+      "sync": "Sync"
     },
     "columns": {
       "loadError": "Couldn't load the columns",
@@ -227,7 +229,19 @@
       "played_one": "{{count}} played",
       "played_other": "{{count}} played",
       "closed": "Closed",
-      "open": "Open"
+      "open": "Open",
+      "show": "Show",
+      "archiveTab": "Archive ({{count}})",
+      "none": "No columns",
+      "noneArchived": "No archived columns",
+      "archive": "Archive",
+      "restore": "Restore",
+      "archiveConfirm": "Archive \"{{name}}\"? It will be hidden from the group's players and from stats",
+      "toggleActive": "Toggle active",
+      "editLimits": "This group's limits for this column",
+      "limits": "up to {{doubles}} doubles and {{triples}} triples",
+      "groupDefault": "group default",
+      "operatorMax": "max {{max}}"
     },
     "columnForm": {
       "loadFailed": "Couldn't load the column",
@@ -243,8 +257,8 @@
       "editTitle": "Edit column",
       "name": "Column name",
       "deadline": "Deadline",
-      "maxDoubles": "Max doubles",
-      "maxTriples": "Max triples",
+      "maxDoubles": "Max doubles (operator)",
+      "maxTriples": "Max triples (operator)",
       "games": "Games",
       "pasteJson": "Paste JSON",
       "dragToBookmarks": "Drag to your bookmarks bar",
@@ -276,7 +290,8 @@
       "homeTeam": "Home team",
       "awayTeam": "Away team",
       "liveTrackerPlaceholder": "ScoreAxis id / embed code",
-      "pasteGameHere": "Paste game details here..."
+      "pasteGameHere": "Paste game details here...",
+      "operatorLimitsHint": "The most the operator allows in this column. Each group sets its own limit up to this. Activating and archiving are per group"
     },
     "users": {
       "loadError": "Couldn't load the users",
@@ -305,6 +320,21 @@
       "colScoreAxis": "ScoreAxis id",
       "none": "No teams found",
       "empty": "No teams yet — they are added automatically when you search on ScoreAxis"
+    },
+    "sync": {
+      "title": "Operator sync",
+      "hint": "Automatic import of columns and results, for every market with a server connection. Israel (Winner) is still imported through the bookmarklet",
+      "none": "No runs yet",
+      "status": {
+        "ok": "OK",
+        "skipped": "Skipped",
+        "running": "Running",
+        "error": "Error"
+      },
+      "kind": {
+        "import": "Column import",
+        "results": "Results"
+      }
     }
   }
 }

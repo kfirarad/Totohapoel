@@ -4,12 +4,14 @@ import heCommon from "@/locales/he/common.json";
 import heGlossary from "@/locales/he/glossary.json";
 import enCommon from "@/locales/en/common.json";
 import enGlossary from "@/locales/en/glossary.json";
+import heGroups from "@/locales/he/groups.json";
+import enGroups from "@/locales/en/groups.json";
 import { DEFAULT_MARKET, getMarket } from "@/markets/registry";
 
 // Bundled, no HTTP backend: every locale ships with the app
 export const resources = {
-  he: { common: heCommon, glossary: heGlossary },
-  en: { common: enCommon, glossary: enGlossary },
+  he: { common: heCommon, glossary: heGlossary, groups: heGroups },
+  en: { common: enCommon, glossary: enGlossary, groups: enGroups },
 } as const;
 
 export type Language = keyof typeof resources;
@@ -49,12 +51,26 @@ i18n.use(initReactI18next).init({
   lng: readStoredLanguage() ?? DEFAULT_LANGUAGE,
   fallbackLng: "en",
   supportedLngs: LANGUAGES,
-  ns: ["common", "glossary"],
+  ns: ["common", "glossary", "groups"],
   defaultNS: "common",
   // React escapes output already
   interpolation: { escapeValue: false },
   initAsync: false,
 });
+
+/** The device's explicit choice, if any (kept until the profile has one) */
+export const storedLanguage = readStoredLanguage;
+
+/**
+ * Language precedence: the user's own choice (profile, then this device), then the group's, then
+ * the group's market default. Returns the language to show.
+ */
+export const resolveLanguage = (opts: { profile?: string | null; group?: string | null; market?: string | null }): Language => {
+  for (const lng of [opts.profile, readStoredLanguage(), opts.group, opts.market]) {
+    if (isLanguage(lng)) return lng;
+  }
+  return DEFAULT_LANGUAGE;
+};
 
 /** Switch the UI language and remember it on this device */
 export const setLanguage = (lng: Language) => {

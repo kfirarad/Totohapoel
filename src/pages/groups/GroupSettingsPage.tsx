@@ -13,7 +13,7 @@ import {
   decideJoinRequest, deleteGroup, fetchJoinRequests, fetchMembers, inviteUrl, regenerateInviteCode,
   removeMember, setMemberRole, updateGroup, type JoinPolicy,
 } from "@/groups/api";
-import { useCurrentGroup, useGroup } from "@/groups/GroupContext";
+import { useCurrentGroup, useGroup } from "@/groups/useGroup";
 import { marketName } from "@/groups/marketName";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (

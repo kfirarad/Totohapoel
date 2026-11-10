@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/services/supabase';
-import { Column, BetResult } from '@/types/database.types';
+import { OperatorColumn, BetResult } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -10,7 +10,6 @@ import { addDays, format, nextFriday, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
-import { useSetResultMutation, useRecalculateCorrectGuessesMutation } from '@/hooks/useQueries';
 import { decodeDraw, drawToColumn, parseScoreAxisId, pickTotoDraw, winnerBookmarklet, type WinnerDraw } from '@/markets/il/winner';
 import { DEFAULT_MARKET, getMarket } from '@/markets/registry';
 import { zonedLocalToIso } from '@/markets/time';
@@ -65,7 +64,8 @@ export const ColumnForm = () => {
     const [orderBy, setOrderBy] = useState<'game_num' | 'game_time' | 'result'>('game_num');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-    const [column, setColumn] = useState<Column>({
+    // the operator's draw; each group's limits/active/archive live in group_columns
+    const [column, setColumn] = useState<OperatorColumn>({
         id: '',
         name: '',
         // next Friday 08:00 in the market's zone
@@ -73,8 +73,7 @@ export const ColumnForm = () => {
             setHours(setMinutes(nextFriday(new Date()), 0), 8),
             "yyyy-MM-dd'T'HH:mm"
         )),
-        is_active: true,
-        is_archived: false,
+        market: DEFAULT_MARKET,
         created_at: new Date().toISOString(),
         created_by: '',
         max_doubles: market.defaultLimits.maxDoubles,
@@ -220,7 +219,10 @@ export const ColumnForm = () => {
     const applyDraw = (draw: WinnerDraw) => {
         const imported = drawToColumn(draw);
         // imported rows have no ScoreAxis id yet (null), which Game types as a number
-        setColumn(prev => ({ ...prev, name: imported.name, deadline: imported.deadline, games: imported.games as unknown as Column['games'] }));
+        setColumn(prev => ({
+            ...prev, name: imported.name, deadline: imported.deadline, external_draw_id: String(draw.drawNumber),
+            games: imported.games as unknown as OperatorColumn['games'],
+        }));
         toast({
             title: t('admin.columnForm.importedTitle'),
             description: t('admin.columnForm.importedDescription', { count: imported.games.length, name: imported.name }),
@@ -240,7 +242,6 @@ export const ColumnForm = () => {
     }, [loading, id]);
 
     const { user } = useAuth();
-    const { mutateAsync: calculateCorrectGuessesAsync } = useRecalculateCorrectGuessesMutation();
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -255,16 +256,22 @@ export const ColumnForm = () => {
 
         try {
 
+            // only operator-level fields; scores are recomputed by the database when results change
             const { error: columnError } = await supabase
                 .from('columns')
                 .upsert({
-                    ...column,
+                    id: column.id,
+                    name: column.name,
+                    deadline: column.deadline,
+                    market: column.market ?? DEFAULT_MARKET,
+                    external_draw_id: column.external_draw_id ?? null,
+                    max_doubles: column.max_doubles,
+                    max_triples: column.max_triples,
+                    games: column.games,
+                    ...(column.created_by ? { created_by: column.created_by } : {}),
                 })
                 .select()
                 .single();
-
-
-            calculateCorrectGuessesAsync(column.id);
 
             if (columnError) throw columnError;
 
@@ -304,7 +311,8 @@ export const ColumnForm = () => {
                 const { games = [] } = prev;
                 const updatedGames = games.map(g => {
                     if (g.game_num === game.game_num) {
-                        return { ...g, result: value };
+                        // a hand-set result is never overwritten by the market sync
+                        return { ...g, result: value, result_source: 'manual' as const };
                     }
                     return g;
                 });
@@ -415,7 +423,7 @@ export const ColumnForm = () => {
                         <Input
                             id="max-doubles"
                             type="number"
-                            value={column.max_doubles}
+                            value={column.max_doubles ?? ""}
                             onChange={(e) =>
                                 setColumn({ ...column, max_doubles: parseInt(e.target.value) })
                             }
@@ -429,7 +437,7 @@ export const ColumnForm = () => {
                         <Input
                             id="max-triples"
                             type="number"
-                            value={column.max_triples}
+                            value={column.max_triples ?? ""}
                             onChange={(e) =>
                                 setColumn({ ...column, max_triples: parseInt(e.target.value) })
                             }
@@ -439,33 +447,7 @@ export const ColumnForm = () => {
                 </div>
 
 
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="is_active"
-                        checked={column.is_active}
-                        onChange={(e) =>
-                            setColumn({ ...column, is_active: e.target.checked })
-                        }
-                    />
-                    <label htmlFor="is_active" className="text-sm font-medium">
-                        {t('common.active')}
-                    </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="is_archived"
-                        checked={!!column.is_archived}
-                        onChange={(e) =>
-                            setColumn({ ...column, is_archived: e.target.checked })
-                        }
-                    />
-                    <label htmlFor="is_archived" className="text-sm font-medium">
-                        בארכיון (מוסתר מהשחקנים ומהסטטיסטיקות)
-                    </label>
-                </div>
+                <p className="text-xs text-muted-foreground">{t('admin.columnForm.operatorLimitsHint')}</p>
             </div>
 
             <div className="space-y-4">
