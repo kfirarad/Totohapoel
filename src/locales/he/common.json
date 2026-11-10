@@ -1,0 +1,310 @@
+{
+  "app": {
+    "name": "טוטו הפועל"
+  },
+  "languages": {
+    "he": "עברית",
+    "en": "English"
+  },
+  "common": {
+    "loading": "טוען...",
+    "loadError": "שגיאה בטעינת הנתונים",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "save": "שמור",
+    "saving": "שומר...",
+    "cancel": "ביטול",
+    "retry": "נסה שוב",
+    "close": "סגור",
+    "active": "פעיל",
+    "inactive": "לא פעיל",
+    "vs": "נגד",
+    "numberShort": "מס׳",
+    "time": "שעה",
+    "orderBy": "סדר לפי",
+    "gameN": "משחק {{num}}"
+  },
+  "weekdays": {
+    "0": "ראשון",
+    "1": "שני",
+    "2": "שלישי",
+    "3": "רביעי",
+    "4": "חמישי",
+    "5": "שישי",
+    "6": "שבת"
+  },
+  "dates": {
+    "dayMonthTime": "d בMMMM, HH:mm"
+  },
+  "header": {
+    "myColumn": "הטור שלי",
+    "stats": "סטטיסטיקה",
+    "profile": "פרופיל",
+    "admin": "ניהול",
+    "userMenu": "תפריט משתמש",
+    "logout": "התנתק",
+    "login": "התחבר",
+    "language": "שפה"
+  },
+  "login": {
+    "subtitle": "התחבר כדי למלא את הטור השבועי",
+    "google": "התחברות עם Google"
+  },
+  "limits": {
+    "filled": "מלאים",
+    "doubles": "כפולים",
+    "triples": "משולשים"
+  },
+  "bet": {
+    "groupLabel": "ניחוש למשחק {{num}}",
+    "buttonLabel": "משחק {{num}}: {{outcome}}",
+    "buttonLabelResult": "משחק {{num}}: {{outcome}} (תוצאה)"
+  },
+  "summary": {
+    "participants": "משתתפים",
+    "average": "ממוצע",
+    "median": "חציון"
+  },
+  "standings": {
+    "liveData": "נתונים חיים:"
+  },
+  "votes": {
+    "hedge": {
+      "singles": "סינגל",
+      "doubles": "כפול",
+      "triples": "משולש"
+    },
+    "sharePct": "{{pct}}% {{label}}",
+    "sort": "סדר",
+    "sortOpen": "הכי פתוח",
+    "marked": "מסומן",
+    "participants_one": "משתתף אחד",
+    "participants_other": "{{count}} משתתפים",
+    "totalSpread": "פיזור בטור כולו",
+    "legendFrom": "קולות 0%",
+    "hidePicks": "הסתר סימון",
+    "showPicks": "הצג סימון",
+    "resultColon": "תוצאה:",
+    "hit": "פגיעה",
+    "miss": "החטאה",
+    "result": "תוצאה",
+    "tableLabel": "הצבעות לפי משחק",
+    "gameHeader": "משחק · פיזור",
+    "hideVoters": "הסתר מצביעים",
+    "showVoters": "הצג מצביעים",
+    "hedgeCounts": "{{singles}} סינגל · {{doubles}} כפול · {{triples}} משולש",
+    "cellLabel": "משחק {{num}}, {{outcome}}: {{pct}}%",
+    "theResult": "התוצאה",
+    "theResultWith": "התוצאה ({{verdict}})"
+  },
+  "column": {
+    "error": "שגיאה: {{message}}",
+    "noActive": "לא נמצא טור פעיל",
+    "notSent": "הטופס עוד לא נשלח",
+    "unsavedChanges": "השינויים בטופס עוד לא נשמרו",
+    "me": "אני",
+    "previous": "טור קודם",
+    "next": "טור הבא",
+    "closedAt": "נסגר ב-{{date}}",
+    "closesAt": "נסגר {{day}} {{time}} · {{distance}}",
+    "correctGuesses": "ניחושים נכונים",
+    "scoreOf": "{{score}} מתוך {{total}}",
+    "columnOf": "הטור של",
+    "backToMine": "חזרה לטור שלי",
+    "backToCurrent": "חזרה למחזור הנוכחי",
+    "order": {
+      "hedges": "כפולים/משולשים"
+    },
+    "form": "טופס",
+    "view": {
+      "label": "תצוגה",
+      "votes": "הצבעות"
+    },
+    "calc": {
+      "label": "חישוב",
+      "classic": "קלאסי",
+      "weighted": "משוקלל",
+      "form": "לפי כושר"
+    },
+    "filter": {
+      "label": "סינון",
+      "all": "הכל",
+      "correct": "נכונים",
+      "incorrect": "שגויים",
+      "future": "עתידיים"
+    },
+    "liveGames": "משחקים חיים",
+    "myPick": "הבחירה שלי",
+    "pickOf": "הבחירה של {{name}}",
+    "guessCorrect": "ניחוש נכון",
+    "guessWrong": "ניחוש שגוי",
+    "sentOk": "הטופס נשלח בהצלחה · יאללה הפועל!",
+    "sendFailed": "הטופס לא נשמר · בדוק חיבור ונסה שוב",
+    "discardChanges": "בטל שינויים",
+    "sentEditable": "הטופס נשלח · אפשר לערוך עד סגירת המחזור",
+    "send": "שלח טופס",
+    "loading": "טוען טור"
+  },
+  "stats": {
+    "title": "סטטיסטיקה",
+    "trendTitle": "לעומת אחוז הפגיעה העונתי",
+    "empty": "אין עדיין מחזורים שהסתיימו",
+    "hitRate": "אחוז פגיעה",
+    "drawsInParens_one": "(מחזור אחד)",
+    "drawsInParens_other": "({{count}} מחזורים)",
+    "formLast": "כושר ({{n}} אחרונים)",
+    "inFormLast": "בכושר ({{n}} אחרונים)",
+    "lastN": "{{n}} אחרונים",
+    "totalHits": "סה״כ פגיעות",
+    "wins": "ניצחונות",
+    "mostWins": "הכי הרבה ניצחונות",
+    "bestWeek": "שבוע שיא",
+    "beatGroup": "ניצח את המשותף",
+    "singlesAccuracy": "דיוק סינגלים",
+    "inDraws_one": "במחזור אחד",
+    "inDraws_other": "ב-{{count}} מחזורים",
+    "hits_one": "פגיעה אחת",
+    "hits_other": "{{count}} פגיעות",
+    "closedDraws_one": "מחזור אחד שהסתיים",
+    "closedDraws_other": "{{count}} מחזורים שהסתיימו",
+    "formBy": "כושר לפי",
+    "formWeeksLabel": "מספר מחזורים לחישוב כושר",
+    "player": "שחקן"
+  },
+  "profile": {
+    "chart": {
+      "me": "אני",
+      "average": "ממוצע המשתתפים",
+      "title": "אני מול $t(glossary:theGroupBet) והממוצע",
+      "subtitle_one": "פגיעות במחזור האחרון",
+      "subtitle_other": "פגיעות ב-{{count}} המחזורים האחרונים"
+    },
+    "winsSub": "מקום ראשון במחזור",
+    "hitsSub": "פגיעות",
+    "beatGroup": "ניצחתי את המשותף",
+    "rank": "דירוג באחוז פגיעה",
+    "rankOf": "מתוך {{total}}",
+    "empty": "עוד אין נתונים — הם יופיעו אחרי המחזור הראשון שלך שהסתיים.",
+    "history": "היסטוריה",
+    "vsGroupBet": "מול $t(glossary:theGroupBet)"
+  },
+  "groupBet": {
+    "title": "$t(glossary:theGroupBet) · {{name}}",
+    "loadError": "שגיאה בטעינת הטור",
+    "decrease": "הורד {{label}}",
+    "increase": "הוסף {{label}}",
+    "budget": "תקציב $t(glossary:theGroupBet)",
+    "rows_one": "טור אחד",
+    "rows_other": "{{rows}} טורים",
+    "sameAsPlayers": "כמו לשחקנים ({{doubles}} כפולים · {{triples}} משולשים)",
+    "customLimits": "השבוע $t(glossary:theGroupBet) שונה מהשחקנים ({{doubles}} כפולים · {{triples}} משולשים). נשמר יחד עם הטופס.",
+    "deadlinePassed": "מועד הסגירה עבר · כמנהל עדיין אפשר לערוך את $t(glossary:theGroupBet)",
+    "algo": {
+      "title": "אלגוריתם כושר",
+      "recentDraws": "מחזורים אחרונים",
+      "sharpness": "חדות",
+      "proportional": "יחסי",
+      "medium": "בינוני",
+      "sharp": "חד",
+      "loadingHistory": "טוען היסטוריה...",
+      "fill": "מלא לפי האלגוריתם",
+      "percentages": "אחוזים לפי האלגוריתם",
+      "explanation": "משקל ההצבעה של כל שחקן = אחוז הפגיעה שלו ב-{{weeks}} המחזורים האחרונים, בחזקת {{power}}. שחקנים ללא היסטוריה מקבלים את המשקל הממוצע. המילוי בוחר סינגל לתוצאה המובילה, משולשים במשחקים הכי פתוחים וכפולים איפה שהתוצאה השנייה הכי חזקה. כדאי לעבור על הטופס לפני השמירה."
+    },
+    "saved": "$t(glossary:theGroupBet) נשמר",
+    "saveFailed": "$t(glossary:theGroupBet) לא נשמר",
+    "save": "שמור $t(glossary:groupBet)"
+  },
+  "admin": {
+    "nav": {
+      "users": "משתמשים",
+      "teams": "קבוצות"
+    },
+    "columns": {
+      "loadError": "שגיאה בטעינת הטורים",
+      "new": "טור חדש",
+      "deadline": "מועד סגירה: {{date}}",
+      "played_one": "{{count}} שיחק",
+      "played_other": "{{count}} שיחקו",
+      "closed": "נסגר",
+      "open": "פתוח"
+    },
+    "columnForm": {
+      "loadFailed": "טעינת הטור נכשלה",
+      "importedTitle": "יובא מ$t(glossary:operator)",
+      "importedDescription_one": "משחק אחד · {{name}}",
+      "importedDescription_other": "{{count}} משחקים · {{name}}",
+      "importInvalid": "נתוני הייבוא מ$t(glossary:operator) לא תקינים",
+      "saved": "הטור נשמר",
+      "saveFailed": "שמירת הטור נכשלה",
+      "resultUpdated": "התוצאה עודכנה",
+      "resultUpdateFailed": "עדכון התוצאה נכשל",
+      "noDrawInPaste": "לא נמצא $t(glossary:product) בתוכן שהודבק",
+      "editTitle": "עריכת טור",
+      "name": "שם הטור",
+      "deadline": "מועד סגירה",
+      "maxDoubles": "מס׳ כפולים",
+      "maxTriples": "מס׳ משולשים",
+      "games": "משחקים",
+      "pasteJson": "הדבק JSON",
+      "dragToBookmarks": "גרור לסרגל הסימניות",
+      "winner": {
+        "bookmark": "ייבוא לטוטו הפועל",
+        "howTo": "גרור את הכפתור לסרגל הסימניות. אחר כך היכנס ל-winner.co.il ולחץ עליו — הטור ייפתח כאן ממולא."
+      },
+      "scoreAxis": {
+        "bookmark": "ScoreAxis ← טוטו הפועל",
+        "clickBookmark": "בטאב של ScoreAxis שנפתח, לחץ על הסימניה \"{{bookmark}}\"",
+        "teamsLoadFailed": "טעינת שמות הקבוצות נכשלה",
+        "found": "נמצאו {{found}} מתוך {{total}} משחקים",
+        "restManually": "את השאר אפשר להשלים ידנית",
+        "clickSave": "לחץ שמור",
+        "find": "מצא משחקים ב-ScoreAxis",
+        "howTo": "גרור את הסימניה לסרגל (פעם אחת), ואז לחץ \"מצא משחקים\" — מזהי המעקב החי יתמלאו אוטומטית.",
+        "newTeams": "קבוצות חדשות — כתוב את השם באנגלית כפי שמופיע ב-ScoreAxis (פעם אחת בלבד, נשמר להבא):",
+        "continue": "המשך ל-ScoreAxis",
+        "emptySkips": "שדה ריק = המשחק יידלג ותוכל להזין אותו ידנית."
+      },
+      "gameTime": "זמן משחק",
+      "ascending": "עולה",
+      "descending": "יורד",
+      "competition": "מסגרת",
+      "home": "בית",
+      "away": "חוץ",
+      "liveTrackerId": "מזהה מעקב חי",
+      "competitionPlaceholder": "מסגרת (או הדבקת פרטי משחק)...",
+      "homeTeam": "קבוצת בית",
+      "awayTeam": "קבוצת חוץ",
+      "liveTrackerPlaceholder": "מזהה / קוד הטמעה של ScoreAxis",
+      "pasteGameHere": "הדבק כאן פרטי משחק..."
+    },
+    "users": {
+      "loadError": "שגיאה בטעינת המשתמשים",
+      "searchPlaceholder": "חיפוש לפי שם או אימייל",
+      "searchLabel": "חיפוש משתמשים",
+      "admin": "מנהל",
+      "none": "לא נמצאו משתמשים"
+    },
+    "teams": {
+      "englishNameOf": "שם באנגלית: {{team}}",
+      "scoreAxisIdOf": "מזהה ScoreAxis: {{team}}",
+      "deleteLabel": "מחק {{team}}",
+      "deleteConfirm": "למחוק את \"{{team}}\"?",
+      "actionFailed": "הפעולה נכשלה",
+      "saved": "נשמר",
+      "loadError": "שגיאה בטעינת הקבוצות",
+      "subtitle": "שם הקבוצה ב$t(glossary:operator) ↔ שם ומזהה ב-ScoreAxis, לשיוך אוטומטי של משחקים חיים",
+      "searchPlaceholder": "חיפוש בעברית, אנגלית או מזהה",
+      "searchLabel": "חיפוש קבוצות",
+      "newPlaceholder": "שם קבוצה כפי שמופיע ב$t(glossary:operator)",
+      "newLabel": "קבוצה חדשה",
+      "add": "הוסף קבוצה",
+      "exists": "הקבוצה כבר קיימת",
+      "colOperator": "$t(glossary:operator)",
+      "colEnglish": "שם באנגלית",
+      "colScoreAxis": "מזהה ScoreAxis",
+      "none": "לא נמצאו קבוצות",
+      "empty": "עוד אין קבוצות — הן נוספות אוטומטית בחיפוש ב-ScoreAxis"
+    }
+  }
+}

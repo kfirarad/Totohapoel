@@ -1,0 +1,10 @@
+{
+  "operator": "Winner",
+  "product": "Toto 16",
+  "column": "Column",
+  "columns": "Columns",
+  "groupBet": "Group bet",
+  "theGroupBet": "Group bet",
+  "draws": "Rounds",
+  "columnName": "Toto {{day}}/{{month}}/{{year}}"
+}
