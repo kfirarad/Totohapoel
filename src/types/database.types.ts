@@ -5,6 +5,8 @@ export interface Column {
   name: string;
   deadline: string;
   is_active: boolean;
+  /** hidden from players (navigation, default column, stats); admins can still open it */
+  is_archived?: boolean;
   created_at?: string;
   created_by?: string;
   max_doubles?: number;

@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Archive, ArchiveRestore } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { Column } from '@/types/database.types';
+import { Segmented } from '@/components/Segmented';
+import { useToast } from '@/hooks/use-toast';
+import { queryKeys } from '@/hooks/useQueries';
 
 const fetchColumns = async () => {
     const { data, error } = await supabase
@@ -16,7 +21,31 @@ const fetchColumns = async () => {
     return data as (Column & { user_bets: { count: number }[] })[];
 };
 
+type View = 'current' | 'archived';
+
 export const ColumnsList = () => {
+    const [view, setView] = useState<View>('current');
+    const queryClient = useQueryClient();
+    const { toast } = useToast();
+
+    const archiveMutation = useMutation({
+        mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+            const { error } = await supabase.from('columns').update({ is_archived: archived }).eq('id', id);
+            if (error) throw error;
+            return archived;
+        },
+        onSuccess: (archived) => {
+            // the list, the player-facing column/navigation and season stats all depend on it
+            queryClient.invalidateQueries({ queryKey: queryKeys.columns });
+            queryClient.invalidateQueries({ queryKey: ['column'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.seasonData });
+            toast({ title: archived ? 'הטור הועבר לארכיון' : 'הטור שוחזר מהארכיון' });
+        },
+        onError: () => {
+            toast({ title: 'שגיאה', description: 'עדכון הטור נכשל', variant: 'destructive' });
+        },
+    });
+
     const {
         data: columns = [],
         isLoading,
@@ -34,16 +63,35 @@ export const ColumnsList = () => {
         return <div>שגיאה בטעינת הטורים</div>;
     }
 
+    const archivedCount = columns.filter((c) => c.is_archived).length;
+    const visible = columns.filter((c) => !!c.is_archived === (view === 'archived'));
+
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <h1 className="text-2xl font-bold">טורים</h1>
                 <Link to="/admin/columns/new">
                     <Button>טור חדש</Button>
                 </Link>
             </div>
+            <div className="mb-4">
+                <Segmented<View>
+                    label="הצג"
+                    value={view}
+                    onChange={setView}
+                    options={[
+                        { value: 'current', label: 'טורים' },
+                        { value: 'archived', label: `ארכיון (${archivedCount})` },
+                    ]}
+                />
+            </div>
+            {visible.length === 0 && (
+                <p className="py-8 text-center text-muted-foreground">
+                    {view === 'archived' ? 'אין טורים בארכיון' : 'אין טורים'}
+                </p>
+            )}
             <div className="grid gap-4">
-                {columns.map((column) => (
+                {visible.map((column) => (
                     <div
                         key={column.id}
                         className="relative block p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow"
@@ -84,6 +132,20 @@ export const ColumnsList = () => {
                                 >
                                     {new Date(column.deadline) < new Date() ? 'נסגר' : 'פתוח'}
                                 </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="relative z-10"
+                                    disabled={archiveMutation.isPending && archiveMutation.variables?.id === column.id}
+                                    onClick={() => {
+                                        const archived = !column.is_archived;
+                                        if (archived && !window.confirm(`להעביר את "${column.name}" לארכיון? הטור יוסתר מהשחקנים ומהסטטיסטיקות.`)) return;
+                                        archiveMutation.mutate({ id: column.id!, archived });
+                                    }}
+                                >
+                                    {column.is_archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                                    {column.is_archived ? 'שחזור' : 'ארכיון'}
+                                </Button>
                             </div>
                         </div>
                     </div>

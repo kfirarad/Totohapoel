@@ -455,7 +455,14 @@ export const Column = () => {
             <div className="flex items-center justify-between gap-3 md:justify-start">
               {navButton(previousColumn, "טור קודם", ChevronRight)}
               <div className="text-center md:text-start">
-                <h1 className="text-xl font-bold tracking-tight md:text-2xl">{column.name}</h1>
+                <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+                  {column.name}
+                  {column.is_archived && (
+                    <span className="ms-2 inline-block rounded-md bg-muted px-1.5 py-0.5 align-middle text-xs font-medium text-muted-foreground">
+                      בארכיון
+                    </span>
+                  )}
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   {isDeadlinePassed
                     ? `נסגר ב-${format(deadline, "d בMMMM, HH:mm", { locale: he })}`

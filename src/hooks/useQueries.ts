@@ -54,6 +54,7 @@ const fetchColumn = async (id?: string) => {
       .from("columns")
       .select("*")
       .eq("is_active", true)
+      .eq("is_archived", false)
       .order("deadline", { ascending: false })
       .limit(1)
       .single();
@@ -66,6 +67,7 @@ const fetchColumn = async (id?: string) => {
     supabase
       .from("columns")
       .select("id")
+      .eq("is_archived", false)
       .lt("deadline", currentColumn.deadline)
       .order("deadline", { ascending: false })
       .limit(1)
@@ -73,6 +75,7 @@ const fetchColumn = async (id?: string) => {
     supabase
       .from("columns")
       .select("id")
+      .eq("is_archived", false)
       .gt("deadline", currentColumn.deadline)
       .order("deadline", { ascending: true })
       .limit(1)
@@ -473,6 +476,7 @@ export const useSeasonDataQuery = (enabled = true) => {
           supabase
             .from("columns")
             .select("id, name, deadline, games, group_bet")
+            .eq("is_archived", false)
             .order("deadline")
             .range(from, to)
             .returns<SeasonColumn[]>()

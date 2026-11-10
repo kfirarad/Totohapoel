@@ -76,7 +76,7 @@ export const GroupBet = () => {
             const query = supabase.from('columns').select('*');
             const { data, error } = await (columnId
                 ? query.eq('id', columnId).maybeSingle()
-                : query.eq('is_active', true).order('deadline', { ascending: false }).limit(1).maybeSingle());
+                : query.eq('is_active', true).eq('is_archived', false).order('deadline', { ascending: false }).limit(1).maybeSingle());
 
             if (error) {
                 console.error(error);

@@ -59,6 +59,7 @@ export const ColumnForm = () => {
             "yyyy-MM-dd'T'HH:mm"
         ),
         is_active: true,
+        is_archived: false,
         created_at: new Date().toISOString(),
         created_by: '',
         max_doubles: 5,
@@ -427,6 +428,20 @@ export const ColumnForm = () => {
                     />
                     <label htmlFor="is_active" className="text-sm font-medium">
                         פעיל
+                    </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="is_archived"
+                        checked={!!column.is_archived}
+                        onChange={(e) =>
+                            setColumn({ ...column, is_archived: e.target.checked })
+                        }
+                    />
+                    <label htmlFor="is_archived" className="text-sm font-medium">
+                        בארכיון (מוסתר מהשחקנים ומהסטטיסטיקות)
                     </label>
                 </div>
             </div>
