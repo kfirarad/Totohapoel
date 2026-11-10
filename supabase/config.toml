@@ -1,0 +1,3 @@
+[functions.market-sync]
+# called by pg_cron with the service-role key; the function checks the key itself
+verify_jwt = false
