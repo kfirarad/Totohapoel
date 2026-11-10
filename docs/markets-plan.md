@@ -1,6 +1,6 @@
 # Multi-market plan: Toto markets beyond Israel
 
-Status: **draft for review** · 2026-11-10
+Status: **draft for review** · 2026-11-10 (rev 2: groups, two-level limits)
 
 ## 1. Goal
 
@@ -24,7 +24,7 @@ A market counts as done only when all three work. See the checklist in §7.
 | Time | `Asia/Jerusalem` hard-coded, `date-fns/locale/he` | `winner.ts`, `Column.tsx`, `GroupBet.tsx` |
 | Language | Hebrew strings inlined in about 27 files. `<html lang="he" dir="rtl">` is static | `index.html`, `src/**` |
 | Game shape | 1X2 only. Game count comes from the import (16 for Israel). Doubles/triples limits per column | `database.types.ts` |
-| Tenancy | One implicit group: every user sees every column | DB / RLS |
+| Tenancy | One implicit group: every user sees every column and every bet. Limits exist only per column (`max_doubles/max_triples`, `group_max_*` for the group bet) | DB / RLS |
 
 Dead code: `useSetResultMutation` writes to a `games` table, but games live in `columns.games` (jsonb).
 
@@ -76,32 +76,77 @@ interface MarketAdapter {
   - **import:** daily. Creates draft columns (`is_active=false`) for new draws. An admin reviews and activates them.
   - **results:** every 10 min while a column has kickoff ≤ now ≤ last kickoff + 3h, then hourly until the draw is final.
 - **Browser-bridge transport** (bot-protected sites like Winner): keep the bookmarklet pattern. Add a results bookmarklet. The admin clicks it on the operator's site and it posts back through `window.opener`, as ScoreAxis does.
-- **Scoring moves server-side.** A Postgres function `score_column(column_id)` recomputes `user_bets.correct_guesses` and `group_bet_correct_guesses`. A trigger runs it whenever `columns.games` changes. This is required: automated results have no browser to compute scores. It also removes the race in today's client-side recalculation.
+- **Scoring moves server-side.** A Postgres function `score_column(column_id)` recomputes `user_bets.correct_guesses` and every group's `group_columns.group_bet_correct_guesses`. A trigger runs it whenever `columns.games` changes. This is required: automated results have no browser to compute scores. It also removes the race in today's client-side recalculation.
 - **Manual override stays.** Admin-set results are stored as `result_source: 'manual'` and are never overwritten by a sync.
 
 ### 3.3 Results source of truth
 
 Use the **operator's own result**, not a general football API. Operators void postponed or abandoned matches, or settle them by lottery (Sweden's "lottning", Spain's sorteo), so only the operator's result matches its prize table. A general football API (one provider for all markets, matched by teams and kickoff, or Winner's `betRadarId`) is useful only as a **provisional** result while matches are live, and as a fallback when the operator feed is down. It is never final.
 
-### 3.4 Schema changes (one migration)
+### 3.4 Groups, and limits at two levels
+
+The app becomes multi-group. A **column** is the operator's draw. It is imported once per market and shared by every group in that market. **Everything players do happens inside one group:**
+
+- **A bet belongs to exactly one group.** A player in two groups fills a separate bet in each. Bets, votes, stats, the group bet and the voter lists never cross groups. A "copy my bet from group X" button is fine as a convenience: it copies, it doesn't link.
+- **Limits are set at two levels:**
+  1. **Column (operator rules):** `columns.max_doubles/max_triples` = the most the operator allows for that draw. They come from the market config or the draw itself, and only the importer or a super-admin sets them.
+  2. **Group:** each group sets its own `max_doubles/max_triples`, as a group default plus an optional override per column.
+  - **Effective limit** = `min(group override ?? group default, column max)`. The UI enforces it and a DB trigger rejects bets over it. A group can't allow more than the operator does.
+- **Per-group column state.** `is_active`, `is_archived` (the archive feature moves here from `columns`), and the shared group bet with its own budget and score all become per group.
+
+### 3.5 Schema changes (one migration)
 
 ```sql
+-- markets / sync
 alter table columns
   add column market text not null default 'il',
   add column external_draw_id text,                 -- operator draw number
   add column source_status text,                    -- 'open' | 'closed' | 'final'
   add column synced_at timestamptz,
   add constraint columns_market_draw_uniq unique (market, external_draw_id);
+-- columns.max_doubles / max_triples now mean "operator maximum"
 -- columns.games[] items gain: external_id, status ('scheduled'|'played'|'void'|'lottery'),
 --                              result_source ('operator'|'provisional'|'manual')
-alter table profiles add column locale text;        -- null = market default
-create table app_settings (key text primary key, value jsonb);  -- default market and locale
+
+-- groups
+create table groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  market text not null,                       -- one market per group
+  locale text,                                -- null = market default
+  max_doubles int not null, max_triples int not null,   -- group defaults
+  created_by uuid references profiles(id), created_at timestamptz default now()
+);
+create table group_members (
+  group_id uuid references groups(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  role text not null default 'member',        -- 'admin' | 'member'
+  primary key (group_id, user_id)
+);
+create table group_columns (                  -- a column as seen by one group
+  group_id uuid references groups(id) on delete cascade,
+  column_id uuid references columns(id) on delete cascade,
+  max_doubles int, max_triples int,           -- null = group default; capped by columns.* (trigger)
+  is_active boolean not null default true,
+  is_archived boolean not null default false,
+  group_bet jsonb, group_bet_max_doubles int, group_bet_max_triples int,
+  group_bet_correct_guesses int,
+  primary key (group_id, column_id)
+);
+alter table user_bets add column group_id uuid not null references groups(id);
+alter table user_bets add constraint user_bets_one_per_group unique (group_id, column_id, user_id);
+alter table profiles add column locale text;  -- personal override
+-- profiles.is_admin becomes "super-admin" (imports, markets); group admin = group_members.role
 ```
 
-### 3.5 i18n
+**RLS:** members read only their groups' `group_columns`, `user_bets` and member profiles. Group admins write their group's `group_columns`. Bets are insert/update-only by their owner, and only for a group they belong to, before the deadline, within the effective limit.
+
+**Backfill** (existing Israeli data): create one group "טוטו הפועל" (market `il`) and add all profiles as members, with current admins as group admins. Set `group_id` on every `user_bets` row. Copy `is_active`, `is_archived`, `group_bet*` and the current limits from `columns` into `group_columns`. Set `columns.max_*` to the operator maximum.
+
+### 3.6 i18n
 
 - Use `react-i18next` with namespaces: `common` (shared UI) plus a per-market `glossary` that overrides wording (טור / kupong / rad / quiniela).
-- Language and market are separate. An Israeli user may want English, so the locale comes from the profile first, then the market default.
+- Language and market are separate. An Israeli user may want English, so the locale comes from the profile first, then the group, then the market default.
 - `<html lang dir>` is set at runtime: RTL for `he` (and `ar` later), LTR otherwise. Tailwind already uses logical `ms-`/`me-`/`text-start`, but some physical `left`/`right` classes need an audit.
 - A `date-fns` locale map plus a helper `formatInMarketTz()`. Numbers and currency go through `Intl`.
 - Locale files: `he` (extracted from the current code), `en` (base and fallback), then one file per market as it ships. A CI check fails if any key is missing.
@@ -136,9 +181,10 @@ Endpoint facts below come from public reference repos and forums, not official d
 **Phase 0: Foundations (no visible change; Israel keeps working)**
 1. Install i18n, extract all Hebrew into `he/common.json`, write `en`, and set `lang`/`dir` at runtime.
 2. Market registry with `il` as its only entry. Move `winner.ts` into `markets/il`. Remove hard-coded `Asia/Jerusalem` and `locale: he`.
-3. Run the migration in §3.4 and backfill `market='il'`.
-4. Server-side `score_column()` plus a trigger. Remove the client-side recalculation and the dead `useSetResultMutation`.
-5. `market-sync` Edge Function skeleton with `pg_cron`, sync logging, and an admin "last synced / errors" view.
+3. Run the migration in §3.5 (markets, **groups**, `group_columns`, `user_bets.group_id`, RLS) and backfill the existing data into one Israeli group.
+4. **Groups in the UI:** a group switcher in the header, and every query scoped to the current group (column page, votes, stats, profile, group bet, admin list). Group admin screens: members and invites, the group's limits (default and per column, capped by the operator maximum), activate and archive.
+5. Server-side `score_column()` plus a trigger. Remove the client-side recalculation and the dead `useSetResultMutation`.
+6. `market-sync` Edge Function skeleton with `pg_cron`, sync logging, and an admin "last synced / errors" view.
 
 **Phase 1: Israel complete.** Spike the Winner results source. Add a results bookmarklet (browser-bridge), or betRadarId plus a football-API fallback. Import is unchanged.
 
@@ -159,12 +205,13 @@ Endpoint facts below come from public reference repos and forums, not official d
 - [ ] Column import: a draft column is created automatically, or with one click for browser-bridge
 - [ ] Results: filled automatically within about 15 min of full time; void and lottery games handled; manual override kept
 - [ ] Scores update automatically (server-side)
+- [ ] Operator maximum for doubles/triples set from the market rules; a group can't exceed it
 - [ ] Locale file complete (CI key check), correct `dir`, dates in the market's time zone, market glossary
 - [ ] Admin docs: how to get API keys and run the bookmarklet if one is used
 
 ## 8. Decisions needed
 
-1. **Tenancy.** One deployment per market, or several groups (each with its own market) in one deployment? This plan assumes the current single group plus a default market. Several groups means adding a `groups` table and RLS, about one extra phase.
+1. ~~Tenancy~~ **Decided:** many groups in one deployment. Each group has one market, its own limits, and its own bets (§3.4). Open: can any user create a group, or only a super-admin? Do invites use a link or admin approval?
 2. **Wave 1 order.** Proposed: IL → SE → FI → ES.
 3. **Football-API fallback.** Is a paid provider acceptable as the provisional/fallback results source, or operator-only?
 4. **Sweden access key.** Who contacts Svenska Spel?
