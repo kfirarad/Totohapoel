@@ -1,0 +1,85 @@
+{
+  "loading": "Loading...",
+  "memberCount_one": "1 member",
+  "memberCount_two": "{{count}} members",
+  "memberCount_other": "{{count}} members",
+  "limitsSummary": "up to {{doubles}} doubles and {{triples}} triples",
+  "errors": {
+    "generic": "Something went wrong, please try again",
+    "lastAdmin": "A group needs at least one admin. Make someone else an admin first"
+  },
+  "join": {
+    "invitedTo": "You're invited to",
+    "join": "Join the group",
+    "request": "Ask to join",
+    "closedHint": "This is a closed group: an admin will approve your request",
+    "pending": "Request sent. You can play once a group admin approves it",
+    "rejected": "Your previous request wasn't approved",
+    "askAgain": "Ask again",
+    "joined": "You joined {{name}}",
+    "invalidTitle": "This link doesn't work",
+    "invalidBody": "The group admin may have replaced the invite link. Ask them for a new one"
+  },
+  "empty": {
+    "title": "You're not in a group yet",
+    "body": "To join an existing group, open the invite link you got. Or create a new group and invite your friends"
+  },
+  "create": {
+    "title": "New group",
+    "name": "Group name",
+    "market": "Pools",
+    "submit": "Create group"
+  },
+  "limits": {
+    "doubles": "Max doubles",
+    "triples": "Max triples",
+    "hint": "The actual limit never exceeds what the operator allows for each column"
+  },
+  "policy": {
+    "label": "Joining",
+    "open": "Open",
+    "closed": "Closed",
+    "openHint": "Anyone with the link joins right away",
+    "closedHint": "Opening the link sends a request, and an admin approves it"
+  },
+  "invite": {
+    "title": "Invite link",
+    "copy": "Copy link",
+    "regenerate": "New link",
+    "regenerateConfirm": "Create a new link? The current one will stop working",
+    "regenerated": "New link created"
+  },
+  "requests": {
+    "title_one": "1 join request",
+    "title_two": "{{count}} join requests",
+    "title_other": "{{count}} join requests",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "settings": {
+    "title": "Group settings",
+    "save": "Save",
+    "saved": "Settings saved"
+  },
+  "roles": {
+    "admin": "Admin",
+    "promote": "Make admin",
+    "demote": "Remove admin"
+  },
+  "members": {
+    "remove": "Remove",
+    "removeConfirm": "Remove {{name}} from the group?"
+  },
+  "leave": {
+    "button": "Leave group",
+    "confirm": "Leave {{name}}? Your bets in this group are kept"
+  },
+  "delete": {
+    "button": "Delete group",
+    "confirm": "Deleting the group also deletes every bet in it. To confirm, type the group name: {{name}}"
+  },
+  "switcher": {
+    "manage": "Manage group",
+    "create": "New group"
+  }
+}
