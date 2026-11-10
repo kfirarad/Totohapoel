@@ -1,6 +1,6 @@
 # Multi-market plan: Toto markets beyond Israel
 
-Status: **draft for review** · 2026-11-10 (rev 2: groups, two-level limits)
+Status: **draft for review** · 2026-11-10 (rev 3: decisions made; markets A-Z)
 
 ## 1. Goal
 
@@ -73,7 +73,7 @@ interface MarketAdapter {
 ### 3.2 Data flow
 
 - **Server transport** (open JSON endpoints): a Supabase Edge Function `market-sync`, run by `pg_cron`:
-  - **import:** daily. Creates draft columns (`is_active=false`) for new draws. An admin reviews and activates them.
+  - **import:** daily. Creates the column for each new draw, once per market. Every group in that market gets it automatically (a `group_columns` row), and each group admin can deactivate or archive it for their group.
   - **results:** every 10 min while a column has kickoff ≤ now ≤ last kickoff + 3h, then hourly until the draw is final.
 - **Browser-bridge transport** (bot-protected sites like Winner): keep the bookmarklet pattern. Add a results bookmarklet. The admin clicks it on the operator's site and it posts back through `window.opener`, as ScoreAxis does.
 - **Scoring moves server-side.** A Postgres function `score_column(column_id)` recomputes `user_bets.correct_guesses` and every group's `group_columns.group_bet_correct_guesses`. A trigger runs it whenever `columns.games` changes. This is required: automated results have no browser to compute scores. It also removes the race in today's client-side recalculation.
@@ -81,7 +81,7 @@ interface MarketAdapter {
 
 ### 3.3 Results source of truth
 
-Use the **operator's own result**, not a general football API. Operators void postponed or abandoned matches, or settle them by lottery (Sweden's "lottning", Spain's sorteo), so only the operator's result matches its prize table. A general football API (one provider for all markets, matched by teams and kickoff, or Winner's `betRadarId`) is useful only as a **provisional** result while matches are live, and as a fallback when the operator feed is down. It is never final.
+**Results come only from the operator.** No third-party football API, for now. Operators void postponed or abandoned matches, or settle them by lottery (Sweden's "lottning", Spain's sorteo), so only the operator's result matches its prize table. If an operator feed is down, a super-admin enters results by hand (`result_source: 'manual'`).
 
 ### 3.4 Groups, and limits at two levels
 
@@ -92,6 +92,13 @@ The app becomes multi-group. A **column** is the operator's draw. It is imported
   1. **Column (operator rules):** `columns.max_doubles/max_triples` = the most the operator allows for that draw. They come from the market config or the draw itself, and only the importer or a super-admin sets them.
   2. **Group:** each group sets its own `max_doubles/max_triples`, as a group default plus an optional override per column.
   - **Effective limit** = `min(group override ?? group default, column max)`. The UI enforces it and a DB trigger rejects bets over it. A group can't allow more than the operator does.
+- **Creating and joining groups:**
+  - **Any user can create a group.** They pick its name, market and limits, and become its first admin.
+  - **Joining is always by invite link** (`/join/<invite_code>`). Groups are never listed or searchable.
+    - **Open group:** opening the link joins at once.
+    - **Closed group:** opening the link creates a join request. A group admin approves or rejects it, and the user gets in only after approval.
+  - Group admins can switch open/closed, regenerate the link (the old one stops working), promote other admins, and remove members. The last admin can't leave without promoting someone else.
+  - Joining runs through a security-definer RPC `join_group(invite_code)`, so nobody can add themselves to a group without the code.
 - **Per-group column state.** `is_active`, `is_archived` (the archive feature moves here from `columns`), and the shared group bet with its own budget and score all become per group.
 
 ### 3.5 Schema changes (one migration)
@@ -115,7 +122,16 @@ create table groups (
   market text not null,                       -- one market per group
   locale text,                                -- null = market default
   max_doubles int not null, max_triples int not null,   -- group defaults
+  join_policy text not null default 'open',   -- 'open' | 'closed'
+  invite_code text not null unique,           -- random; admin can regenerate (old link stops working)
   created_by uuid references profiles(id), created_at timestamptz default now()
+);
+create table group_join_requests (            -- closed groups only
+  group_id uuid references groups(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  status text not null default 'pending',     -- 'pending' | 'approved' | 'rejected'
+  decided_by uuid references profiles(id), created_at timestamptz default now(), decided_at timestamptz,
+  primary key (group_id, user_id)
 );
 create table group_members (
   group_id uuid references groups(id) on delete cascade,
@@ -151,46 +167,41 @@ alter table profiles add column locale text;  -- personal override
 - A `date-fns` locale map plus a helper `formatInMarketTz()`. Numbers and currency go through `Intl`.
 - Locale files: `he` (extracted from the current code), `en` (base and fallback), then one file per market as it ships. A CI check fails if any key is missing.
 
-## 4. Market catalogue
+## 4. Market catalogue (A-Z)
 
-Endpoint facts below come from public reference repos and forums, not official docs. **Each market starts with a spike** (§6) that confirms them.
+Endpoint facts below come from public reference repos and forums, not official docs. **Each market starts with a spike** (§6) that confirms them. "—" means no source found yet.
 
-### Wave 1
-
-| # | Market | Operator / game | Games | Columns source | Results source | Transport | Notes |
+| Market | Operator · game | Games | Columns source | Results source | Transport | Locale | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | 🇮🇱 Israel | Winner · Toto 16 | 16 | Winner `GetTotoDraws` (exists) | Winner results/draw-history endpoint *(to find)*, fallback betRadarId to a football API | browser-bridge | Bot protection blocks server calls. Locale `he`, RTL |
-| 2 | 🇸🇪 Sweden | Svenska Spel · Stryktipset (+ Europatipset, Topptipset on the same API) | 13 (Topptipset 8) | `api.spela.svenskaspel.se/draw/1/{product}/draws` | same API `/draws/{n}/result` | server | External API needs an **access key**, requested from Svenska Spel by email. Lottery for postponed games. `sv` |
-| 3 | 🇫🇮 Finland | Veikkaus · Vakio | varies (usually 13) | `/api/sport-open-games/v1/games/SPORT/draws` | Veikkaus results endpoint *(to find)* | server | Veikkaus publishes a reference robot (`veikkaus/sport-games-robot`). Uses header `X-ESA-API-Key: ROBOT`. `fi` |
-| 4 | 🇪🇸 Spain | SELAE · La Quiniela | 14 + Pleno al 15 | loteriasyapuestas.es (HTML/JSON *to find*, `game_id=LAQU`) | same | server (HTML parse if needed) | Pleno al 15 = goals per team (0/1/2/M) and needs an `extras` pick type. `es` |
-
-### Wave 2 (spike first; no confirmed public source yet)
-
-| Market | Game | Games | Notes |
-|---|---|---|---|
-| 🇳🇴 Norway | Norsk Tipping · Tipping | 12 | Saturday/Sunday/midweek coupons. No documented API. `nb` |
-| 🇩🇰 Denmark | Danske Spil · Tips 13 | 13 | `da` |
-| 🇩🇪 Germany | Toto 13er Ergebniswette | 13 | Run by the 16 state Lotto companies through lotto.de. `de` |
-| 🇮🇹 Italy | Sisal/ADM · Totocalcio | *verify* (8 mandatory + optional since 2022) | `it` |
-| 🇦🇹 Austria | win2day · Toto | *verify* | `de-AT` |
-| 🇧🇷 Brazil | Caixa · Loteca | 14 | `pt-BR` |
-| 🇯🇵 Japan | JSC · toto | 13 | Labels 1/0/2. `ja` |
+| 🇦🇹 Austria | win2day (Österreichische Lotterien) · Toto | *verify* | — | — | ? | `de-AT` | |
+| 🇧🇷 Brazil | Caixa · Loteca | 14 | — | — | ? | `pt-BR` | |
+| 🇩🇰 Denmark | Danske Spil · Tips 13 | 13 | — | — | ? | `da` | |
+| 🇫🇮 Finland | Veikkaus · Vakio | varies (usually 13) | `/api/sport-open-games/v1/games/SPORT/draws` | results endpoint *(to find)* | server | `fi` | Veikkaus publishes a reference robot (`veikkaus/sport-games-robot`). Header `X-ESA-API-Key: ROBOT` |
+| 🇩🇪 Germany | Lotto state companies · Toto 13er Ergebniswette | 13 | — (lotto.de) | — | ? | `de` | |
+| 🇮🇱 Israel | Winner · Toto 16 | 16 | Winner `GetTotoDraws` (built) | Winner results / draw history *(to find)* | browser-bridge | `he` (RTL) | Bot protection blocks server calls |
+| 🇮🇹 Italy | Sisal / ADM · Totocalcio | *verify* (8 mandatory + optional since 2022) | — | — | ? | `it` | |
+| 🇯🇵 Japan | JSC · toto | 13 | — | — | ? | `ja` | Labels 1/0/2 |
+| 🇳🇴 Norway | Norsk Tipping · Tipping | 12 | — | — | ? | `nb` | Saturday/Sunday/midweek coupons |
+| 🇪🇸 Spain | SELAE · La Quiniela | 14 + Pleno al 15 | loteriasyapuestas.es (`game_id=LAQU`, HTML/JSON *to find*) | same | server (HTML parse if needed) | `es` | Pleno al 15 = goals per team (0/1/2/M), needs an `extras` pick type |
+| 🇸🇪 Sweden | Svenska Spel · Stryktipset (+ Europatipset, Topptipset) | 13 (Topptipset 8) | `api.spela.svenskaspel.se/draw/1/{product}/draws` | same API, `/draws/{n}/result` | server | `sv` | Needs an **access key**, requested from Svenska Spel by email. Lottery for postponed games |
 
 ## 5. Phases
 
-**Phase 0: Foundations (no visible change; Israel keeps working)**
+**Phase 0: Foundations.** Israel keeps working throughout.
 1. Install i18n, extract all Hebrew into `he/common.json`, write `en`, and set `lang`/`dir` at runtime.
 2. Market registry with `il` as its only entry. Move `winner.ts` into `markets/il`. Remove hard-coded `Asia/Jerusalem` and `locale: he`.
-3. Run the migration in §3.5 (markets, **groups**, `group_columns`, `user_bets.group_id`, RLS) and backfill the existing data into one Israeli group.
-4. **Groups in the UI:** a group switcher in the header, and every query scoped to the current group (column page, votes, stats, profile, group bet, admin list). Group admin screens: members and invites, the group's limits (default and per column, capped by the operator maximum), activate and archive.
+3. Run the migration in §3.5 (markets, **groups**, invites and join requests, `group_columns`, `user_bets.group_id`, RLS) and backfill the existing data into one Israeli group.
+4. **Groups in the UI:**
+   - create group, `/join/<code>` page, and a group switcher in the header
+   - every query scoped to the current group (column page, votes, stats, profile, group bet, admin list)
+   - group-admin screens: members, join requests, invite link and open/closed, the group's limits (default and per column, capped by the operator maximum), activate and archive
 5. Server-side `score_column()` plus a trigger. Remove the client-side recalculation and the dead `useSetResultMutation`.
-6. `market-sync` Edge Function skeleton with `pg_cron`, sync logging, and an admin "last synced / errors" view.
+6. `market-sync` Edge Function skeleton with `pg_cron`, sync logging, and a super-admin "last synced / errors" view.
 
-**Phase 1: Israel complete.** Spike the Winner results source. Add a results bookmarklet (browser-bridge), or betRadarId plus a football-API fallback. Import is unchanged.
-
-**Phase 2: Sweden.** Request the access key on day 1 (lead time). Build the Stryktipset adapter for import and results, the Swedish locale and glossary, and lottery handling for postponed games. Europatipset and Topptipset follow almost free.
-
-**Phase 3: Finland** (open API, low risk). **Phase 4: Spain** (adds the Pleno al 15 extra). **Then Wave 2**, one market at a time, each starting with a spike.
+**Phases 1–11: one market at a time, A-Z.** Austria, Brazil, Denmark, Finland, Germany, Israel, Italy, Japan, Norway, Spain, Sweden. Each starts with a spike (§6) and ends with the definition of done (§7). A market whose spike finds no viable source is parked, and work moves to the next letter.
+- Israel already has import. Its phase adds results: a results bookmarklet on winner.co.il, with manual entry as the fallback.
+- Spain's phase adds the Pleno al 15 extra.
+- Sweden's phase needs the access key. Request it now, so it arrives before its turn.
 
 ## 6. Per-market spike (½–1 day, before any code)
 
@@ -209,12 +220,17 @@ Endpoint facts below come from public reference repos and forums, not official d
 - [ ] Locale file complete (CI key check), correct `dir`, dates in the market's time zone, market glossary
 - [ ] Admin docs: how to get API keys and run the bookmarklet if one is used
 
-## 8. Decisions needed
+## 8. Decisions
 
-1. ~~Tenancy~~ **Decided:** many groups in one deployment. Each group has one market, its own limits, and its own bets (§3.4). Open: can any user create a group, or only a super-admin? Do invites use a link or admin approval?
-2. **Wave 1 order.** Proposed: IL → SE → FI → ES.
-3. **Football-API fallback.** Is a paid provider acceptable as the provisional/fallback results source, or operator-only?
-4. **Sweden access key.** Who contacts Svenska Spel?
+**Made**
+1. Many groups in one deployment. Each group has one market, its own limits and its own bets (§3.4).
+2. Any user can create a group.
+3. Joining is always by invite link. Open groups join at once; closed groups need an admin's approval.
+4. Markets are built in A-Z order (§5).
+5. Results come only from the operator. No third-party football API for now.
+
+**Open**
+1. Who emails Svenska Spel (Sweden's state-owned gaming operator) for the API access key?
 
 ## Sources (endpoint hints, unofficial)
 
