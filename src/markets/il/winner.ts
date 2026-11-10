@@ -2,6 +2,9 @@
 // Their API sits behind bot protection, so data reaches us from the admin's browser
 // (bookmarklet or clipboard), never from a server.
 
+import { zonedLocalToIso } from "../time";
+import { ilConfig } from "./config";
+
 export const TOTO_GAME_TYPE = 96;
 
 export type WinnerRow = {
@@ -29,15 +32,7 @@ export const pickTotoDraw = (data: unknown): WinnerDraw | null => {
 };
 
 /** "2026-11-07T14:54:00.000" in Israel -> ISO instant, DST-aware */
-export const israelTimeToIso = (local: string) => {
-  const asUtc = new Date(`${local.replace(/Z$/, "")}Z`);
-  const offset = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jerusalem", timeZoneName: "longOffset" })
-    .formatToParts(asUtc)
-    .find((p) => p.type === "timeZoneName")?.value; // e.g. "GMT+02:00"
-  const m = offset?.match(/GMT([+-])(\d{2}):(\d{2})/);
-  const minutes = m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
-  return new Date(asUtc.getTime() - minutes * 60_000).toISOString();
-};
+export const israelTimeToIso = (local: string) => zonedLocalToIso(local, ilConfig.timeZone);
 
 export const drawToColumn = (draw: WinnerDraw) => {
   const deadline = israelTimeToIso(draw.closeDateTime);

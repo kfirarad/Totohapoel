@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { useSetResultMutation, useRecalculateCorrectGuessesMutation } from '@/hooks/useQueries';
-import { decodeDraw, drawToColumn, parseScoreAxisId, pickTotoDraw, winnerBookmarklet, type WinnerDraw } from '@/lib/winner';
+import { decodeDraw, drawToColumn, parseScoreAxisId, pickTotoDraw, winnerBookmarklet, type WinnerDraw } from '@/markets/il/winner';
+import { DEFAULT_MARKET, getMarket } from '@/markets/registry';
 import { SCOREAXIS_MESSAGE, SCOREAXIS_ORIGIN, scoreAxisBookmarklet, scoreAxisUrl, type ScoreAxisResult } from '@/lib/scoreaxis';
 
 type TeamAlias = { he_name: string; en_name: string | null; scoreaxis_team_id: string | null };
@@ -27,8 +28,13 @@ interface GameFormData {
 }
 
 
+// ponytail: admin columns are created for the default market until columns carry a market
+const market = getMarket(DEFAULT_MARKET);
+// blank rows for manual entry; a market with a variable game count starts from 16
+const emptyGameCount = market.gamesPerDraw === 'variable' ? 16 : market.gamesPerDraw;
+
 const createEmptyGames = (deadline: string): GameFormData[] => {
-    return Array.from({ length: 16 }, (_, i) => ({
+    return Array.from({ length: emptyGameCount }, (_, i) => ({
         game_num: i + 1,
         home_team: '',
         away_team: '',
@@ -61,8 +67,8 @@ export const ColumnForm = () => {
         is_active: true,
         created_at: new Date().toISOString(),
         created_by: '',
-        max_doubles: 5,
-        max_triples: 4,
+        max_doubles: market.defaultLimits.maxDoubles,
+        max_triples: market.defaultLimits.maxTriples,
         games: []
 
     });
@@ -102,7 +108,7 @@ export const ColumnForm = () => {
                     return acc;
                 }, {} as Record<number, GameFormData>);
 
-                // Merge existing games with empty games to ensure 16 rows
+                // Merge existing games with empty games to ensure a full set of rows
                 const mergedGames = createEmptyGames(columnData.deadline).map(emptyGame => ({
                     ...emptyGame,
                     ...existingGames[emptyGame.game_num]
