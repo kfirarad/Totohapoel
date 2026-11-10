@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/services/supabase';
 import { Column, BetResult } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,11 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { useSetResultMutation, useRecalculateCorrectGuessesMutation } from '@/hooks/useQueries';
-import { decodeDraw, drawToColumn, parseScoreAxisId, pickTotoDraw, winnerBookmarklet, type WinnerDraw } from '@/lib/winner';
+import { decodeDraw, drawToColumn, parseScoreAxisId, pickTotoDraw, winnerBookmarklet, type WinnerDraw } from '@/markets/il/winner';
+import { DEFAULT_MARKET, getMarket } from '@/markets/registry';
+import { zonedLocalToIso } from '@/markets/time';
+import i18n from '@/i18n';
+import { formatInTz } from '@/i18n/dates';
 import { SCOREAXIS_MESSAGE, SCOREAXIS_ORIGIN, scoreAxisBookmarklet, scoreAxisUrl, type ScoreAxisResult } from '@/lib/scoreaxis';
 
 type TeamAlias = { he_name: string; en_name: string | null; scoreaxis_team_id: string | null };
@@ -27,8 +32,13 @@ interface GameFormData {
 }
 
 
+// ponytail: admin columns are created for the default market until columns carry a market
+const market = getMarket(DEFAULT_MARKET);
+// blank rows for manual entry; a market with a variable game count starts from 16
+const emptyGameCount = market.gamesPerDraw === 'variable' ? 16 : market.gamesPerDraw;
+
 const createEmptyGames = (deadline: string): GameFormData[] => {
-    return Array.from({ length: 16 }, (_, i) => ({
+    return Array.from({ length: emptyGameCount }, (_, i) => ({
         game_num: i + 1,
         home_team: '',
         away_team: '',
@@ -45,6 +55,10 @@ export const ColumnForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { toast } = useToast();
+    const { t } = useTranslation();
+    // datetime inputs show and take wall-clock time in the market's zone
+    const toInputValue = (date: string) => formatInTz(date, "yyyy-MM-dd'T'HH:mm", market.timeZone);
+    const fromInputValue = (value: string) => zonedLocalToIso(value, market.timeZone);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -54,16 +68,17 @@ export const ColumnForm = () => {
     const [column, setColumn] = useState<Column>({
         id: '',
         name: '',
-        deadline: format(
+        // next Friday 08:00 in the market's zone
+        deadline: fromInputValue(format(
             setHours(setMinutes(nextFriday(new Date()), 0), 8),
             "yyyy-MM-dd'T'HH:mm"
-        ),
+        )),
         is_active: true,
         is_archived: false,
         created_at: new Date().toISOString(),
         created_by: '',
-        max_doubles: 5,
-        max_triples: 4,
+        max_doubles: market.defaultLimits.maxDoubles,
+        max_triples: market.defaultLimits.maxTriples,
         games: []
 
     });
@@ -87,9 +102,10 @@ export const ColumnForm = () => {
                     .single();
 
                 if (columnError) {
+                    // i18n.t: this load runs once per column, not again when the language changes
                     toast({
-                        title: 'שגיאה',
-                        description: 'טעינת הטור נכשלה',
+                        title: i18n.t('common.error'),
+                        description: i18n.t('admin.columnForm.loadFailed'),
                         variant: 'destructive'
                     });
                     return;
@@ -103,7 +119,7 @@ export const ColumnForm = () => {
                     return acc;
                 }, {} as Record<number, GameFormData>);
 
-                // Merge existing games with empty games to ensure 16 rows
+                // Merge existing games with empty games to ensure a full set of rows
                 const mergedGames = createEmptyGames(columnData.deadline).map(emptyGame => ({
                     ...emptyGame,
                     ...existingGames[emptyGame.game_num]
@@ -132,7 +148,7 @@ export const ColumnForm = () => {
             }),
             'scoreaxis'
         );
-        setScoreAxisStatus('בטאב של ScoreAxis שנפתח, לחץ על הסימניה "ScoreAxis ← טוטו הפועל"');
+        setScoreAxisStatus(t('admin.columnForm.scoreAxis.clickBookmark', { bookmark: t('admin.columnForm.scoreAxis.bookmark') }));
     };
 
     const startScoreAxis = async () => {
@@ -140,7 +156,7 @@ export const ColumnForm = () => {
         if (!names.length) return;
         const { data, error } = await supabase.from('team_aliases').select('*').in('he_name', names);
         if (error) {
-            toast({ title: 'שגיאה', description: 'טעינת שמות הקבוצות נכשלה', variant: 'destructive' });
+            toast({ title: t('common.error'), description: t('admin.columnForm.scoreAxis.teamsLoadFailed'), variant: 'destructive' });
             return;
         }
         const map = new Map((data as TeamAlias[]).map((a) => [a.he_name, a]));
@@ -190,8 +206,11 @@ export const ColumnForm = () => {
                 if (error) console.error(error);
             }
             const found = results.filter((r) => r.matchId).length;
-            setScoreAxisStatus(`נמצאו ${found} מתוך ${results.length} משחקים${found < results.length ? ' · את השאר אפשר להשלים ידנית' : ''} · לחץ שמור`);
-            toast({ title: 'ScoreAxis', description: `נמצאו ${found} מתוך ${results.length} משחקים` });
+            const foundText = i18n.t('admin.columnForm.scoreAxis.found', { found, total: results.length });
+            setScoreAxisStatus(
+                [foundText, ...(found < results.length ? [i18n.t('admin.columnForm.scoreAxis.restManually')] : []), i18n.t('admin.columnForm.scoreAxis.clickSave')].join(' · ')
+            );
+            toast({ title: 'ScoreAxis', description: foundText });
         };
         window.addEventListener('message', onMessage);
         return () => window.removeEventListener('message', onMessage);
@@ -202,7 +221,10 @@ export const ColumnForm = () => {
         const imported = drawToColumn(draw);
         // imported rows have no ScoreAxis id yet (null), which Game types as a number
         setColumn(prev => ({ ...prev, name: imported.name, deadline: imported.deadline, games: imported.games as unknown as Column['games'] }));
-        toast({ title: 'יובא מווינר', description: `${imported.games.length} משחקים · ${imported.name}` });
+        toast({
+            title: t('admin.columnForm.importedTitle'),
+            description: t('admin.columnForm.importedDescription', { count: imported.games.length, name: imported.name }),
+        });
     };
 
     // the Winner bookmarklet opens /admin/columns/new#winner=<draw>
@@ -213,7 +235,7 @@ export const ColumnForm = () => {
         const draw = decodeDraw(encoded);
         history.replaceState(null, '', window.location.pathname);
         if (draw) applyDraw(draw);
-        else toast({ title: 'שגיאה', description: 'נתוני הייבוא מווינר לא תקינים', variant: 'destructive' });
+        else toast({ title: t('common.error'), description: t('admin.columnForm.importInvalid'), variant: 'destructive' });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading, id]);
 
@@ -247,14 +269,14 @@ export const ColumnForm = () => {
             if (columnError) throw columnError;
 
             toast({
-                title: 'הצלחה',
-                description: 'הטור נשמר'
+                title: t('common.success'),
+                description: t('admin.columnForm.saved')
             });
 
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'שמירת הטור נכשלה';
+            const errorMessage = error instanceof Error ? error.message : t('admin.columnForm.saveFailed');
             toast({
-                title: 'שגיאה',
+                title: t('common.error'),
                 description: errorMessage,
                 variant: 'destructive'
             });
@@ -290,13 +312,13 @@ export const ColumnForm = () => {
             });
 
             toast({
-                title: 'הצלחה',
-                description: 'התוצאה עודכנה'
+                title: t('common.success'),
+                description: t('admin.columnForm.resultUpdated')
             });
         } catch (error: any) {
             toast({
-                title: 'שגיאה',
-                description: error?.message || 'עדכון התוצאה נכשל',
+                title: t('common.error'),
+                description: error?.message || t('admin.columnForm.resultUpdateFailed'),
                 variant: 'destructive'
             });
         }
@@ -311,15 +333,15 @@ export const ColumnForm = () => {
         } catch (e) {
             console.error('Failed to parse JSON data:', e);
             toast({
-                title: 'שגיאה',
-                description: 'לא נמצא טוטו 16 בתוכן שהודבק',
+                title: t('common.error'),
+                description: t('admin.columnForm.noDrawInPaste'),
                 variant: 'destructive'
             });
         }
     };
 
     if (loading) {
-        return <div>טוען...</div>;
+        return <div>{t('common.loading')}</div>;
     }
 
     const isDeadlinePassed = new Date(column.deadline) < new Date();
@@ -341,7 +363,7 @@ export const ColumnForm = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">
-                    {id ? 'עריכת טור' : 'טור חדש'}
+                    {id ? t('admin.columnForm.editTitle') : t('admin.columns.new')}
                 </h1>
                 <div className="space-x-2">
                     <Button
@@ -349,10 +371,10 @@ export const ColumnForm = () => {
                         variant="outline"
                         onClick={() => navigate('/admin/columns')}
                     >
-                        ביטול
+                        {t('common.cancel')}
                     </Button>
                     <Button type="submit" disabled={saving}>
-                        {saving ? 'שומר...' : 'שמור'}
+                        {saving ? t('common.saving') : t('common.save')}
                     </Button>
                 </div>
             </div>
@@ -360,7 +382,7 @@ export const ColumnForm = () => {
             <div className="grid gap-4">
                 <div className="grid gap-2">
                     <label htmlFor="name" className="text-sm font-medium">
-                        שם הטור
+                        {t('admin.columnForm.name')}
                     </label>
                     <Input
                         id="name"
@@ -373,14 +395,14 @@ export const ColumnForm = () => {
 
                 <div className="grid gap-2">
                     <label htmlFor="deadline" className="text-sm font-medium">
-                        מועד סגירה
+                        {t('admin.columnForm.deadline')}
                     </label>
                     <Input
                         id="deadline"
                         type="datetime-local"
-                        value={format(new Date(column.deadline), "yyyy-MM-dd'T'HH:mm")}
+                        value={toInputValue(column.deadline)}
                         onChange={(e) =>
-                            setColumn({ ...column, deadline: new Date(e.target.value).toISOString() })
+                            setColumn({ ...column, deadline: fromInputValue(e.target.value) })
                         }
                     />
                 </div>
@@ -388,7 +410,7 @@ export const ColumnForm = () => {
                 <div className="flex gap-2 flex-column">
                     <div>
                         <label htmlFor="deadline" className="text-sm font-medium">
-                            מס׳ כפולים
+                            {t('admin.columnForm.maxDoubles')}
                         </label>
                         <Input
                             id="max-doubles"
@@ -402,7 +424,7 @@ export const ColumnForm = () => {
 
                     <div>
                         <label htmlFor="deadline" className="text-sm font-medium">
-                            מס׳ משולשים
+                            {t('admin.columnForm.maxTriples')}
                         </label>
                         <Input
                             id="max-triples"
@@ -427,7 +449,7 @@ export const ColumnForm = () => {
                         }
                     />
                     <label htmlFor="is_active" className="text-sm font-medium">
-                        פעיל
+                        {t('common.active')}
                     </label>
                 </div>
 
@@ -448,13 +470,13 @@ export const ColumnForm = () => {
 
             <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">משחקים</h2>
+                    <h2 className="text-xl font-semibold">{t('admin.columnForm.games')}</h2>
                     <Button
                         type="button"
                         variant="outline"
                         onClick={handlePasteJson}
                     >
-                        הדבק JSON
+                        {t('admin.columnForm.pasteJson')}
                     </Button>
                 </div>
 
@@ -464,12 +486,12 @@ export const ColumnForm = () => {
                         ref={(el) => el?.setAttribute('href', winnerBookmarklet(window.location.origin))}
                         onClick={(e) => e.preventDefault()}
                         className="cursor-grab rounded-lg bg-brand px-3 py-1.5 font-semibold text-brand-foreground"
-                        title="גרור לסרגל הסימניות"
+                        title={t('admin.columnForm.dragToBookmarks')}
                     >
-                        ייבוא לטוטו הפועל
+                        {t('admin.columnForm.winner.bookmark')}
                     </a>
                     <span className="text-muted-foreground">
-                        גרור את הכפתור לסרגל הסימניות. אחר כך היכנס ל-winner.co.il ולחץ עליו — הטור ייפתח כאן ממולא.
+                        {t('admin.columnForm.winner.howTo')}
                     </span>
                 </div>
 
@@ -479,22 +501,22 @@ export const ColumnForm = () => {
                             ref={(el) => el?.setAttribute('href', scoreAxisBookmarklet())}
                             onClick={(e) => e.preventDefault()}
                             className="cursor-grab rounded-lg bg-brand px-3 py-1.5 font-semibold text-brand-foreground"
-                            title="גרור לסרגל הסימניות"
+                            title={t('admin.columnForm.dragToBookmarks')}
                         >
-                            ScoreAxis ← טוטו הפועל
+                            {t('admin.columnForm.scoreAxis.bookmark')}
                         </a>
                         <Button type="button" variant="outline" disabled={!column.games?.some((g) => g.home_team)} onClick={startScoreAxis}>
-                            מצא משחקים ב-ScoreAxis
+                            {t('admin.columnForm.scoreAxis.find')}
                         </Button>
                         <span className="text-muted-foreground">
-                            {scoreAxisStatus || 'גרור את הסימניה לסרגל (פעם אחת), ואז לחץ "מצא משחקים" — מזהי המעקב החי יתמלאו אוטומטית.'}
+                            {scoreAxisStatus || t('admin.columnForm.scoreAxis.howTo')}
                         </span>
                     </div>
 
                     {missingTeams && (
                         <div className="space-y-2 rounded-lg bg-muted/50 p-3">
                             <p className="font-medium">
-                                קבוצות חדשות — כתוב את השם באנגלית כפי שמופיע ב-ScoreAxis (פעם אחת בלבד, נשמר להבא):
+                                {t('admin.columnForm.scoreAxis.newTeams')}
                             </p>
                             <div className="grid gap-2 md:grid-cols-2">
                                 {missingTeams.map((t, i) => (
@@ -512,45 +534,45 @@ export const ColumnForm = () => {
                                 ))}
                             </div>
                             <div className="flex gap-2">
-                                <Button type="button" onClick={continueWithNames}>המשך ל-ScoreAxis</Button>
-                                <Button type="button" variant="ghost" onClick={() => setMissingTeams(null)}>ביטול</Button>
+                                <Button type="button" onClick={continueWithNames}>{t('admin.columnForm.scoreAxis.continue')}</Button>
+                                <Button type="button" variant="ghost" onClick={() => setMissingTeams(null)}>{t('common.cancel')}</Button>
                             </div>
-                            <p className="text-xs text-muted-foreground">שדה ריק = המשחק יידלג ותוכל להזין אותו ידנית.</p>
+                            <p className="text-xs text-muted-foreground">{t('admin.columnForm.scoreAxis.emptySkips')}</p>
                         </div>
                     )}
                 </div>
 
                 <div className="flex gap-4 items-center space-between">
                     <div className="w-1/3">
-                        <div className="text-sm text-muted-foreground">סדר לפי</div>
+                        <div className="text-sm text-muted-foreground">{t('common.orderBy')}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline">
-                                    {orderBy === 'game_num' ? 'מס׳' : orderBy === 'game_time' ? 'זמן משחק' : 'תוצאה'}
+                                    {orderBy === 'game_num' ? t('common.numberShort') : orderBy === 'game_time' ? t('admin.columnForm.gameTime') : t('votes.result')}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56">
                                 <DropdownMenuRadioGroup value={orderBy} onValueChange={(value) => setOrderBy(value as OrderBy)}>
-                                    <DropdownMenuRadioItem value="game_num">מס׳</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="game_time">זמן משחק</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="result">תוצאה</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="game_num">{t('common.numberShort')}</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="game_time">{t('admin.columnForm.gameTime')}</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="result">{t('votes.result')}</DropdownMenuRadioItem>
                                 </DropdownMenuRadioGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
 
                     <div className="w-1/3">
-                        <div className="text-sm text-muted-foreground">סדר</div>
+                        <div className="text-sm text-muted-foreground">{t('votes.sort')}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline">
-                                    {sortOrder === 'asc' ? 'עולה' : 'יורד'}
+                                    {sortOrder === 'asc' ? t('admin.columnForm.ascending') : t('admin.columnForm.descending')}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56">
                                 <DropdownMenuRadioGroup value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-                                    <DropdownMenuRadioItem value="asc">עולה</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="desc">יורד</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="asc">{t('admin.columnForm.ascending')}</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="desc">{t('admin.columnForm.descending')}</DropdownMenuRadioItem>
                                 </DropdownMenuRadioGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -565,12 +587,12 @@ export const ColumnForm = () => {
                     {/* Header - Only visible on desktop */}
                     <div className="hidden md:grid grid-cols-[60px_1fr_1fr_1fr_1fr_auto] gap-4 p-4 bg-muted/50 border-b font-medium text-muted-foreground">
                         <div>#</div>
-                        <div>מסגרת</div>
-                        <div>בית</div>
-                        <div>חוץ</div>
-                        <div>זמן משחק</div>
-                        <div>מזהה מעקב חי</div>
-                        {isDeadlinePassed && <div>תוצאה</div>}
+                        <div>{t('admin.columnForm.competition')}</div>
+                        <div>{t('admin.columnForm.home')}</div>
+                        <div>{t('admin.columnForm.away')}</div>
+                        <div>{t('admin.columnForm.gameTime')}</div>
+                        <div>{t('admin.columnForm.liveTrackerId')}</div>
+                        {isDeadlinePassed && <div>{t('votes.result')}</div>}
                     </div>
 
                     {/* Games List */}
@@ -580,7 +602,7 @@ export const ColumnForm = () => {
                                 {/* Mobile Layout */}
                                 <div className="md:hidden space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="font-medium">משחק {game.game_num}</span>
+                                        <span className="font-medium">{t('common.gameN', { num: game.game_num })}</span>
                                         {isDeadlinePassed && (
                                             <div className="flex gap-2">
                                                 {(['1', 'X', '2'] as const).map((value) => (
@@ -594,7 +616,7 @@ export const ColumnForm = () => {
                                                                 : 'bg-muted hover:bg-muted/80'
                                                         )}
                                                     >
-                                                        {value}
+                                                        {market.outcomeLabels[value]}
                                                     </button>
                                                 ))}
                                             </div>
@@ -603,25 +625,25 @@ export const ColumnForm = () => {
                                     <Input
                                         value={game.competition}
                                         onChange={(e) => handleGameChange(index, 'competition', e.target.value)}
-                                        placeholder="מסגרת (או הדבקת פרטי משחק)..."
+                                        placeholder={t('admin.columnForm.competitionPlaceholder')}
                                         className="mb-2"
                                     />
                                     <div className="grid grid-cols-2 gap-2">
                                         <Input
                                             value={game.home_team}
                                             onChange={(e) => handleGameChange(index, 'home_team', e.target.value)}
-                                            placeholder="קבוצת בית"
+                                            placeholder={t('admin.columnForm.homeTeam')}
                                         />
                                         <Input
                                             value={game.away_team}
                                             onChange={(e) => handleGameChange(index, 'away_team', e.target.value)}
-                                            placeholder="קבוצת חוץ"
+                                            placeholder={t('admin.columnForm.awayTeam')}
                                         />
                                     </div>
                                     <Input
                                         type="datetime-local"
-                                        value={format(new Date(game.game_time), "yyyy-MM-dd'T'HH:mm")}
-                                        onChange={(e) => handleGameChange(index, 'game_time', new Date(e.target.value).toISOString())}
+                                        value={toInputValue(game.game_time)}
+                                        onChange={(e) => handleGameChange(index, 'game_time', fromInputValue(e.target.value))}
                                     />
                                 </div>
 
@@ -632,35 +654,35 @@ export const ColumnForm = () => {
                                         <Input
                                             value={game.competition}
                                             onChange={(e) => handleGameChange(index, 'competition', e.target.value)}
-                                            placeholder="מסגרת (או הדבקת פרטי משחק)..."
+                                            placeholder={t('admin.columnForm.competitionPlaceholder')}
                                         />
                                     </div>
                                     <div>
                                         <Input
                                             value={game.home_team}
                                             onChange={(e) => handleGameChange(index, 'home_team', e.target.value)}
-                                            placeholder="קבוצת בית"
+                                            placeholder={t('admin.columnForm.homeTeam')}
                                         />
                                     </div>
                                     <div>
                                         <Input
                                             value={game.away_team}
                                             onChange={(e) => handleGameChange(index, 'away_team', e.target.value)}
-                                            placeholder="קבוצת חוץ"
+                                            placeholder={t('admin.columnForm.awayTeam')}
                                         />
                                     </div>
                                     <div>
                                         <Input
                                             type="datetime-local"
-                                            value={format(new Date(game.game_time), "yyyy-MM-dd'T'HH:mm")}
-                                            onChange={(e) => handleGameChange(index, 'game_time', new Date(e.target.value).toISOString())}
+                                            value={toInputValue(game.game_time)}
+                                            onChange={(e) => handleGameChange(index, 'game_time', fromInputValue(e.target.value))}
                                         />
                                     </div>
                                     <div>
                                         <Input
                                             value={game.live_tracker_id}
                                             onChange={(e) => handleGameChange(index, 'live_tracker_id', parseScoreAxisId(e.target.value) ?? e.target.value)}
-                                            placeholder="מזהה / קוד הטמעה של ScoreAxis"
+                                            placeholder={t('admin.columnForm.liveTrackerPlaceholder')}
                                         />
                                     </div>
                                     {isDeadlinePassed && (
@@ -676,7 +698,7 @@ export const ColumnForm = () => {
                                                             : 'bg-muted hover:bg-muted/80'
                                                     )}
                                                 >
-                                                    {value}
+                                                    {market.outcomeLabels[value]}
                                                 </button>
                                             ))}
                                         </div>

@@ -1,0 +1,10 @@
+{
+  "operator": "ווינר",
+  "product": "טוטו 16",
+  "column": "טור",
+  "columns": "טורים",
+  "groupBet": "טופס משותף",
+  "theGroupBet": "הטופס המשותף",
+  "draws": "מחזורים",
+  "columnName": "טוטו {{day}}/{{month}}/{{year}}"
+}

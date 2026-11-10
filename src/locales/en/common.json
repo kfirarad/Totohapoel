@@ -1,0 +1,310 @@
+{
+  "app": {
+    "name": "Totohapoel"
+  },
+  "languages": {
+    "he": "עברית",
+    "en": "English"
+  },
+  "common": {
+    "loading": "Loading...",
+    "loadError": "Couldn't load the data",
+    "error": "Error",
+    "success": "Done",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "retry": "Try again",
+    "close": "Close",
+    "active": "Active",
+    "inactive": "Inactive",
+    "vs": "vs",
+    "numberShort": "No.",
+    "time": "Time",
+    "orderBy": "Sort by",
+    "gameN": "Game {{num}}"
+  },
+  "weekdays": {
+    "0": "Sunday",
+    "1": "Monday",
+    "2": "Tuesday",
+    "3": "Wednesday",
+    "4": "Thursday",
+    "5": "Friday",
+    "6": "Saturday"
+  },
+  "dates": {
+    "dayMonthTime": "MMMM d, HH:mm"
+  },
+  "header": {
+    "myColumn": "My column",
+    "stats": "Stats",
+    "profile": "Profile",
+    "admin": "Admin",
+    "userMenu": "User menu",
+    "logout": "Log out",
+    "login": "Log in",
+    "language": "Language"
+  },
+  "login": {
+    "subtitle": "Log in to fill in this week's column",
+    "google": "Sign in with Google"
+  },
+  "limits": {
+    "filled": "Filled",
+    "doubles": "Doubles",
+    "triples": "Triples"
+  },
+  "bet": {
+    "groupLabel": "Pick for game {{num}}",
+    "buttonLabel": "Game {{num}}: {{outcome}}",
+    "buttonLabelResult": "Game {{num}}: {{outcome}} (result)"
+  },
+  "summary": {
+    "participants": "Players",
+    "average": "Average",
+    "median": "Median"
+  },
+  "standings": {
+    "liveData": "Live data:"
+  },
+  "votes": {
+    "hedge": {
+      "singles": "Single",
+      "doubles": "Double",
+      "triples": "Triple"
+    },
+    "sharePct": "{{pct}}% {{label}}",
+    "sort": "Order",
+    "sortOpen": "Most open",
+    "marked": "Marked",
+    "participants_one": "{{count}} player",
+    "participants_other": "{{count}} players",
+    "totalSpread": "Spread across the column",
+    "legendFrom": "Votes 0%",
+    "hidePicks": "Hide marks",
+    "showPicks": "Show marks",
+    "resultColon": "Result:",
+    "hit": "hit",
+    "miss": "miss",
+    "result": "Result",
+    "tableLabel": "Votes per game",
+    "gameHeader": "Game · spread",
+    "hideVoters": "Hide voters",
+    "showVoters": "Show voters",
+    "hedgeCounts": "{{singles}} single · {{doubles}} double · {{triples}} triple",
+    "cellLabel": "Game {{num}}, {{outcome}}: {{pct}}%",
+    "theResult": "the result",
+    "theResultWith": "the result ({{verdict}})"
+  },
+  "column": {
+    "error": "Error: {{message}}",
+    "noActive": "No active column",
+    "notSent": "Your column hasn't been sent yet",
+    "unsavedChanges": "Your changes haven't been saved yet",
+    "me": "Me",
+    "previous": "Previous column",
+    "next": "Next column",
+    "closedAt": "Closed {{date}}",
+    "closesAt": "Closes {{day}} {{time}} · {{distance}}",
+    "correctGuesses": "Correct picks",
+    "scoreOf": "{{score}} of {{total}}",
+    "columnOf": "Column of",
+    "backToMine": "Back to my column",
+    "backToCurrent": "Back to the current round",
+    "order": {
+      "hedges": "Doubles/triples"
+    },
+    "form": "Column",
+    "view": {
+      "label": "View",
+      "votes": "Votes"
+    },
+    "calc": {
+      "label": "Weighting",
+      "classic": "Classic",
+      "weighted": "Weighted",
+      "form": "By form"
+    },
+    "filter": {
+      "label": "Filter",
+      "all": "All",
+      "correct": "Correct",
+      "incorrect": "Wrong",
+      "future": "Upcoming"
+    },
+    "liveGames": "Live games",
+    "myPick": "My pick",
+    "pickOf": "{{name}}'s pick",
+    "guessCorrect": "Correct pick",
+    "guessWrong": "Wrong pick",
+    "sentOk": "Column sent · good luck!",
+    "sendFailed": "Your column wasn't saved · check your connection and try again",
+    "discardChanges": "Discard changes",
+    "sentEditable": "Column sent · you can edit it until the round closes",
+    "send": "Send column",
+    "loading": "Loading column"
+  },
+  "stats": {
+    "title": "Stats",
+    "trendTitle": "Compared with the season hit rate",
+    "empty": "No finished rounds yet",
+    "hitRate": "Hit rate",
+    "drawsInParens_one": "({{count}} round)",
+    "drawsInParens_other": "({{count}} rounds)",
+    "formLast": "Form (last {{n}})",
+    "inFormLast": "In form (last {{n}})",
+    "lastN": "Last {{n}}",
+    "totalHits": "Total hits",
+    "wins": "Wins",
+    "mostWins": "Most wins",
+    "bestWeek": "Best week",
+    "beatGroup": "Beat the group bet",
+    "singlesAccuracy": "Singles accuracy",
+    "inDraws_one": "in {{count}} round",
+    "inDraws_other": "in {{count}} rounds",
+    "hits_one": "{{count}} hit",
+    "hits_other": "{{count}} hits",
+    "closedDraws_one": "{{count}} finished round",
+    "closedDraws_other": "{{count}} finished rounds",
+    "formBy": "Form over",
+    "formWeeksLabel": "Rounds used for form",
+    "player": "Player"
+  },
+  "profile": {
+    "chart": {
+      "me": "Me",
+      "average": "Players' average",
+      "title": "Me vs. the group bet and the average",
+      "subtitle_one": "Hits in the last round",
+      "subtitle_other": "Hits in the last {{count}} rounds"
+    },
+    "winsSub": "First place in a round",
+    "hitsSub": "hits",
+    "beatGroup": "Beat the group bet",
+    "rank": "Hit-rate rank",
+    "rankOf": "of {{total}}",
+    "empty": "No data yet — it will show up after your first finished round.",
+    "history": "History",
+    "vsGroupBet": "vs. the group bet"
+  },
+  "groupBet": {
+    "title": "Group bet · {{name}}",
+    "loadError": "Couldn't load the column",
+    "decrease": "Fewer {{label}}",
+    "increase": "More {{label}}",
+    "budget": "Group bet budget",
+    "rows_one": "{{rows}} column",
+    "rows_other": "{{rows}} columns",
+    "sameAsPlayers": "Same as players ({{doubles}} doubles · {{triples}} triples)",
+    "customLimits": "This week the group bet differs from the players ({{doubles}} doubles · {{triples}} triples). Saved together with the bet.",
+    "deadlinePassed": "The deadline has passed · as an admin you can still edit the group bet",
+    "algo": {
+      "title": "Form algorithm",
+      "recentDraws": "Recent rounds",
+      "sharpness": "Sharpness",
+      "proportional": "Proportional",
+      "medium": "Medium",
+      "sharp": "Sharp",
+      "loadingHistory": "Loading history...",
+      "fill": "Fill from the algorithm",
+      "percentages": "Percentages from the algorithm",
+      "explanation": "Each player's vote weight = their hit rate over the last {{weeks}} rounds, to the power of {{power}}. Players with no history get the average weight. The fill picks a single on the leading outcome, triples on the most open games and doubles where the second outcome is strongest. Review the bet before saving."
+    },
+    "saved": "Group bet saved",
+    "saveFailed": "The group bet wasn't saved",
+    "save": "Save group bet"
+  },
+  "admin": {
+    "nav": {
+      "users": "Users",
+      "teams": "Teams"
+    },
+    "columns": {
+      "loadError": "Couldn't load the columns",
+      "new": "New column",
+      "deadline": "Deadline: {{date}}",
+      "played_one": "{{count}} played",
+      "played_other": "{{count}} played",
+      "closed": "Closed",
+      "open": "Open"
+    },
+    "columnForm": {
+      "loadFailed": "Couldn't load the column",
+      "importedTitle": "Imported from $t(glossary:operator)",
+      "importedDescription_one": "{{count}} game · {{name}}",
+      "importedDescription_other": "{{count}} games · {{name}}",
+      "importInvalid": "The import data from $t(glossary:operator) is invalid",
+      "saved": "Column saved",
+      "saveFailed": "Couldn't save the column",
+      "resultUpdated": "Result updated",
+      "resultUpdateFailed": "Couldn't update the result",
+      "noDrawInPaste": "No $t(glossary:product) found in the pasted content",
+      "editTitle": "Edit column",
+      "name": "Column name",
+      "deadline": "Deadline",
+      "maxDoubles": "Max doubles",
+      "maxTriples": "Max triples",
+      "games": "Games",
+      "pasteJson": "Paste JSON",
+      "dragToBookmarks": "Drag to your bookmarks bar",
+      "winner": {
+        "bookmark": "Import to Totohapoel",
+        "howTo": "Drag the button to your bookmarks bar. Then go to winner.co.il and click it — the column opens here, filled in."
+      },
+      "scoreAxis": {
+        "bookmark": "ScoreAxis → Totohapoel",
+        "clickBookmark": "In the ScoreAxis tab that opened, click the \"{{bookmark}}\" bookmark",
+        "teamsLoadFailed": "Couldn't load the team names",
+        "found": "Found {{found}} of {{total}} games",
+        "restManually": "you can fill in the rest by hand",
+        "clickSave": "click Save",
+        "find": "Find games on ScoreAxis",
+        "howTo": "Drag the bookmark to your bar (once), then click \"Find games\" — the live-tracking ids fill in automatically.",
+        "newTeams": "New teams — enter the English name as it appears on ScoreAxis (only once, remembered for next time):",
+        "continue": "Continue to ScoreAxis",
+        "emptySkips": "Leave a field empty to skip that game and fill it in by hand."
+      },
+      "gameTime": "Kickoff",
+      "ascending": "Ascending",
+      "descending": "Descending",
+      "competition": "Competition",
+      "home": "Home",
+      "away": "Away",
+      "liveTrackerId": "Live tracker id",
+      "competitionPlaceholder": "Competition (or paste game details)...",
+      "homeTeam": "Home team",
+      "awayTeam": "Away team",
+      "liveTrackerPlaceholder": "ScoreAxis id / embed code",
+      "pasteGameHere": "Paste game details here..."
+    },
+    "users": {
+      "loadError": "Couldn't load the users",
+      "searchPlaceholder": "Search by name or email",
+      "searchLabel": "Search users",
+      "admin": "Admin",
+      "none": "No users found"
+    },
+    "teams": {
+      "englishNameOf": "English name: {{team}}",
+      "scoreAxisIdOf": "ScoreAxis id: {{team}}",
+      "deleteLabel": "Delete {{team}}",
+      "deleteConfirm": "Delete \"{{team}}\"?",
+      "actionFailed": "The action failed",
+      "saved": "Saved",
+      "loadError": "Couldn't load the teams",
+      "subtitle": "Team name at $t(glossary:operator) ↔ name and id on ScoreAxis, to match live games automatically",
+      "searchPlaceholder": "Search in Hebrew, English or by id",
+      "searchLabel": "Search teams",
+      "newPlaceholder": "Team name as it appears at $t(glossary:operator)",
+      "newLabel": "New team",
+      "add": "Add team",
+      "exists": "That team already exists",
+      "colOperator": "$t(glossary:operator)",
+      "colEnglish": "English name",
+      "colScoreAxis": "ScoreAxis id",
+      "none": "No teams found",
+      "empty": "No teams yet — they are added automatically when you search on ScoreAxis"
+    }
+  }
+}

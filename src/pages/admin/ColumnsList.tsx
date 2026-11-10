@@ -1,14 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Archive, ArchiveRestore } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { Column } from '@/types/database.types';
-import { Segmented } from '@/components/Segmented';
-import { useToast } from '@/hooks/use-toast';
-import { queryKeys } from '@/hooks/useQueries';
+import { useMarketDates } from '@/i18n/dates';
 
 const fetchColumns = async () => {
     const { data, error } = await supabase
@@ -21,31 +17,9 @@ const fetchColumns = async () => {
     return data as (Column & { user_bets: { count: number }[] })[];
 };
 
-type View = 'current' | 'archived';
-
 export const ColumnsList = () => {
-    const [view, setView] = useState<View>('current');
-    const queryClient = useQueryClient();
-    const { toast } = useToast();
-
-    const archiveMutation = useMutation({
-        mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
-            const { error } = await supabase.from('columns').update({ is_archived: archived }).eq('id', id);
-            if (error) throw error;
-            return archived;
-        },
-        onSuccess: (archived) => {
-            // the list, the player-facing column/navigation and season stats all depend on it
-            queryClient.invalidateQueries({ queryKey: queryKeys.columns });
-            queryClient.invalidateQueries({ queryKey: ['column'] });
-            queryClient.invalidateQueries({ queryKey: queryKeys.seasonData });
-            toast({ title: archived ? 'הטור הועבר לארכיון' : 'הטור שוחזר מהארכיון' });
-        },
-        onError: () => {
-            toast({ title: 'שגיאה', description: 'עדכון הטור נכשל', variant: 'destructive' });
-        },
-    });
-
+    const { t } = useTranslation();
+    const dates = useMarketDates();
     const {
         data: columns = [],
         isLoading,
@@ -56,42 +30,23 @@ export const ColumnsList = () => {
     });
 
     if (isLoading) {
-        return <div>טוען...</div>;
+        return <div>{t('common.loading')}</div>;
     }
 
     if (error) {
-        return <div>שגיאה בטעינת הטורים</div>;
+        return <div>{t('admin.columns.loadError')}</div>;
     }
-
-    const archivedCount = columns.filter((c) => c.is_archived).length;
-    const visible = columns.filter((c) => !!c.is_archived === (view === 'archived'));
 
     return (
         <div>
-            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-                <h1 className="text-2xl font-bold">טורים</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">{t('glossary:columns')}</h1>
                 <Link to="/admin/columns/new">
-                    <Button>טור חדש</Button>
+                    <Button>{t('admin.columns.new')}</Button>
                 </Link>
             </div>
-            <div className="mb-4">
-                <Segmented<View>
-                    label="הצג"
-                    value={view}
-                    onChange={setView}
-                    options={[
-                        { value: 'current', label: 'טורים' },
-                        { value: 'archived', label: `ארכיון (${archivedCount})` },
-                    ]}
-                />
-            </div>
-            {visible.length === 0 && (
-                <p className="py-8 text-center text-muted-foreground">
-                    {view === 'archived' ? 'אין טורים בארכיון' : 'אין טורים'}
-                </p>
-            )}
             <div className="grid gap-4">
-                {visible.map((column) => (
+                {columns.map((column) => (
                     <div
                         key={column.id}
                         className="relative block p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow"
@@ -103,7 +58,7 @@ export const ColumnsList = () => {
                                     <h3 className="text-lg font-semibold">{column.name}</h3>
                                 </Link>
                                 <p className="text-sm text-muted-foreground">
-                                    מועד סגירה: {format(new Date(column.deadline), 'PPpp')}
+                                    {t('admin.columns.deadline', { date: dates.format(column.deadline, 'PPpp') })}
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -111,10 +66,10 @@ export const ColumnsList = () => {
                                     to={`/admin/group-bet/${column.id}`}
                                     className="relative z-10 rounded px-2 py-1 text-sm font-medium bg-brand/10 hover:bg-brand/20"
                                 >
-                                    טופס משותף
+                                    {t('glossary:groupBet')}
                                 </Link>
                                 <span className="px-2 py-1 rounded text-sm bg-muted tabular-nums">
-                                    {column.user_bets?.[0]?.count ?? 0} שיחקו
+                                    {t('admin.columns.played', { count: column.user_bets?.[0]?.count ?? 0 })}
                                 </span>
                                 <span
                                     className={`px-2 py-1 rounded text-sm ${column.is_active
@@ -122,7 +77,7 @@ export const ColumnsList = () => {
                                             : 'bg-gray-100 text-gray-800'
                                         }`}
                                 >
-                                    {column.is_active ? 'פעיל' : 'לא פעיל'}
+                                    {column.is_active ? t('common.active') : t('common.inactive')}
                                 </span>
                                 <span
                                     className={`px-2 py-1 rounded text-sm ${new Date(column.deadline) < new Date()
@@ -130,22 +85,8 @@ export const ColumnsList = () => {
                                             : 'bg-blue-100 text-blue-800'
                                         }`}
                                 >
-                                    {new Date(column.deadline) < new Date() ? 'נסגר' : 'פתוח'}
+                                    {new Date(column.deadline) < new Date() ? t('admin.columns.closed') : t('admin.columns.open')}
                                 </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="relative z-10"
-                                    disabled={archiveMutation.isPending && archiveMutation.variables?.id === column.id}
-                                    onClick={() => {
-                                        const archived = !column.is_archived;
-                                        if (archived && !window.confirm(`להעביר את "${column.name}" לארכיון? הטור יוסתר מהשחקנים ומהסטטיסטיקות.`)) return;
-                                        archiveMutation.mutate({ id: column.id!, archived });
-                                    }}
-                                >
-                                    {column.is_archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
-                                    {column.is_archived ? 'שחזור' : 'ארכיון'}
-                                </Button>
                             </div>
                         </div>
                     </div>

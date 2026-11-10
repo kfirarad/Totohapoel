@@ -1,7 +1,10 @@
-import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { BetResult } from '@/types/database.types';
 import { Input } from '@/components/ui/input';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { formatInTz } from '@/i18n/dates';
+import { useMarket } from '@/markets/useMarket';
+import { zonedLocalToIso } from '@/markets/time';
 
 interface GameFormRowProps {
     gameNum: number;
@@ -27,6 +30,7 @@ const BetButton = ({
     onClick: () => void;
     small?: boolean;
 }) => {
+    const { outcomeLabels } = useMarket();
     return (
         <button
             onClick={onClick}
@@ -35,7 +39,7 @@ const BetButton = ({
                 ${selected ? 'bg-primary text-primary-foreground' : 'bg-muted'}
             `}
         >
-            {value}
+            {value && outcomeLabels[value]}
         </button>
     );
 };
@@ -52,6 +56,8 @@ export const GameFormRow = ({
     onPaste,
     onSetResult
 }: GameFormRowProps) => {
+    const { t } = useTranslation();
+    const { timeZone } = useMarket();
     return (
         <TableRow>
             <TableCell className="font-medium">
@@ -62,28 +68,28 @@ export const GameFormRow = ({
                     value={competition}
                     onChange={(e) => onGameChange('competition', e.target.value)}
                     onPaste={onPaste}
-                    placeholder="הדבק כאן פרטי משחק..."
+                    placeholder={t('admin.columnForm.pasteGameHere')}
                 />
             </TableCell>
             <TableCell>
                 <Input
                     value={homeTeam}
                     onChange={(e) => onGameChange('home_team', e.target.value)}
-                    placeholder="קבוצת בית"
+                    placeholder={t('admin.columnForm.homeTeam')}
                 />
             </TableCell>
             <TableCell>
                 <Input
                     value={awayTeam}
                     onChange={(e) => onGameChange('away_team', e.target.value)}
-                    placeholder="קבוצת חוץ"
+                    placeholder={t('admin.columnForm.awayTeam')}
                 />
             </TableCell>
             <TableCell>
                 <Input
                     type="datetime-local"
-                    value={format(new Date(gameTime), "yyyy-MM-dd'T'HH:mm")}
-                    onChange={(e) => onGameChange('game_time', new Date(e.target.value).toISOString())}
+                    value={formatInTz(gameTime, "yyyy-MM-dd'T'HH:mm", timeZone)}
+                    onChange={(e) => onGameChange('game_time', zonedLocalToIso(e.target.value, timeZone))}
                 />
             </TableCell>
             {isDeadlinePassed && onSetResult && (

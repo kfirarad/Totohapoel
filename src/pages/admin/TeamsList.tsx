@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/services/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ const TeamRow = ({ team, onSave, onDelete }: {
     onSave: (t: TeamAlias) => Promise<void>;
     onDelete: (he: string) => Promise<void>;
 }) => {
+    const { t } = useTranslation();
     const [en, setEn] = useState(team.en_name ?? '');
     const [id, setId] = useState(team.scoreaxis_team_id ?? '');
     const [busy, setBusy] = useState(false);
@@ -35,10 +37,10 @@ const TeamRow = ({ team, onSave, onDelete }: {
     return (
         <li className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] md:items-center">
             <span className="truncate font-medium">{team.he_name}</span>
-            <Input dir="ltr" aria-label={`שם באנגלית: ${team.he_name}`} placeholder="English name" value={en} onChange={(e) => setEn(e.target.value)} />
+            <Input dir="ltr" aria-label={t('admin.teams.englishNameOf', { team: team.he_name })} placeholder="English name" value={en} onChange={(e) => setEn(e.target.value)} />
             <Input
                 dir="ltr"
-                aria-label={`מזהה ScoreAxis: ${team.he_name}`}
+                aria-label={t('admin.teams.scoreAxisIdOf', { team: team.he_name })}
                 aria-invalid={!validId}
                 placeholder="ScoreAxis team id"
                 className={validId ? 'font-mono text-xs' : 'font-mono text-xs border-destructive'}
@@ -51,14 +53,14 @@ const TeamRow = ({ team, onSave, onDelete }: {
                     disabled={!dirty || !validId || busy}
                     onClick={() => run(() => onSave({ he_name: team.he_name, en_name: en.trim() || null, scoreaxis_team_id: id.trim() || null }))}
                 >
-                    שמור
+                    {t('common.save')}
                 </Button>
                 <Button
                     size="sm"
                     variant="ghost"
-                    aria-label={`מחק ${team.he_name}`}
+                    aria-label={t('admin.teams.deleteLabel', { team: team.he_name })}
                     disabled={busy}
-                    onClick={() => confirm(`למחוק את "${team.he_name}"?`) && run(() => onDelete(team.he_name))}
+                    onClick={() => confirm(t('admin.teams.deleteConfirm', { team: team.he_name })) && run(() => onDelete(team.he_name))}
                 >
                     <Trash2 className="size-4" />
                 </Button>
@@ -68,6 +70,7 @@ const TeamRow = ({ team, onSave, onDelete }: {
 };
 
 export const TeamsList = () => {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const { data: teams = [], isLoading, error } = useQuery({ queryKey: ['team_aliases'], queryFn: fetchAliases });
@@ -77,7 +80,7 @@ export const TeamsList = () => {
     const refresh = () => queryClient.invalidateQueries({ queryKey: ['team_aliases'] });
     const fail = (e: unknown) => {
         console.error(e);
-        toast({ title: 'שגיאה', description: 'הפעולה נכשלה', variant: 'destructive' });
+        toast({ title: t('common.error'), description: t('admin.teams.actionFailed'), variant: 'destructive' });
     };
 
     const save = useMutation({
@@ -85,7 +88,7 @@ export const TeamsList = () => {
             const { error } = await supabase.from('team_aliases').upsert({ ...t, updated_at: new Date().toISOString() });
             if (error) throw error;
         },
-        onSuccess: () => { refresh(); toast({ title: 'נשמר' }); },
+        onSuccess: () => { refresh(); toast({ title: t('admin.teams.saved') }); },
         onError: fail,
     });
     const remove = useMutation({
@@ -103,22 +106,22 @@ export const TeamsList = () => {
         : teams;
     const exists = teams.some((t) => t.he_name === newHe.trim());
 
-    if (isLoading) return <div className="p-4 text-muted-foreground">טוען...</div>;
-    if (error) return <div className="p-4">שגיאה בטעינת הקבוצות</div>;
+    if (isLoading) return <div className="p-4 text-muted-foreground">{t('common.loading')}</div>;
+    if (error) return <div className="p-4">{t('admin.teams.loadError')}</div>;
 
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold">
-                        קבוצות <span className="text-base font-normal text-muted-foreground">({teams.length})</span>
+                        {t('admin.nav.teams')} <span className="text-base font-normal text-muted-foreground">({teams.length})</span>
                     </h1>
-                    <p className="text-sm text-muted-foreground">שם הקבוצה בווינר ↔ שם ומזהה ב-ScoreAxis, לשיוך אוטומטי של משחקים חיים</p>
+                    <p className="text-sm text-muted-foreground">{t('admin.teams.subtitle')}</p>
                 </div>
                 <Input
                     type="search"
-                    placeholder="חיפוש בעברית, אנגלית או מזהה"
-                    aria-label="חיפוש קבוצות"
+                    placeholder={t('admin.teams.searchPlaceholder')}
+                    aria-label={t('admin.teams.searchLabel')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="max-w-xs"
@@ -134,19 +137,19 @@ export const TeamsList = () => {
                 }}
             >
                 <Input
-                    placeholder="שם קבוצה כפי שמופיע בווינר"
-                    aria-label="קבוצה חדשה"
+                    placeholder={t('admin.teams.newPlaceholder')}
+                    aria-label={t('admin.teams.newLabel')}
                     value={newHe}
                     onChange={(e) => setNewHe(e.target.value)}
                     className="max-w-xs"
                 />
-                <Button type="submit" variant="outline" disabled={!newHe.trim() || exists}>הוסף קבוצה</Button>
-                {exists && <span className="text-sm text-muted-foreground">הקבוצה כבר קיימת</span>}
+                <Button type="submit" variant="outline" disabled={!newHe.trim() || exists}>{t('admin.teams.add')}</Button>
+                {exists && <span className="text-sm text-muted-foreground">{t('admin.teams.exists')}</span>}
             </form>
 
             <ul className="divide-y rounded-2xl border bg-card">
                 <li className="hidden px-4 py-2 text-xs font-semibold text-muted-foreground md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] md:gap-2">
-                    <span>ווינר</span><span>שם באנגלית</span><span>מזהה ScoreAxis</span><span className="w-24" />
+                    <span>{t('admin.teams.colOperator')}</span><span>{t('admin.teams.colEnglish')}</span><span>{t('admin.teams.colScoreAxis')}</span><span className="w-24" />
                 </li>
                 {filtered.map((t) => (
                     // key includes saved values so the row resets after a save/refresh
@@ -159,7 +162,7 @@ export const TeamsList = () => {
                 ))}
                 {!filtered.length && (
                     <li className="px-4 py-6 text-center text-sm text-muted-foreground">
-                        {teams.length ? 'לא נמצאו קבוצות' : 'עוד אין קבוצות — הן נוספות אוטומטית בחיפוש ב-ScoreAxis'}
+                        {teams.length ? t('admin.teams.none') : t('admin.teams.empty')}
                     </li>
                 )}
             </ul>

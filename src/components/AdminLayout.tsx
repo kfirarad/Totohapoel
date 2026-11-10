@@ -1,20 +1,22 @@
 import { Link, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export const AdminLayout = () => {
     const { profile } = useAuth();
     const location = useLocation();
+    const { t } = useTranslation();
 
     if (!profile?.is_admin) {
         return <Navigate to="/" />;
     }
 
     const navItems = [
-        { path: '/admin/columns', label: 'טורים' },
-        { path: '/admin/users', label: 'משתמשים' },
-        { path: '/admin/teams', label: 'קבוצות' },
-        { path: '/admin/group-bet', label: 'הטופס המשותף' },
+        { path: '/admin/columns', label: t('glossary:columns') },
+        { path: '/admin/users', label: t('admin.nav.users') },
+        { path: '/admin/teams', label: t('admin.nav.teams') },
+        { path: '/admin/group-bet', label: t('glossary:theGroupBet') },
     ];
 
     return (
@@ -40,7 +42,7 @@ export const AdminLayout = () => {
             </div>
 
             {/* Desktop Sidebar */}
-            <aside className="hidden md:block w-64 bg-muted border-r">
+            <aside className="hidden md:block w-64 bg-muted border-e">
                 <nav className="p-4">
                     {navItems.map((item) => (
                         <Link

@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSeasonDataQuery } from "@/hooks/useQueries";
 import { computePlayerStats, playerHistory } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/Avatar";
+import { useMarketDates } from "@/i18n/dates";
 import {
   ChartConfig,
   ChartContainer,
@@ -20,17 +21,20 @@ import {
 const FORM_WEEKS = 5;
 const CHART_COLUMNS = 20;
 
-const chartConfig = {
-  me: { label: "אני", color: "hsl(var(--brand))" },
-  group: { label: "הטופס המשותף", color: "hsl(var(--muted-foreground))" },
-  average: { label: "ממוצע המשתתפים", color: "hsl(var(--chart-2))" },
-} satisfies ChartConfig;
 
 const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n * 100)}%`);
 
 export const ProfilePage = () => {
   const { profile } = useAuth();
   const { data, isLoading, error } = useSeasonDataQuery();
+  const { t, i18n } = useTranslation();
+  const dates = useMarketDates();
+  const rtl = i18n.dir() === "rtl";
+  const chartConfig = {
+    me: { label: t("profile.chart.me"), color: "hsl(var(--brand))" },
+    group: { label: t("glossary:theGroupBet"), color: "hsl(var(--muted-foreground))" },
+    average: { label: t("profile.chart.average"), color: "hsl(var(--chart-2))" },
+  } satisfies ChartConfig;
 
   const { me, rank, total, history } = useMemo(() => {
     if (!data || !profile?.id) return { me: null, rank: 0, total: 0, history: [] };
@@ -44,8 +48,8 @@ export const ProfilePage = () => {
     };
   }, [data, profile?.id]);
 
-  if (isLoading) return <div className="flex h-[60vh] items-center justify-center text-muted-foreground">טוען...</div>;
-  if (error) return <div className="p-8">שגיאה בטעינת הנתונים</div>;
+  if (isLoading) return <div className="flex h-[60vh] items-center justify-center text-muted-foreground">{t("common.loading")}</div>;
+  if (error) return <div className="p-8">{t("common.loadError")}</div>;
 
   const chartData = history.slice(-CHART_COLUMNS).map((h) => ({
     column: h.name,
@@ -57,18 +61,18 @@ export const ProfilePage = () => {
 
   const tiles = me
     ? [
-        { label: "אחוז פגיעה", value: pct(me.hitRate), sub: `ב-${me.columns} מחזורים` },
+        { label: t("stats.hitRate"), value: pct(me.hitRate), sub: t("stats.inDraws", { count: me.columns }) },
         {
-          label: `כושר (${FORM_WEEKS} אחרונים)`,
+          label: t("stats.formLast", { n: FORM_WEEKS }),
           value: pct(me.formRate),
           trend: me.trend,
         },
-        { label: "ניצחונות", value: `${me.wins}`, sub: "מקום ראשון במחזור" },
-        { label: "שבוע שיא", value: `${me.bestWeek}`, sub: "פגיעות" },
+        { label: t("stats.wins"), value: `${me.wins}`, sub: t("profile.winsSub") },
+        { label: t("stats.bestWeek"), value: `${me.bestWeek}`, sub: t("profile.hitsSub") },
         {
-          label: "ניצחתי את המשותף",
+          label: t("profile.beatGroup"),
           value: me.groupComparisons ? `${me.beatGroup}/${me.groupComparisons}` : "—",
-          sub: "מחזורים",
+          sub: t("glossary:draws"),
         },
       ]
     : [];
@@ -84,10 +88,10 @@ export const ProfilePage = () => {
         </div>
         {me && (
           <div className="rounded-xl bg-muted px-4 py-2 text-center">
-            <div className="text-xs text-muted-foreground">דירוג באחוז פגיעה</div>
+            <div className="text-xs text-muted-foreground">{t("profile.rank")}</div>
             <div className="text-lg font-bold tabular-nums">
               {rank}
-              <span className="text-sm font-normal text-muted-foreground"> מתוך {total}</span>
+              <span className="text-sm font-normal text-muted-foreground"> {t("profile.rankOf", { total })}</span>
             </div>
           </div>
         )}
@@ -95,45 +99,45 @@ export const ProfilePage = () => {
 
       {!me ? (
         <p className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">
-          עוד אין נתונים — הם יופיעו אחרי המחזור הראשון שלך שהסתיים.
+          {t("profile.empty")}
         </p>
       ) : (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            {tiles.map((t) => (
-              <div key={t.label} className="rounded-2xl border bg-card p-4">
-                <div className="text-xs text-muted-foreground">{t.label}</div>
+            {tiles.map((tile) => (
+              <div key={tile.label} className="rounded-2xl border bg-card p-4">
+                <div className="text-xs text-muted-foreground">{tile.label}</div>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tabular-nums">{t.value}</span>
-                  {"trend" in t && t.trend != null && Math.abs(t.trend) >= 0.01 && (
+                  <span className="text-2xl font-bold tabular-nums">{tile.value}</span>
+                  {"trend" in tile && tile.trend != null && Math.abs(tile.trend) >= 0.01 && (
                     <span
                       className={cn(
                         "inline-flex items-center gap-0.5 text-xs font-medium",
-                        t.trend > 0 ? "text-success" : "text-destructive"
+                        tile.trend > 0 ? "text-success" : "text-destructive"
                       )}
-                      title="לעומת אחוז הפגיעה העונתי"
+                      title={t("stats.trendTitle")}
                     >
-                      {t.trend > 0 ? <TrendingUp className="size-3.5" aria-hidden /> : <TrendingDown className="size-3.5" aria-hidden />}
-                      {Math.round(Math.abs(t.trend) * 100)}
+                      {tile.trend > 0 ? <TrendingUp className="size-3.5" aria-hidden /> : <TrendingDown className="size-3.5" aria-hidden />}
+                      {Math.round(Math.abs(tile.trend) * 100)}
                     </span>
                   )}
                 </div>
-                {"sub" in t && <div className="text-xs text-muted-foreground">{t.sub}</div>}
+                {"sub" in tile && <div className="text-xs text-muted-foreground">{tile.sub}</div>}
               </div>
             ))}
           </div>
 
           {/* Me vs group */}
           <section className="rounded-2xl border bg-card p-5 md:p-6">
-            <h2 className="text-base font-bold">אני מול הטופס המשותף והממוצע</h2>
-            <p className="mb-4 text-sm text-muted-foreground">פגיעות ב-{chartData.length} המחזורים האחרונים</p>
+            <h2 className="text-base font-bold">{t("profile.chart.title")}</h2>
+            <p className="mb-4 text-sm text-muted-foreground">{t("profile.chart.subtitle", { count: chartData.length })}</p>
             <ChartContainer config={chartConfig} className="aspect-auto h-64 w-full">
-              <LineChart data={chartData} margin={{ top: 8, left: 8, right: 0 }}>
+              <LineChart data={chartData} margin={{ top: 8, left: rtl ? 8 : 0, right: rtl ? 0 : 8 }}>
                 <CartesianGrid vertical={false} />
-                {/* RTL: oldest on the right */}
-                <XAxis dataKey="column" reversed tickLine={false} axisLine={false} tickMargin={8} minTickGap={12} />
-                <YAxis orientation="right" allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+                {/* time runs in reading direction: in RTL the oldest is on the right */}
+                <XAxis dataKey="column" reversed={rtl} tickLine={false} axisLine={false} tickMargin={8} minTickGap={12} />
+                <YAxis orientation={rtl ? "right" : "left"} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
                 <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Line
@@ -165,7 +169,7 @@ export const ProfilePage = () => {
 
           {/* History */}
           <section className="overflow-hidden rounded-2xl border bg-card">
-            <h2 className="border-b px-5 py-4 text-base font-bold md:px-6">היסטוריה</h2>
+            <h2 className="border-b px-5 py-4 text-base font-bold md:px-6">{t("profile.history")}</h2>
             <ul className="divide-y">
               {[...history].reverse().map((h) => {
                 const diff = h.group == null ? null : h.correct - h.group;
@@ -177,7 +181,7 @@ export const ProfilePage = () => {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium">{h.name}</div>
-                        <div className="text-xs text-muted-foreground">{format(new Date(h.deadline), "dd.MM.yy")}</div>
+                        <div className="text-xs text-muted-foreground">{dates.format(h.deadline, "dd.MM.yy")}</div>
                       </div>
                       <span className="font-semibold tabular-nums">
                         {h.correct}/{h.graded}
@@ -189,7 +193,7 @@ export const ProfilePage = () => {
                           diff != null && diff > 0 && "bg-brand text-brand-foreground",
                           diff != null && diff <= 0 && "bg-muted text-muted-foreground"
                         )}
-                        title="מול הטופס המשותף"
+                        title={t("profile.vsGroupBet")}
                       >
                         {diff == null ? "—" : diff > 0 ? `+${diff}` : diff}
                       </span>
