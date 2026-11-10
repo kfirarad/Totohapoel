@@ -42,7 +42,7 @@ export const AdminLayout = () => {
             </div>
 
             {/* Desktop Sidebar */}
-            <aside className="hidden md:block w-64 bg-muted border-r">
+            <aside className="hidden md:block w-64 bg-muted border-e">
                 <nav className="p-4">
                     {navItems.map((item) => (
                         <Link

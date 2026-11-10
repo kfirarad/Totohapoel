@@ -142,12 +142,12 @@ export const StatsPage = () => {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-muted-foreground">
             <tr>
-              <th className="sticky right-0 bg-muted p-3 text-right font-medium">{t("stats.player")}</th>
+              <th className="sticky start-0 bg-muted p-3 text-start font-medium">{t("stats.player")}</th>
               {columns.map((c) => (
-                <th key={c.key} className="p-0 text-right font-medium whitespace-nowrap" aria-sort={sortKey === c.key ? "descending" : undefined}>
+                <th key={c.key} className="p-0 text-start font-medium whitespace-nowrap" aria-sort={sortKey === c.key ? "descending" : undefined}>
                   <button
                     onClick={() => setSortKey(c.key)}
-                    className={cn("w-full p-3 text-right", sortKey === c.key && "font-semibold text-foreground")}
+                    className={cn("w-full p-3 text-start", sortKey === c.key && "font-semibold text-foreground")}
                   >
                     {c.label}
                     {sortKey === c.key && " ↓"}
@@ -159,7 +159,7 @@ export const StatsPage = () => {
           <tbody>
             {sorted.map((p, i) => (
               <tr key={p.userId} className="border-b last:border-0">
-                <td className="sticky right-0 bg-card p-3 whitespace-nowrap">
+                <td className="sticky start-0 bg-card p-3 whitespace-nowrap">
                   <span className="inline-flex items-center gap-2">
                     <span className="w-5 text-muted-foreground tabular-nums">{i + 1}</span>
                     <Avatar url={p.avatarUrl} name={p.name} />

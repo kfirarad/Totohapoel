@@ -414,7 +414,8 @@ export const Column = () => {
       disabled={!target}
       onClick={() => target && navigate(`/column/${target.id}`)}
     >
-      <Icon className="size-[18px]" />
+      {/* icons are drawn for RTL (previous points right); mirror them in LTR */}
+      <Icon className="size-[18px] ltr:-scale-x-100" />
     </Button>
   );
 

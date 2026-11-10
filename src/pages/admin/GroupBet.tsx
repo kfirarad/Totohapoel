@@ -212,7 +212,7 @@ export const GroupBet = () => {
             <section className="flex flex-col gap-4 rounded-2xl border bg-card p-4 md:flex-row md:items-center md:justify-between md:p-6">
                 <div>
                     <Link to="/admin/columns" className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-                        <ChevronRight className="size-4" aria-hidden />
+                        <ChevronRight className="size-4 ltr:-scale-x-100" aria-hidden />
                         {t('glossary:columns')}
                     </Link>
                     <h1 className="text-xl font-bold tracking-tight md:text-2xl">{t('groupBet.title', { name: column.name })}</h1>
