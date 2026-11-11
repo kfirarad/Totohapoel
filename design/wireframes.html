@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toto Chaverim Wireframes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f3f1; --surface:#ffffff; --ink:#1b1b1b; --muted:#6d6d6a; --line:#d8d8d4; --fill:#ececea; --fill2:#dcdcd8;
+  --accent:#2563eb; --accent-ink:#ffffff; --accent-soft:#dde7ff; --dim:rgba(0,0,0,.38); --frame:#2b2b2b;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f0f10; --surface:#1b1b1d; --ink:#ececec; --muted:#9b9b98; --line:#34343a; --fill:#28282c; --fill2:#38383e;
+    --accent:#5b8cff; --accent-ink:#0b1020; --accent-soft:#1c2846; --dim:rgba(0,0,0,.6); --frame:#4a4a50;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f0f10; --surface:#1b1b1d; --ink:#ececec; --muted:#9b9b98; --line:#34343a; --fill:#28282c; --fill2:#38383e;
+  --accent:#5b8cff; --accent-ink:#0b1020; --accent-soft:#1c2846; --dim:rgba(0,0,0,.6); --frame:#4a4a50;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;font-size:15px;line-height:1.45;overflow-x:hidden}
+.page{max-width:1760px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:28px;margin:0 0 4px;letter-spacing:-.02em}
+h2{font-size:19px;margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.lead{color:var(--muted);margin:0 0 24px;max-width:860px}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--fill);padding:1px 5px;border-radius:4px}
+
+/* flow */
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.flow .n{border:1.5px solid var(--ink);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px;background:var(--surface)}
+.flow .d{border:1.5px dashed var(--accent);color:var(--accent);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600}
+.flow .a{color:var(--muted);font-size:13px}
+.flow .end{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.flow .br{display:flex;flex-direction:column;gap:6px}
+.flow small{color:var(--muted);font-weight:400}
+
+/* grid of frames */
+.grid{display:flex;flex-wrap:wrap;gap:40px 32px;justify-content:flex-start}
+.frame{width:min(390px,100%);display:flex;flex-direction:column;gap:10px}
+.label{font-weight:700;font-size:15px}
+.label span{color:var(--muted);font-weight:400}
+.note{font-size:13px;color:var(--ink);background:var(--surface);border-inline-start:3px solid var(--accent);padding:8px 10px;border-radius:6px}
+.rn{font-size:12px;color:var(--muted);line-height:1.9}
+
+/* phone */
+.phone{position:relative;height:844px;background:var(--surface);border:10px solid var(--frame);border-radius:46px;overflow:hidden;display:flex;flex-direction:column;text-align:start}
+.phone.tall{height:1560px}
+.status{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:13px;font-weight:600;direction:ltr}
+.status i{width:96px;height:26px;background:var(--frame);border-radius:20px}
+.home{position:absolute;bottom:7px;inset-inline:0;margin:auto;width:120px;height:4px;border-radius:4px;background:var(--ink);opacity:.5}
+.body{flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column;gap:12px}
+.body.pad{padding-top:8px}
+
+/* native header */
+.hdr{flex:none;height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line)}
+.hdr .title{flex:1;text-align:center;font-weight:700;font-size:16px}
+.hdr .side{min-width:64px;color:var(--accent);font-size:15px}
+.hdr .side.end{text-align:end}
+.gbtn{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;padding-inline:6px 10px;border-radius:999px;background:var(--fill);font-weight:700;font-size:15px;max-width:230px}
+.gbtn .chev{color:var(--muted);font-size:11px}
+.spacer{flex:1}
+.largetitle{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:4px 0 0}
+
+/* atoms */
+.av{flex:none;width:32px;height:32px;border-radius:50%;background:var(--fill2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line)}
+.av.sm{width:26px;height:26px;font-size:11px}
+.av.lg{width:56px;height:56px;font-size:18px}
+.av.xl{width:88px;height:88px;font-size:26px}
+.av.sq{border-radius:10px}
+.av.lg.sq{border-radius:16px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.xs{font-size:11.5px}
+.b{font-weight:700}
+.row{display:flex;align-items:center;gap:10px}
+.col{display:flex;flex-direction:column;gap:4px}
+.grow{flex:1;min-width:0}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;font-weight:700;font-size:16px;border:1.5px solid var(--ink);background:var(--surface)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.btn.ghost{border-color:transparent;color:var(--accent);height:40px}
+.btn.sm{height:36px;font-size:14px;border-radius:10px;padding:0 12px}
+.btn.danger{border-color:transparent;color:var(--ink);text-decoration:underline}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--fill);color:var(--muted);white-space:nowrap}
+.chip.acc{background:var(--accent-soft);color:var(--accent)}
+.chip.out{background:transparent;border:1px dashed var(--muted)}
+.card{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--surface)}
+.card.fill{background:var(--fill);border-color:transparent}
+.field{height:46px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;padding:0 12px;background:var(--surface)}
+.field.ph{color:var(--muted)}
+.lbl{font-size:12.5px;color:var(--muted);margin-bottom:-6px;font-weight:600}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--fill);border-radius:10px;padding:3px;gap:2px;font-size:13.5px;font-weight:600}
+.seg span{text-align:center;padding:6px 4px;border-radius:8px;color:var(--muted);white-space:nowrap}
+.seg .on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.sw{flex:none;width:46px;height:28px;border-radius:999px;background:var(--fill2);position:relative}
+.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw.on{background:var(--accent)}
+.sw.on::after{inset-inline-start:21px}
+[dir="rtl"] .sw.on::after{inset-inline-start:21px}
+.list{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+.li{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);min-height:50px}
+.li:last-child{border-bottom:0}
+.li .chev{color:var(--muted)}
+.sect{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 4px -6px}
+.chev::after{content:"‹"}
+[dir="ltr"] .chev::after{content:"›"}
+.icon{flex:none;width:28px;height:28px;border-radius:8px;background:var(--fill);display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+.check{color:var(--accent);font-weight:800}
+.callout{position:absolute;z-index:5;background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;direction:ltr}
+.box{border:1.5px dashed var(--line);border-radius:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;text-align:center;padding:10px}
+
+/* tabs */
+.tabs{flex:none;height:82px;border-top:1px solid var(--line);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding-top:8px;background:var(--surface)}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
+.tabs span::before{content:"";width:24px;height:24px;border-radius:7px;border:2px solid currentColor}
+.tabs .on{color:var(--accent)}
+
+/* column */
+.colnav{display:flex;align-items:center;gap:8px}
+.navb{flex:none;width:40px;height:40px;border-radius:12px;background:var(--fill);display:flex;align-items:center;justify-content:center;color:var(--ink);font-weight:700}
+.navb.off{opacity:.35}
+.colttl{flex:1;text-align:center}
+.colttl .b{font-size:18px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tile{background:var(--fill);border-radius:12px;padding:8px 10px}
+.tile .top{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted)}
+.tile .top b{color:var(--ink);font-size:15px}
+.bar{height:4px;border-radius:4px;background:var(--fill2);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink);border-radius:4px}
+.bar.acc i{background:var(--accent)}
+.games{border-top:1px solid var(--line);margin:0 -16px}
+.game{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.gmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.gmeta b{color:var(--ink)}
+.teams{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;text-align:center;font-size:15px;font-weight:600}
+.teams i{font-style:normal;font-size:12px;color:var(--muted);font-weight:400;align-self:center}
+.picks{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.picks span{height:44px;border-radius:12px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;position:relative}
+.picks .on{background:var(--accent);color:var(--accent-ink)}
+.picks .hit{background:var(--accent);color:var(--accent-ink)}
+.picks .hit::after{content:"✓";position:absolute;inset-inline-end:10px;font-size:13px}
+.picks .miss{background:var(--ink);color:var(--surface);text-decoration:line-through}
+.picks .fade{background:var(--accent);color:var(--accent-ink);opacity:.35}
+.picks .res{outline:2px dashed var(--accent);outline-offset:-2px}
+.more{padding:10px 16px;text-align:center;color:var(--muted);font-size:13px}
+.footer{flex:none;border-top:1px solid var(--line);padding:10px 16px 26px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.count{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px}
+
+/* heatmap */
+.hm{display:flex;flex-direction:column;gap:6px}
+.hmrow{display:grid;grid-template-columns:1fr 150px;gap:8px;align-items:center;font-size:13px}
+.hmcells{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.hmcells span{height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink)}
+.h0{background:var(--fill)} .h1{background:color-mix(in srgb,var(--accent) 22%,var(--fill))} .h2{background:color-mix(in srgb,var(--accent) 48%,var(--fill))} .h3{background:color-mix(in srgb,var(--accent) 78%,var(--fill));color:var(--accent-ink)!important}
+.hmcells .mine{outline:2px solid var(--ink);outline-offset:-2px}
+.hmcells .r{position:relative}
+.hmcells .r::after{content:"✓";position:absolute;top:1px;inset-inline-end:4px;font-size:10px}
+.voters{grid-column:1/-1;background:var(--fill);border-radius:10px;padding:8px 10px;font-size:12px;display:flex;flex-direction:column;gap:4px}
+
+/* leaderboard */
+.lb .li{padding:9px 12px;min-height:44px}
+.rank{width:20px;text-align:center;font-weight:700;color:var(--muted);font-size:13px}
+.me{background:var(--accent-soft)}
+.gb{background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.score{font-weight:800;font-variant-numeric:tabular-nums}
+
+/* sheet */
+.dim{position:absolute;inset:0;background:var(--dim);z-index:2}
+.sheet{position:absolute;inset-inline:0;bottom:0;z-index:3;background:var(--surface);border-radius:22px 22px 0 0;padding:8px 16px 34px;display:flex;flex-direction:column;gap:12px}
+.grab{width:40px;height:5px;border-radius:5px;background:var(--fill2);margin:0 auto 4px}
+.bg{filter:grayscale(1);opacity:.9}
+
+/* misc */
+.center{align-items:center;text-align:center}
+.spark{display:flex;align-items:flex-end;gap:4px;height:44px}
+.spark i{flex:1;background:var(--fill2);border-radius:3px 3px 0 0}
+.spark i.acc{background:var(--accent)}
+.stat{background:var(--fill);border-radius:12px;padding:10px}
+.stat .v{font-size:22px;font-weight:800;line-height:1.1}
+.stats4{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.codebox{display:flex;gap:6px;justify-content:center;direction:ltr}
+.codebox span{width:44px;height:54px;border:1.5px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800}
+.codebox span.cur{border-color:var(--accent)}
+.menu{position:absolute;z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);width:200px;font-size:14px;overflow:hidden}
+.menu div{padding:10px 14px;border-bottom:1px solid var(--line)}
+.menu div:last-child{border-bottom:0}
+.decisions{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 20px;max-width:980px}
+.decisions li{margin:8px 0}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw8{width:22px;height:16px;border-radius:4px;display:inline-block}
+@media (max-width:600px){ .page{padding-top:20px} .grid{gap:32px} h1{font-size:23px} }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>טוטו חברים (Toto Chaverim) — Expo app wireframes</h1>
+<p class="lead">Low/mid-fi, grayscale + one accent. UI copy in Hebrew RTL (primary audience); screens 2b and 7 are repeated in English LTR to show the mirrored layout. Under each frame: a short rationale and the RN/Expo building blocks it maps to. Built only from logical properties (start/end), so RTL/LTR mirroring is automatic in RN with <code>marginStart</code>/<code>paddingEnd</code>.</p>
+
+<h2>Entry flow</h2>
+<div class="flow" dir="rtl">
+  <span class="n">Launch</span><span class="a">←</span>
+  <span class="d">Session?</span><span class="a">no ←</span>
+  <span class="n">1 · Sign in <small>Apple / Google</small></span><span class="a">←</span>
+  <span class="d">last_group_id still active?</span>
+  <span class="br">
+    <span class="row"><span class="a">yes ←</span><span class="n end">5 · In-group: Column tab</span></span>
+    <span class="row"><span class="a">no ←</span><span class="n">2 · Groups home</span><span class="a">←</span><span class="n">3 Create / 4 Join / select</span><span class="a">←</span><span class="n end">In-group</span></span>
+  </span>
+  <span class="a" style="flex-basis:100%;height:0"></span>
+  <span class="n">Invite link <small>/join/CODE</small></span><span class="a">← (sign in if needed, code is kept) ←</span><span class="n">4b · Deep-link landing</span><span class="a">←</span><span class="d">open group?</span><span class="a">yes ← In-group · no ← "awaiting approval"</span>
+</div>
+<div class="legend">
+  <span><i class="sw8" style="background:var(--accent)"></i>accent = my pick / primary action / hit</span>
+  <span><i class="sw8" style="background:var(--ink)"></i>dark + strikethrough = missed pick</span>
+  <span><i class="sw8" style="outline:2px dashed var(--accent);outline-offset:-2px"></i>dashed = actual result</span>
+  <span><i class="sw8" style="background:color-mix(in srgb,var(--accent) 48%,var(--fill))"></i>heatmap intensity = vote share</span>
+</div>
+
+<h2>Onboarding &amp; groups</h2>
+<div class="grid">
+
+<!-- 1 SIGN IN -->
+<div class="frame">
+  <div class="label">1 · Sign in <span>התחברות</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="body">
+      <div class="row" style="justify-content:flex-end"><div class="seg" style="width:120px"><span class="on">עב</span><span>EN</span></div></div>
+      <div class="col center" style="margin-top:120px;gap:10px">
+        <div class="av xl sq">⚽</div>
+        <div class="largetitle">טוטו חברים</div>
+        <div class="muted" style="max-width:260px">ממלאים טור אחד בשבוע, מתחרים בכל הקבוצות שלך</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="col" style="gap:10px">
+        <div class="btn dark"> המשך עם Apple</div>
+        <div class="btn">G&nbsp; המשך עם Google</div>
+      </div>
+      <div class="xs muted" style="text-align:center;margin-bottom:40px">בהמשך את/ה מסכים/ה <u>לתנאי השימוש</u> ול<u>מדיניות הפרטיות</u></div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Apple button first (App Store rule when offering Google). Language toggle is here, before login, because flipping RTL needs an app reload — cheaper now than after onboarding.</div>
+  <div class="rn"><code>AppleAuthenticationButton</code> <code>GoogleSigninButton</code> <code>signInWithIdToken</code> <code>expo-secure-store</code> segmented → <code>I18nManager.forceRTL</code> + <code>Updates.reloadAsync</code></div>
+</div>
+
+<!-- 2a GROUPS EMPTY -->
+<div class="frame">
+  <div class="label">2a · Groups home — empty <span>אין קבוצות</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side"></span><span class="title">הקבוצות שלי</span><span class="side end"><span class="av sm">כ</span></span></div>
+    <div class="body pad">
+      <div class="col" style="margin:16px 0 4px"><div class="largetitle" style="font-size:24px">היי כפיר 👋</div><div class="muted">עוד לא שייך לאף קבוצה. איך מתחילים?</div></div>
+      <div class="card row" style="padding:16px;border:1.5px solid var(--accent)"><div class="icon" style="background:var(--accent);color:var(--accent-ink)">＋</div><div class="grow"><div class="b">צור קבוצה</div><div class="small muted">הזמן חברים עם קישור או קוד</div></div><span class="chev"></span></div>
+      <div class="card row" style="padding:16px"><div class="icon">#</div><div class="grow"><div class="b">הצטרף עם קוד</div><div class="small muted">קיבלת קוד או קישור מחבר?</div></div><span class="chev"></span></div>
+      <div class="spacer"></div>
+      <div class="box" style="margin-bottom:40px">הטור שלך נספר בכל קבוצה שתצטרף אליה — ממלאים פעם אחת</div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Two entry cards; "Create" is accented since it's the growth path. No default/public group — "play with existing" is the non-empty list (2b). No tabs yet — tabs only exist inside a group.</div>
+  <div class="rn"><code>Stack</code> screen <code>groups/index</code> · <code>Pressable</code> cards · <code>expo-image</code> avatar</div>
+</div>
+
+<!-- 2b GROUPS LIST -->
+<div class="frame">
+  <div class="label">2b · Groups home — my groups</div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side"><span class="av sm">כ</span></span><span class="title">הקבוצות שלי</span><span class="side end" style="font-size:22px">＋</span></div>
+    <div class="body pad">
+      <div class="card fill row small"><div class="grow"><b>מחזור 42</b> · נסגר שבת 16:00<div class="muted xs">טור אחד נספר בכל 3 הקבוצות</div></div><span class="count">11/16</span></div>
+      <div class="list">
+        <div class="li"><div class="av lg sq">טה</div><div class="grow"><div class="b">טוטו הפועל</div><div class="small muted">23 חברים · טוטו 16</div></div><div class="col" style="align-items:flex-end"><span class="chip acc">מקום 3</span><span class="chev"></span></div></div>
+        <div class="li"><div class="av lg sq">עב</div><div class="grow"><div class="b">חבר׳ה מהעבודה</div><div class="small muted">9 חברים · טוטו 16 + טור מותאם</div></div><div class="col" style="align-items:flex-end"><span class="chip acc">מקום 1</span><span class="chev"></span></div></div>
+        <div class="li"><div class="av lg sq">מש</div><div class="grow"><div class="b">משפחה</div><div class="small muted">6 חברים · <span class="chip">מנהל</span></div></div><div class="col" style="align-items:flex-end"><span class="chip">מקום 5</span><span class="chev"></span></div></div>
+        <div class="li" style="opacity:.6"><div class="av lg sq">כד</div><div class="grow"><div class="b">כדורגל שישי</div><div class="small muted">14 חברים · סגורה</div></div><span class="chip out">ממתין לאישור</span></div>
+      </div>
+      <div class="row" style="gap:8px"><div class="btn sm grow">＋ צור קבוצה</div><div class="btn sm grow"># הצטרף עם קוד</div></div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Top banner reinforces "one bet, every group" and shows fill progress so users don't think they must fill per group. Pending rows are dimmed, not tappable (tap → "cancel request" alert).</div>
+  <div class="rn"><code>FlatList</code> · <code>Stack.Screen headerRight</code> (＋ opens <code>ActionSheetIOS</code>/menu) · <code>expo-image</code></div>
+</div>
+
+<!-- 3 CREATE -->
+<div class="frame">
+  <div class="label">3 · Create group <span>קבוצה חדשה (modal)</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side">ביטול</span><span class="title">קבוצה חדשה</span><span class="side end b">צור</span></div>
+    <div class="body pad" style="gap:14px">
+      <div class="col center" style="margin-top:8px"><div class="av xl sq">📷</div><span class="small" style="color:var(--accent)">הוסף תמונה</span></div>
+      <div class="lbl">שם הקבוצה</div>
+      <div class="field">חבר׳ה מהעבודה</div>
+      <div class="lbl">מי יכול להצטרף</div>
+      <div class="seg"><span>פתוחה</span><span class="on">סגורה</span></div>
+      <div class="xs muted" style="margin-top:-8px">סגורה: כל מי שיש לו קוד שולח בקשה, ומנהל מאשר</div>
+      <div class="lbl">סוגי טוטו</div>
+      <div class="list">
+        <div class="li"><div class="grow"><div class="b">טוטו 16 – ישראל</div><div class="xs muted">כל סופ״ש · 16 משחקים</div></div><span class="check">✓</span></div>
+        <div class="li"><div class="grow"><div class="b">טוטו ליגות אירופה</div><div class="xs muted">אמצע שבוע · 13 משחקים</div></div><span></span></div>
+        <div class="li"><div class="grow"><div class="b">טוטו ליגת האלופות</div><div class="xs muted">בשלב הבתים · 10 משחקים</div></div><span></span></div>
+      </div>
+      <div class="xs muted">טורים מותאמים אישית אפשר להוסיף אחר כך בהגדרות הקבוצה</div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Presented as a modal with Cancel/Create in the header (iOS convention) — no scrolling submit button. Default closed: safer for strangers with a leaked code. After create → straight to Members with the Share sheet open.</div>
+  <div class="rn"><code>Stack presentation="modal"</code> · <code>TextInput</code> · <code>expo-image-picker</code> · custom segmented (<code>Pressable</code> row) · <code>FlatList</code> multi-select</div>
+</div>
+
+<!-- 4a JOIN CODE -->
+<div class="frame">
+  <div class="label">4a · Join — enter code</div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side">ביטול</span><span class="title">הצטרפות לקבוצה</span><span class="side end"></span></div>
+    <div class="body pad" style="gap:16px">
+      <div class="col center" style="margin-top:40px"><div class="b" style="font-size:20px">הזן קוד הזמנה</div><div class="muted small">6 תווים, קיבלת אותו ממנהל הקבוצה</div></div>
+      <div class="codebox"><span>K</span><span>7</span><span>Q</span><span>2</span><span class="cur"></span><span></span></div>
+      <div class="btn primary" style="opacity:.45">המשך</div>
+      <div class="btn ghost">הדבק מהלוח</div>
+      <div class="spacer"></div>
+      <div class="box">⌨ מקלדת · <code>autoCapitalize="characters"</code></div>
+      <div style="height:260px"></div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Single hidden <code>TextInput</code> rendered as 6 boxes (one-time-code pattern). Auto-advances to 4b when the 6th char lands — no extra tap.</div>
+  <div class="rn"><code>TextInput</code> · <code>expo-clipboard</code> · <code>KeyboardAvoidingView</code></div>
+</div>
+
+<!-- 4b DEEP LINK LANDING -->
+<div class="frame">
+  <div class="label">4b · Join — invite landing <span>/join/K7Q2XA</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side">סגור</span><span class="title"></span><span class="side end"></span></div>
+    <div class="body pad" style="gap:14px">
+      <div class="col center" style="margin-top:40px;gap:8px">
+        <div class="av xl sq">כד</div>
+        <div class="b" style="font-size:22px">כדורגל שישי</div>
+        <div class="row small muted" style="justify-content:center"><span>14 חברים</span>·<span class="chip">סגורה</span></div>
+        <div class="row" style="justify-content:center;gap:-6px"><span class="av sm">ד</span><span class="av sm">ר</span><span class="av sm">ע</span><span class="av sm">+11</span></div>
+        <div class="small muted">דני ורון כבר בפנים</div>
+      </div>
+      <div class="card fill small">משחקים ב: <b>טוטו 16 – ישראל</b><br>הטור שלך למחזור 42 (11/16) ייספר גם כאן</div>
+      <div class="spacer"></div>
+      <div class="btn primary">בקש להצטרף</div>
+      <div class="xs muted" style="text-align:center;margin-bottom:40px">קבוצה סגורה — מנהל יאשר את הבקשה</div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Universal link opens here (or after sign-in; code is held in memory). Preview before commit; CTA copy changes: open → "הצטרף", closed → "בקש להצטרף". Already a member → redirect into the group.</div>
+  <div class="rn"><code>expo-router join/[code]</code> · <code>expo-linking</code> universal link · <code>expo-image</code></div>
+</div>
+
+<!-- 4c RESULT STATES -->
+<div class="frame">
+  <div class="label">4c · Join — result states</div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="body pad" style="gap:16px">
+      <div class="xs muted b" style="direction:ltr;text-align:left">A · open group</div>
+      <div class="card col center" style="padding:24px;gap:10px">
+        <div class="av lg" style="background:var(--accent);color:var(--accent-ink);border:0;font-size:26px">✓</div>
+        <div class="b" style="font-size:19px">הצטרפת לחבר׳ה מהעבודה!</div>
+        <div class="small muted">הטור שלך כבר נספר כאן · מקום 4 מתוך 10 במחזור הנוכחי</div>
+        <div class="btn primary" style="width:100%">כניסה לקבוצה</div>
+      </div>
+      <div class="xs muted b" style="direction:ltr;text-align:left">B · closed group</div>
+      <div class="card col center" style="padding:24px;gap:10px">
+        <div class="av lg" style="font-size:24px">⏳</div>
+        <div class="b" style="font-size:19px">הבקשה נשלחה</div>
+        <div class="small muted">נעדכן אותך בהתראה כשמנהל יאשר.<br>בינתיים הטור שלך ממשיך להיספר בקבוצות האחרות.</div>
+        <div class="btn" style="width:100%">חזרה לקבוצות שלי</div>
+        <div class="btn ghost">בטל בקשה</div>
+      </div>
+      <div class="xs muted b" style="direction:ltr;text-align:left">C · errors (inline under code field)</div>
+      <div class="card small">קוד לא תקין או שפג תוקפו · <span style="color:var(--accent)">נסה שוב</span></div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Success haptic on join. Pending state relies on a push ("approved") — this is why the profile has a join-request notification toggle.</div>
+  <div class="rn"><code>expo-haptics</code> · <code>expo-notifications</code></div>
+</div>
+
+</div>
+
+<h2>In-group shell</h2>
+<div class="grid">
+
+<!-- 5 SHELL -->
+<div class="frame">
+  <div class="label">5 · In-group shell <span>header + tabs</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr" style="position:relative"><div class="gbtn"><span class="av sm sq">טה</span>טוטו הפועל<span class="chev" style="transform:rotate(-90deg)"></span></div><span class="spacer"></span><span class="av">כ</span>
+      <span class="callout" style="top:50px;right:12px">Group button → sheet (6)</span>
+      <span class="callout" style="top:50px;left:8px">Profile → 12</span>
+    </div>
+    <div class="body pad" style="padding-top:36px">
+      <div class="box" style="height:90px">כותרת הטור · ניווט טור קודם/הבא</div>
+      <div class="box" style="flex:1">תוכן הטאב</div>
+    </div>
+    <div class="tabs" style="position:relative"><span class="on">טור</span><span>סטטיסטיקה</span><span>חברים</span>
+      <span class="callout" style="top:-26px;left:50%;transform:translateX(-50%)">3 tabs, same for every role</span>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note"><b>Settings is not a tab.</b> Tabs stay identical across groups even when my role differs (admin in one, member in another), so switching groups never reshuffles the bar. Admins reach Settings from the Members tab header (⚙) and the switcher sheet — it's a weekly-at-most task.</div>
+  <div class="rn"><code>expo-router g/[groupId]/_layout</code> (<code>Stack</code>, custom <code>headerLeft/Right</code>) → <code>(tabs)/_layout</code> <code>Tabs</code></div>
+</div>
+
+<!-- 6 SWITCHER SHEET -->
+<div class="frame">
+  <div class="label">6 · Group switcher <span>bottom sheet</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr bg"><div class="gbtn"><span class="av sm sq">טה</span>טוטו הפועל</div><span class="spacer"></span><span class="av">כ</span></div>
+    <div class="body pad bg"><div class="box" style="height:120px">טור</div><div class="box" style="flex:1"></div></div>
+    <div class="dim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="row"><div class="b grow" style="font-size:18px">הקבוצות שלי</div><span class="small" style="color:var(--accent)">ניהול</span></div>
+      <div class="list">
+        <div class="li me"><div class="av sq">טה</div><div class="grow"><div class="b">טוטו הפועל</div><div class="xs muted">23 חברים · מקום 3</div></div><span class="check">✓</span></div>
+        <div class="li"><div class="av sq">עב</div><div class="grow"><div class="b">חבר׳ה מהעבודה</div><div class="xs muted">9 חברים · מקום 1</div></div><span class="chip acc">2 בקשות</span></div>
+        <div class="li"><div class="av sq">מש</div><div class="grow"><div class="b">משפחה</div><div class="xs muted">6 חברים · מקום 5</div></div></div>
+        <div class="li" style="opacity:.6"><div class="av sq">כד</div><div class="grow"><div class="b">כדורגל שישי</div></div><span class="chip out">ממתין</span></div>
+      </div>
+      <div class="row" style="gap:8px"><div class="btn sm grow">＋ צור קבוצה</div><div class="btn sm grow"># הצטרף עם קוד</div></div>
+      <div class="row small" style="gap:8px;justify-content:center"><span style="color:var(--accent)">⤴ הזמן חברים לטוטו הפועל</span><span class="muted">·</span><span style="color:var(--accent)">⚙ הגדרות</span></div>
+    </div>
+    <div class="home" style="z-index:4"></div>
+  </div>
+  <div class="note">Switching keeps the current tab (Stats → Stats) and writes <code>last_group_id</code>. Badge on another group = admin work waiting there. "הגדרות" link only rendered for admins of the current group.</div>
+  <div class="rn"><code>Stack presentation="formSheet"</code> + <code>sheetAllowedDetents</code> (or <code>@gorhom/bottom-sheet</code>) · <code>FlatList</code> · <code>Share</code></div>
+</div>
+
+</div>
+
+<h2>Column</h2>
+<div class="grid">
+
+<!-- 7 COLUMN BEFORE -->
+<div class="frame">
+  <div class="label">7 · Column — before deadline <span>picking</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><div class="gbtn"><span class="av sm sq">עב</span>חבר׳ה מהעבודה<span class="chev" style="transform:rotate(-90deg)"></span></div><span class="spacer"></span><span class="av">כ</span></div>
+    <div class="body pad">
+      <div class="seg"><span class="on">טוטו 16</span><span>טור מותאם: דרבי</span></div>
+      <div class="colnav"><span class="navb">›</span><div class="colttl"><div class="b">מחזור 42</div><div class="small muted">נסגר שבת 16:00 · <b style="color:var(--accent)">בעוד 2 ימים 4 שע׳</b></div></div><span class="navb off">‹</span></div>
+      <div class="tiles">
+        <div class="tile"><div class="top">מלאים<b>11/16</b></div><div class="bar acc"><i style="width:69%"></i></div></div>
+        <div class="tile"><div class="top">כפולים<b>3/5</b></div><div class="bar"><i style="width:60%"></i></div></div>
+        <div class="tile"><div class="top">משולשים<b>4/4</b></div><div class="bar"><i style="width:100%"></i></div></div>
+      </div>
+      <div class="games">
+        <div class="game"><div class="gmeta"><span><b>1</b> · ליגת העל</span><span>שבת 19:30</span></div><div class="teams"><span>מכבי חיפה</span><i>נגד</i><span>הפועל ב״ש</span></div><div class="picks"><span class="on">1</span><span>X</span><span>2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>2</b> · ליגת העל</span><span>שבת 20:00</span></div><div class="teams"><span>בית״ר ירושלים</span><i>נגד</i><span>מכבי ת״א</span></div><div class="picks"><span class="on">1</span><span class="on">X</span><span class="on">2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>3</b> · ליגת העל</span><span>שבת 21:00</span></div><div class="teams"><span>הפועל ת״א</span><i>נגד</i><span>בני סכנין</span></div><div class="picks"><span class="on">1</span><span class="on">X</span><span>2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>4</b> · פרמייר ליג</span><span>שבת 17:00</span></div><div class="teams"><span>ליברפול</span><i>נגד</i><span>ארסנל</span></div><div class="picks"><span>1</span><span>X</span><span>2</span></div></div>
+        <div class="more">⋯ עוד 12 משחקים</div>
+      </div>
+    </div>
+    <div class="footer"><div class="row small"><span class="count">11/16</span><span class="muted grow">עוד 5 משחקים למלא</span><span class="muted xs">נספר ב-3 קבוצות</span></div><div class="btn primary">שלח טופס</div></div>
+  </div>
+  <div class="note">Rows stack teams over three 44pt-high full-width toggles (port of web "board" layout). Tap toggles a pick; a 2nd pick = double, 3rd = triple; tiles go dark at the cap and further over-limit taps shake + haptic. Top segmented only appears when the group has &gt;1 open column this week.</div>
+  <div class="rn"><code>FlatList</code> (sticky footer outside list) · <code>Pressable</code> ×3 · <code>expo-haptics</code> · <code>AsyncStorage</code> draft · <code>react-native-reanimated</code> shake</div>
+</div>
+
+<!-- 7 EN -->
+<div class="frame">
+  <div class="label">7 · Column — before deadline <span>English LTR (mirrored)</span></div>
+  <div class="phone" dir="ltr" lang="en">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><div class="gbtn"><span class="av sm sq">W</span>Work buddies<span class="chev" style="transform:rotate(90deg)"></span></div><span class="spacer"></span><span class="av">K</span></div>
+    <div class="body pad">
+      <div class="seg"><span class="on">Toto 16</span><span>Custom: Derby</span></div>
+      <div class="colnav"><span class="navb">‹</span><div class="colttl"><div class="b">Round 42</div><div class="small muted">Closes Sat 16:00 · <b style="color:var(--accent)">in 2d 4h</b></div></div><span class="navb off">›</span></div>
+      <div class="tiles">
+        <div class="tile"><div class="top">Filled<b>11/16</b></div><div class="bar acc"><i style="width:69%"></i></div></div>
+        <div class="tile"><div class="top">Doubles<b>3/5</b></div><div class="bar"><i style="width:60%"></i></div></div>
+        <div class="tile"><div class="top">Triples<b>4/4</b></div><div class="bar"><i style="width:100%"></i></div></div>
+      </div>
+      <div class="games">
+        <div class="game"><div class="gmeta"><span><b>1</b> · Ligat Ha'Al</span><span>Sat 19:30</span></div><div class="teams"><span>Maccabi Haifa</span><i>vs</i><span>Hapoel B7</span></div><div class="picks"><span class="on">1</span><span>X</span><span>2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>2</b> · Ligat Ha'Al</span><span>Sat 20:00</span></div><div class="teams"><span>Beitar Jerusalem</span><i>vs</i><span>Maccabi TA</span></div><div class="picks"><span class="on">1</span><span class="on">X</span><span class="on">2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>3</b> · Ligat Ha'Al</span><span>Sat 21:00</span></div><div class="teams"><span>Hapoel TA</span><i>vs</i><span>Bnei Sakhnin</span></div><div class="picks"><span class="on">1</span><span class="on">X</span><span>2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>4</b> · Premier League</span><span>Sat 17:00</span></div><div class="teams"><span>Liverpool</span><i>vs</i><span>Arsenal</span></div><div class="picks"><span>1</span><span>X</span><span>2</span></div></div>
+        <div class="more">⋯ 12 more games</div>
+      </div>
+    </div>
+    <div class="footer"><div class="row small"><span class="count">11/16</span><span class="muted grow">5 games left</span><span class="muted xs">counts in 3 groups</span></div><div class="btn primary">Submit picks</div></div>
+  </div>
+  <div class="note">Everything mirrors, including the picks row: "1" always sits under the home team on the start side (right in Hebrew, left in English), "2" under the away team — same as the current web app. Only the countdown digits and the invite code stay LTR.</div>
+  <div class="rn">Same components; <code>flexDirection:'row'</code> auto-flips under <code>I18nManager.isRTL</code> — no per-language layout code.</div>
+</div>
+
+<!-- 8 COLUMN AFTER -->
+<div class="frame">
+  <div class="label">8 · Column — after deadline <span>full scroll height</span></div>
+  <div class="phone tall" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><div class="gbtn"><span class="av sm sq">טה</span>טוטו הפועל<span class="chev" style="transform:rotate(-90deg)"></span></div><span class="spacer"></span><span class="av">כ</span></div>
+    <div class="body pad">
+      <div class="colnav"><span class="navb">›</span><div class="colttl"><div class="b">מחזור 41</div><div class="small muted">נסגר ב-1 בנובמבר · 14/16 תוצאות</div></div><span class="navb">‹</span></div>
+      <div class="seg" style="padding:4px">
+        <span class="on" style="text-align:start;padding:8px 10px"><div class="xs muted">אני</div><div style="font-size:22px;font-weight:800">71% <span class="small muted" style="font-weight:400">10/14</span></div><div class="bar acc"><i style="width:71%"></i></div></span>
+        <span style="text-align:start;padding:8px 10px"><div class="xs">הטופס המשותף</div><div style="font-size:22px;font-weight:800;color:var(--ink)">64% <span class="small muted" style="font-weight:400">9/14</span></div><div class="bar"><i style="width:64%"></i></div></span>
+      </div>
+      <div class="row" style="gap:6px"><div class="seg grow"><span class="on">טור</span><span>הצבעות</span></div><div class="seg" style="width:150px"><span class="on">הכל</span><span>✓</span><span>✗</span><span>⏱</span></div></div>
+      <div class="games">
+        <div class="game"><div class="gmeta"><span><b>1</b> · ליגת העל · <b>2–0</b></span><span>✓</span></div><div class="teams"><span><b>מכבי חיפה</b></span><i>נגד</i><span>הפועל ב״ש</span></div><div class="picks"><span class="hit res">1</span><span>X</span><span>2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>2</b> · ליגת העל · <b>1–1</b></span><span>✓</span></div><div class="teams"><span>בית״ר ירושלים</span><i>נגד</i><span>מכבי ת״א</span></div><div class="picks"><span class="fade">1</span><span class="hit res">X</span><span class="fade">2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>3</b> · ליגת העל · <b>0–1</b></span><span>✗</span></div><div class="teams"><span>הפועל ת״א</span><i>נגד</i><span><b>בני סכנין</b></span></div><div class="picks"><span class="miss">1</span><span class="miss">X</span><span class="res">2</span></div></div>
+        <div class="game"><div class="gmeta"><span><b>15</b> · לה ליגה · <b style="color:var(--accent)">● חי 67׳ 1–0</b></span><span>⏱</span></div><div class="teams"><span>ריאל מדריד</span><i>נגד</i><span>סביליה</span></div><div class="picks"><span class="on">1</span><span>X</span><span>2</span></div></div>
+        <div class="more">⋯ עוד 12 משחקים · הקש משחק חי לווידג׳ט תוצאה</div>
+      </div>
+      <div class="b" style="margin-top:4px">הצבעות הקבוצה <span class="xs muted" style="font-weight:400">(מתוך תצוגת "הצבעות")</span></div>
+      <div class="hm">
+        <div class="hmrow"><span><b>2</b> בית״ר – מכבי ת״א</span><div class="hmcells"><span class="h1 mine">22%</span><span class="h2 mine r">35%</span><span class="h2 mine">43%</span></div></div>
+        <div class="hmrow"><span><b>3</b> הפועל ת״א – סכנין <span class="muted">▾</span></span><div class="hmcells"><span class="h3 mine">74%</span><span class="h1 mine">17%</span><span class="h0 r">9%</span></div>
+          <div class="voters"><div><b>2:</b> רון, עמית</div><div><b>X:</b> דני (כפול), נועה (כפול), אני (כפול)</div><div class="muted">1: 17 מצביעים · הצג הכל</div></div></div>
+      </div>
+      <div class="row" style="margin-top:6px"><div class="b grow">דירוג המחזור</div><span class="small" style="color:var(--accent)">לכל הדירוג</span></div>
+      <div class="list lb">
+        <div class="li"><span class="rank">1</span><span class="av sm">ד</span><span class="grow">דני</span><span class="score">12</span><span class="chev"></span></div>
+        <div class="li"><span class="rank">2</span><span class="av sm">נ</span><span class="grow">נועה</span><span class="score">11</span><span class="chev"></span></div>
+        <div class="li me"><span class="rank">3</span><span class="av sm">כ</span><span class="grow b">אני</span><span class="score">10</span></div>
+        <div class="li gb"><span class="rank">–</span><span class="av sm" style="background:var(--accent);color:var(--accent-ink);border:0">👥</span><span class="grow b">הטופס המשותף</span><span class="score">9</span><span class="chev"></span></div>
+        <div class="li muted"><span class="rank">∅</span><span class="av sm" style="border-style:dashed;background:none">x̄</span><span class="grow"><i>ממוצע</i></span><span class="score">8.4</span></div>
+      </div>
+      <div class="card fill row small"><span class="grow">השווה את הטור שלך לחבר</span><div class="btn sm" style="background:var(--surface)">בחר חבר ‹</div></div>
+    </div>
+    <div class="tabs"><span class="on">טור</span><span>סטטיסטיקה</span><span>חברים</span></div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Score tiles double as the picks switch (me ↔ group bet), as on web. Heatmap frames every pick of the selected source; tap a row to expand voters (sorted singles → doubles → triples). Leaderboard rows push the compare screen (8b). Shown stacked here to fit one frame; in-app "טור / הצבעות" swaps the list.</div>
+  <div class="rn"><code>SectionList</code> · <code>Pressable</code> rows → <code>router.push('column/[id]?user=')</code> · <code>react-native-webview</code> (ScoreAxis live widget) · <code>LayoutAnimation</code> expand</div>
+</div>
+
+<!-- 8b COMPARE -->
+<div class="frame">
+  <div class="label">8b · Compare with a member <span>pushed screen</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side">‹ טור</span><span class="title">אני מול דני</span><span class="side end"></span></div>
+    <div class="body pad">
+      <div class="row card fill" style="justify-content:space-around;text-align:center">
+        <div class="col center"><span class="av">כ</span><span class="score" style="font-size:22px">10</span><span class="xs muted">אני</span></div>
+        <div class="col center small muted">מחזור 41<br><b style="color:var(--ink)">−2</b></div>
+        <div class="col center"><span class="av">ד</span><span class="score" style="font-size:22px">12</span><span class="xs muted">דני · מקום 1</span></div>
+      </div>
+      <div class="seg"><span class="on">רק הבדלים (5)</span><span>כל המשחקים</span></div>
+      <div class="games">
+        <div class="game"><div class="gmeta"><span><b>3</b> · הפועל ת״א – בני סכנין · <b>0–1</b></span></div>
+          <div class="row xs muted"><span style="width:34px">אני</span><div class="picks grow"><span class="miss">1</span><span class="miss">X</span><span class="res">2</span></div></div>
+          <div class="row xs muted"><span style="width:34px">דני</span><div class="picks grow"><span class="res">1</span><span>X</span><span class="hit res">2</span></div></div></div>
+        <div class="game"><div class="gmeta"><span><b>7</b> · מ.ס. אשדוד – הפועל חיפה · <b>2–2</b></span></div>
+          <div class="row xs muted"><span style="width:34px">אני</span><div class="picks grow"><span class="miss">1</span><span class="res">X</span><span>2</span></div></div>
+          <div class="row xs muted"><span style="width:34px">דני</span><div class="picks grow"><span class="fade">1</span><span class="hit res">X</span><span>2</span></div></div></div>
+        <div class="game"><div class="gmeta"><span><b>11</b> · צ׳לסי – טוטנהאם · <b>3–1</b></span></div>
+          <div class="row xs muted"><span style="width:34px">אני</span><div class="picks grow"><span class="hit res">1</span><span>X</span><span>2</span></div></div>
+          <div class="row xs muted"><span style="width:34px">דני</span><div class="picks grow"><span class="res">1</span><span class="miss">X</span><span class="miss">2</span></div></div></div>
+        <div class="more">⋯ עוד 2 הבדלים</div>
+      </div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Web showed "someone's column" as a whole replacement view; on a phone a diff is more useful. Defaults to differences only. Only reachable after the deadline.</div>
+  <div class="rn"><code>Stack</code> push <code>g/[groupId]/column/[columnId]?user=</code> · <code>FlatList</code></div>
+</div>
+
+</div>
+
+<h2>Group tabs &amp; settings</h2>
+<div class="grid">
+
+<!-- 9 STATS -->
+<div class="frame">
+  <div class="label">9 · Stats <span>group-scoped</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><div class="gbtn"><span class="av sm sq">טה</span>טוטו הפועל<span class="chev" style="transform:rotate(-90deg)"></span></div><span class="spacer"></span><span class="av">כ</span></div>
+    <div class="body pad">
+      <div class="row"><div class="b grow" style="font-size:20px">עונת 2026/27</div><div class="seg" style="width:170px"><span>כושר: 3</span><span class="on">5</span><span>10</span></div></div>
+      <div class="card">
+        <div class="row"><span class="av lg">כ</span><div class="grow"><div class="b">אני</div><div class="small muted">מקום <b style="color:var(--ink)">3</b> מתוך 23 באחוז פגיעה</div></div></div>
+        <div class="stats4" style="margin-top:10px">
+          <div class="stat"><div class="xs muted">אחוז פגיעה</div><div class="v">62%</div><div class="xs muted">ב-11 מחזורים</div></div>
+          <div class="stat"><div class="xs muted">ניצחונות</div><div class="v">2</div><div class="xs muted">מקום ראשון במחזור</div></div>
+          <div class="stat"><div class="xs muted">שבוע שיא</div><div class="v">13</div><div class="xs muted">פגיעות · מחזור 37</div></div>
+          <div class="stat"><div class="xs muted">ניצחתי את המשותף</div><div class="v">6</div><div class="xs muted">מחזורים</div></div>
+        </div>
+        <div class="xs muted" style="margin-top:10px">כושר · 5 אחרונים</div>
+        <div class="spark"><i style="height:55%"></i><i style="height:70%"></i><i style="height:48%"></i><i style="height:82%"></i><i class="acc" style="height:71%"></i></div>
+      </div>
+      <div class="seg"><span class="on">אחוז פגיעה</span><span>ניצחונות</span><span>כושר</span></div>
+      <div class="list lb">
+        <div class="li"><span class="rank">1</span><span class="av sm">ד</span><span class="grow">דני</span><span class="xs muted">4 🏆</span><span class="score">67%</span></div>
+        <div class="li"><span class="rank">2</span><span class="av sm">נ</span><span class="grow">נועה</span><span class="xs muted">3 🏆</span><span class="score">64%</span></div>
+        <div class="li me"><span class="rank">3</span><span class="av sm">כ</span><span class="grow b">אני</span><span class="xs muted">2 🏆</span><span class="score">62%</span></div>
+        <div class="li gb"><span class="rank">–</span><span class="av sm">👥</span><span class="grow">הטופס המשותף</span><span class="score">60%</span></div>
+        <div class="li"><span class="rank">4</span><span class="av sm">ר</span><span class="grow">רון</span><span class="xs muted">1 🏆</span><span class="score">58%</span></div>
+      </div>
+    </div>
+    <div class="tabs"><span>טור</span><span class="on">סטטיסטיקה</span><span>חברים</span></div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Web's wide stats table doesn't fit a phone: replaced by "my card" + one sortable ranked list with a metric segmented control. Tap a player → their profile stats (same card, pushed). Wins/rank are per group; hit rate is the same everywhere (one bet).</div>
+  <div class="rn"><code>FlatList ListHeaderComponent</code> · segmented · bars via plain <code>View</code> heights (no chart lib)</div>
+</div>
+
+<!-- 10 MEMBERS -->
+<div class="frame">
+  <div class="label">10 · Members <span>admin view</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><div class="gbtn"><span class="av sm sq">עב</span>חבר׳ה מהעבודה<span class="chev" style="transform:rotate(-90deg)"></span></div><span class="spacer"></span><span class="av">כ</span></div>
+    <div class="body pad" style="position:relative">
+      <div class="row"><div class="b grow" style="font-size:20px">חברים · 9</div><span class="icon">⚙</span></div>
+      <div class="card row"><div class="grow"><div class="xs muted">קוד הזמנה</div><div class="b" style="font-size:20px;letter-spacing:.12em;direction:ltr;text-align:end">K7Q2XA</div></div><div class="btn sm">העתק</div><div class="btn sm primary">⤴ שתף</div></div>
+      <div class="sect">בקשות ממתינות · 2</div>
+      <div class="list">
+        <div class="li"><span class="av">ש</span><div class="grow"><div class="b">שירן לוי</div><div class="xs muted">לפני שעה</div></div><span class="btn sm" style="width:40px;padding:0">✗</span><span class="btn sm primary" style="width:40px;padding:0">✓</span></div>
+        <div class="li"><span class="av">א</span><div class="grow"><div class="b">אבי כהן</div><div class="xs muted">אתמול</div></div><span class="btn sm" style="width:40px;padding:0">✗</span><span class="btn sm primary" style="width:40px;padding:0">✓</span></div>
+      </div>
+      <div class="sect">חברים</div>
+      <div class="list">
+        <div class="li"><span class="av">כ</span><div class="grow b">אני</div><span class="chip acc">מנהל</span></div>
+        <div class="li"><span class="av">ד</span><div class="grow b">דני</div><span class="chip acc">מנהל</span><span class="muted">⋯</span></div>
+        <div class="li"><span class="av">ר</span><div class="grow b">רון</div><span class="muted">⋯</span></div>
+        <div class="li"><span class="av">ע</span><div class="grow b">עמית</div><span class="xs muted">לא מילא מחזור 42</span><span class="muted">⋯</span></div>
+        <div class="li"><span class="av">נ</span><div class="grow b">נועה</div><span class="muted">⋯</span></div>
+      </div>
+      <div class="menu" style="bottom:96px;left:22px"><div>הפוך למנהל</div><div>צפה בסטטיסטיקה</div><div style="color:#c62828">הסר מהקבוצה</div></div>
+    </div>
+    <div class="tabs"><span>טור</span><span>סטטיסטיקה</span><span class="on">חברים</span></div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Members see the same screen minus ⚙, ✓/✗ and ⋯ (invite card stays for open groups). Approve is one tap; reject and remove confirm via alert. Can't demote/remove the last admin. "Didn't fill" hint helps admins nudge.</div>
+  <div class="rn"><code>SectionList</code> · <code>Share.share</code> (link + code) · <code>expo-clipboard</code> · <code>ActionSheetIOS</code> / context menu · <code>Alert</code></div>
+</div>
+
+<!-- 11 SETTINGS -->
+<div class="frame">
+  <div class="label">11 · Group settings <span>admin, pushed</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side">‹ חברים</span><span class="title">הגדרות קבוצה</span><span class="side end"></span></div>
+    <div class="body pad" style="background:var(--fill);margin:0;padding:8px 16px;gap:14px">
+      <div class="list"><div class="li"><span class="av lg sq">עב</span><div class="grow"><div class="b">חבר׳ה מהעבודה</div><div class="xs" style="color:var(--accent)">ערוך שם ותמונה</div></div><span class="chev"></span></div></div>
+      <div class="sect">הצטרפות</div>
+      <div class="list">
+        <div class="li"><div class="grow">סוג קבוצה</div><div class="seg" style="width:150px"><span>פתוחה</span><span class="on">סגורה</span></div></div>
+        <div class="li"><div class="grow">קוד הזמנה <b style="direction:ltr;display:inline-block">K7Q2XA</b></div><span class="small" style="color:var(--accent)">צור קוד חדש</span></div>
+      </div>
+      <div class="sect">סוגי טוטו</div>
+      <div class="list">
+        <div class="li"><div class="grow">טוטו 16 – ישראל</div><span class="sw on"></span></div>
+        <div class="li"><div class="grow">טוטו ליגות אירופה</div><span class="sw"></span></div>
+      </div>
+      <div class="sect">טורים מותאמים</div>
+      <div class="list">
+        <div class="li"><div class="grow"><div>דרבי חיפה</div><div class="xs muted">6 משחקים · נסגר 14.11 · פתוח</div></div><span class="chev"></span></div>
+        <div class="li"><div class="grow"><div>גביע המדינה – רבע גמר</div><div class="xs muted">4 משחקים · ממתין לתוצאות</div></div><span class="chip acc">הזן תוצאות</span></div>
+        <div class="li" style="color:var(--accent)">＋ טור חדש</div>
+      </div>
+      <div class="sect">הטופס המשותף</div>
+      <div class="list"><div class="li"><div class="grow"><div>ערוך טופס משותף · מחזור 42</div><div class="xs muted">8/16 מולאו · מוצע לפי הצבעות</div></div><span class="chev"></span></div></div>
+      <div class="list"><div class="li" style="justify-content:center;color:#c62828">עזוב קבוצה</div></div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Native grouped-list settings. Regenerating the code invalidates old links (confirm alert). Custom columns: admin owns games + results, so "enter results" surfaces inline. Group bet editor reuses screen 7 with a "prefill from votes" action.</div>
+  <div class="rn"><code>ScrollView</code> grouped rows · <code>Switch</code> · <code>Alert</code> · push <code>settings/columns/new</code>, <code>settings/group-bet</code></div>
+</div>
+
+<!-- 12 PROFILE -->
+<div class="frame">
+  <div class="label">12 · Profile <span>modal from header avatar</span></div>
+  <div class="phone" dir="rtl" lang="he">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side"></span><span class="title">פרופיל</span><span class="side end b">סיום</span></div>
+    <div class="body pad" style="background:var(--fill);margin:0;padding:8px 16px;gap:14px">
+      <div class="col center" style="margin:8px 0"><span class="av xl">כ</span><span class="small" style="color:var(--accent)">שנה תמונה</span></div>
+      <div class="list"><div class="li"><span class="muted small" style="width:60px">שם</span><div class="grow">כפיר ארד</div></div><div class="li"><span class="muted small" style="width:60px">מחובר</span><div class="grow small muted"> Apple · kfir@…</div></div></div>
+      <div class="sect">שפה</div>
+      <div class="list"><div class="li"><div class="seg grow"><span class="on">עברית</span><span>English</span></div></div></div>
+      <div class="xs muted" style="margin-top:-8px;padding:0 4px">החלפת שפה תפעיל מחדש את האפליקציה</div>
+      <div class="sect">התראות</div>
+      <div class="list">
+        <div class="li"><div class="grow"><div>תזכורת לפני סגירה</div><div class="xs muted">3 שעות לפני, רק אם לא מילאת</div></div><span class="sw on"></span></div>
+        <div class="li"><div class="grow">תוצאות ודירוג</div><span class="sw on"></span></div>
+        <div class="li"><div class="grow"><div>בקשות הצטרפות</div><div class="xs muted">לקבוצות שאני מנהל · אישור בקשה שלי</div></div><span class="sw on"></span></div>
+      </div>
+      <div class="list"><div class="li" style="justify-content:center;color:var(--accent)">התנתק</div></div>
+      <div class="xs" style="text-align:center;color:#c62828;text-decoration:underline">מחק חשבון</div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Profile is global (not per group), so it's a modal over the shell, not a tab. "Delete account" is mandatory for App Store apps with sign-in. Personal stats live in Stats (they're group-flavoured), not here.</div>
+  <div class="rn"><code>Stack presentation="modal"</code> · <code>Switch</code> · <code>expo-notifications</code> permissions · <code>expo-image-picker</code> · <code>Updates.reloadAsync</code></div>
+</div>
+
+<!-- 2b EN -->
+<div class="frame">
+  <div class="label">2b · Groups home <span>English LTR (mirrored)</span></div>
+  <div class="phone" dir="ltr" lang="en">
+    <div class="status"><span>9:41</span><i></i><span>●●●</span></div>
+    <div class="hdr"><span class="side"><span class="av sm">K</span></span><span class="title">My groups</span><span class="side end" style="font-size:22px">＋</span></div>
+    <div class="body pad">
+      <div class="card fill row small"><div class="grow"><b>Round 42</b> · closes Sat 16:00<div class="muted xs">One bet counts in all 3 groups</div></div><span class="count">11/16</span></div>
+      <div class="list">
+        <div class="li"><div class="av lg sq">TH</div><div class="grow"><div class="b">Totohapoel</div><div class="small muted">23 members · Toto 16</div></div><div class="col" style="align-items:flex-end"><span class="chip acc">#3</span><span class="chev"></span></div></div>
+        <div class="li"><div class="av lg sq">W</div><div class="grow"><div class="b">Work buddies</div><div class="small muted">9 members · Toto 16 + custom</div></div><div class="col" style="align-items:flex-end"><span class="chip acc">#1</span><span class="chev"></span></div></div>
+        <div class="li"><div class="av lg sq">F</div><div class="grow"><div class="b">Family</div><div class="small muted">6 members · <span class="chip">Admin</span></div></div><div class="col" style="align-items:flex-end"><span class="chip">#5</span><span class="chev"></span></div></div>
+        <div class="li" style="opacity:.6"><div class="av lg sq">FF</div><div class="grow"><div class="b">Friday football</div><div class="small muted">14 members · closed</div></div><span class="chip out">Pending approval</span></div>
+      </div>
+      <div class="row" style="gap:8px"><div class="btn sm grow">＋ Create group</div><div class="btn sm grow"># Join with code</div></div>
+    </div>
+    <div class="home"></div>
+  </div>
+  <div class="note">Mirror check: avatar leads on the start side, chevrons flip, rank chips sit at the end. English strings run ~30% longer — "Pending approval" is the widest chip; rows must truncate the name, not the badge.</div>
+  <div class="rn"><code>numberOfLines={1}</code> on names · <code>flexShrink:0</code> on badges</div>
+</div>
+
+</div>
+
+<h2>Decisions &amp; open questions</h2>
+<ul class="decisions">
+  <li><b>Settings via Members ⚙ + switcher sheet, not a 4th tab</b> — tab bar stays identical across groups/roles; settings are infrequent.</li>
+  <li><b>Profile = modal</b>, global across groups. Personal stats live in the group Stats tab.</li>
+  <li><b>Column switcher segmented</b> (Toto 16 / custom) only when a group has &gt;1 open column in the same week.</li>
+  <li><b>Compare (8b)</b> is a diff view ("only differences") rather than the web's full-column swap.</li>
+  <li><b>Decided:</b> "1" always sits under the home team: right in RTL, left in LTR. The picks row mirrors with the teams row; never pinned to LTR.</li>
+  <li><b>Decided:</b> every group admin can edit the group bet; it locks at the column deadline.</li>
+  <li><b>Decided:</b> members who join mid-season see the full-season leaderboard (their one bet already counted in past rounds).</li>
+</ul>
+</div>
+</body>
+</html>

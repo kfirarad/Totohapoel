@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+supabase/.db-password
+site/group-bet/dist
+mobile/store/*.local.txt
+.firebase/

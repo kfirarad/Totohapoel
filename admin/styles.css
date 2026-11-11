@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@layer base {
+  body { @apply bg-zinc-50 text-zinc-900 antialiased; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  input, select, textarea { @apply rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm; }
+  table { @apply w-full text-sm; }
+  th { @apply px-2 py-1.5 text-left font-medium text-zinc-500; }
+  td { @apply border-t border-zinc-200 px-2 py-1.5 align-middle; }
+}

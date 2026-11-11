@@ -689,18 +689,19 @@ export const Column = () => {
                 disabled: isDeadlinePassed || !isCurrentUserColumn,
                 onBetPlace: handlePlaceBet,
               };
-              const showLiveFrame =
-                !!game.live_tracker_id && (liveFrameOverride[game.game_num] ?? showLiveMatchWidget);
+              // live widgets only once the column is locked
+              const hasLive = isDeadlinePassed && !!game.live_tracker_id;
+              const showLiveFrame = hasLive && (liveFrameOverride[game.game_num] ?? showLiveMatchWidget);
               return (
                 <li
                   key={game.game_num}
                   onClick={(e) => {
-                    if (!game.live_tracker_id || (e.target as HTMLElement).closest("button, iframe")) return;
+                    if (!hasLive || (e.target as HTMLElement).closest("button, iframe")) return;
                     setLiveFrameOverride((o) => ({ ...o, [game.game_num]: !showLiveFrame }));
                   }}
                   className={cn(
                     "px-4 py-3 transition-colors md:px-6 md:py-2.5",
-                    game.live_tracker_id && "cursor-pointer",
+                    hasLive && "cursor-pointer",
                     correct === true && "bg-success-soft",
                     correct === false && "bg-error/60"
                   )}

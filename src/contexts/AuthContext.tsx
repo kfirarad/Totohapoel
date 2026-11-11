@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { supabase } from '@/services/supabase'
+import { supabase, GROUP_CODE, GROUP_ID } from '@/services/supabase'
 import { User } from '@supabase/supabase-js'
 
 type Profile = {
@@ -68,40 +68,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             user.user_metadata.avatar_url ?? user.user_metadata.picture ?? null
 
         const loadProfile = async () => {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
+            // Profile row comes from the on-signup trigger; new users join the group on first visit.
+            const { data: member } = await supabase
+                .from('group_members')
+                .select('status')
+                .eq('group_id', GROUP_ID)
+                .eq('user_id', user.id)
                 .maybeSingle()
-            if (error) throw error
-
-            if (!data) {
-                const { data: created, error: insertError } = await supabase
-                    .from('profiles')
-                    .insert({
-                        id: user.id,
-                        email: user.email,
-                        name: user.user_metadata.full_name,
-                        is_admin: false,
-                        avatar_url,
-                    })
-                    .select()
-                    .single()
-                if (insertError) throw insertError
-                setProfile(created)
-                return
+            if (!member) {
+                const { error: joinError } = await supabase.rpc('join_group', { p_code: GROUP_CODE })
+                if (joinError) throw joinError
+                await supabase.rpc('set_last_group', { p_group_id: GROUP_ID })
             }
 
-            // Keep the Google photo fresh so other players see it
-            if (avatar_url && data.avatar_url !== avatar_url) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, name, avatar_url, is_system_admin')
+                .eq('id', user.id)
+                .single()
+            if (error) throw error
+
+            // No profile photo yet → use the Google one (never overwrite a photo picked in the app)
+            if (avatar_url && !data.avatar_url) {
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ avatar_url })
                     .eq('id', user.id)
+                    .is('avatar_url', null)
                 if (updateError) console.error(updateError)
                 else data.avatar_url = avatar_url
             }
-            setProfile(data)
+            setProfile({
+                id: data.id,
+                name: data.name,
+                avatar_url: data.avatar_url,
+                email: user.email ?? '',
+                is_admin: data.is_system_admin,
+            })
         }
         loadProfile()
     }, [user])

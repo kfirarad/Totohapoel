@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { ToastAction } from '@/components/ui/toast';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '@/services/supabase';
+import { supabase, TOTO_TYPE_ID } from '@/services/supabase';
 import { Column, BetResult } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,9 @@ export const ColumnForm = () => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    // Last state the server has; lets the admin see unsaved edits and throw them away after a failed save.
+    const [saved, setSaved] = useState<Column | null>(null);
+    const [saveFailed, setSaveFailed] = useState(false);
 
     const [orderBy, setOrderBy] = useState<'game_num' | 'game_time' | 'result'>('game_num');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -94,8 +98,6 @@ export const ColumnForm = () => {
                     return;
                 }
 
-                setColumn(columnData);
-
                 // Create a map of existing games by game number
                 const existingGames = (columnData?.games || []).reduce((acc: { [x: string]: GameFormData; }, game: { game_num: string | number; }) => {
                     acc[game.game_num] = game as GameFormData;
@@ -108,7 +110,9 @@ export const ColumnForm = () => {
                     ...existingGames[emptyGame.game_num]
                 }));
 
-                setGames(mergedGames);
+                const loaded = { ...columnData, games: mergedGames };
+                setColumn(loaded);
+                setSaved(loaded);
             }
             setLoading(false);
         };
@@ -218,8 +222,18 @@ export const ColumnForm = () => {
 
     const { user } = useAuth();
     const { mutateAsync: calculateCorrectGuessesAsync } = useRecalculateCorrectGuessesMutation();
-    const handleSubmit = async (e: React.FormEvent) => {
+    const dirty = !!saved && JSON.stringify(saved) !== JSON.stringify(column);
+    const revert = () => {
+        if (saved) setColumn(saved);
+        setSaveFailed(false);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        save();
+    };
+
+    const save = async () => {
         setSaving(true);
 
         if (column.id === "") {
@@ -232,18 +246,23 @@ export const ColumnForm = () => {
 
         try {
 
-            const { error: columnError } = await supabase
-                .from('columns')
-                .upsert({
-                    ...column,
-                })
-                .select()
+            const { id, name, deadline, is_active, max_doubles, max_triples, games } = column;
+            const fields = { name, deadline, is_active, max_doubles, max_triples, games };
+            // Not upsert: its insert half fails the toto_type_id/group_id check before the conflict resolves.
+            const { data: row, error: columnError } = await (id
+                ? supabase.from('columns').update(fields).eq('id', id)
+                : supabase.from('columns').insert({ ...fields, toto_type_id: TOTO_TYPE_ID }))
+                .select('id')
                 .single();
 
-
-            calculateCorrectGuessesAsync(column.id);
-
             if (columnError) throw columnError;
+
+            calculateCorrectGuessesAsync(row.id);
+            // A new column now has an id: the next save updates it instead of inserting a copy.
+            const synced = { ...column, id: row.id };
+            setColumn(synced);
+            setSaved(synced);
+            setSaveFailed(false);
 
             toast({
                 title: 'הצלחה',
@@ -251,11 +270,13 @@ export const ColumnForm = () => {
             });
 
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'שמירת הטור נכשלה';
+            const errorMessage = (error as { message?: string })?.message || 'שמירת הטור נכשלה';
+            setSaveFailed(true);
             toast({
-                title: 'שגיאה',
+                title: 'השמירה נכשלה',
                 description: errorMessage,
-                variant: 'destructive'
+                variant: 'destructive',
+                action: <ToastAction altText="נסה שוב" onClick={save}>נסה שוב</ToastAction>,
             });
         } finally {
             setSaving(false);
@@ -288,10 +309,6 @@ export const ColumnForm = () => {
                 return { ...prev, games: updatedGames };
             });
 
-            toast({
-                title: 'הצלחה',
-                description: 'התוצאה עודכנה'
-            });
         } catch (error: any) {
             toast({
                 title: 'שגיאה',
@@ -342,7 +359,13 @@ export const ColumnForm = () => {
                 <h1 className="text-2xl font-bold">
                     {id ? 'עריכת טור' : 'טור חדש'}
                 </h1>
-                <div className="space-x-2">
+                <div className="flex items-center gap-2">
+                    {dirty && <span className="text-sm text-muted-foreground">יש שינויים שלא נשמרו</span>}
+                    {dirty && (
+                        <Button type="button" variant="outline" onClick={revert} disabled={saving}>
+                            בטל שינויים
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         variant="outline"
@@ -351,10 +374,15 @@ export const ColumnForm = () => {
                         ביטול
                     </Button>
                     <Button type="submit" disabled={saving}>
-                        {saving ? 'שומר...' : 'שמור'}
+                        {saving ? 'שומר...' : saveFailed ? 'נסה שוב' : 'שמור'}
                     </Button>
                 </div>
             </div>
+            {saveFailed && (
+                <div role="alert" className="rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-sm">
+                    השמירה נכשלה והשינויים לא נשמרו בשרת. אפשר לנסות שוב או לבטל את השינויים ולחזור למצב השמור.
+                </div>
+            )}
 
             <div className="grid gap-4">
                 <div className="grid gap-2">
@@ -426,7 +454,7 @@ export const ColumnForm = () => {
                         }
                     />
                     <label htmlFor="is_active" className="text-sm font-medium">
-                        פעיל
+                        פעיל (בלי סימון: בארכיון, מוסתר מהשחקנים)
                     </label>
                 </div>
             </div>

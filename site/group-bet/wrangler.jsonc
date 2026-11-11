@@ -1,0 +1,8 @@
+// Static public pages (home, privacy, terms, support). Build: bun site/group-bet/build.ts
+{
+  "name": "groupbet-site",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./dist" },
+  "workers_dev": false,
+  "routes": [{ "pattern": "groupbet.kfir.app", "custom_domain": true }]
+}
