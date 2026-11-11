@@ -5,7 +5,20 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { supabase } from "@/services/supabase";
+import { supabase, GROUP_COLUMNS, GROUP_ID } from "@/services/supabase";
+
+// Only bets of the group's members (a player may share other groups with people outside it).
+const MEMBER_PROFILE = "profiles!inner(id, name, avatar_url, group_members!inner(group_id))";
+const forGroup = "profiles.group_members.group_id";
+
+// The group's bet lives in group_bets; expose it as column.group_bet like before.
+const COLUMN_SELECT = "*, group_bets(bet_values, correct_guesses)";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const withGroupBet = ({ group_bets, ...c }: any) => ({
+  ...c,
+  group_bet: group_bets?.[0]?.bet_values ?? null,
+  group_bet_correct_guesses: group_bets?.[0]?.correct_guesses ?? null,
+});
 import { BetResult, Column, Game } from "@/types/database.types";
 import { User } from "@supabase/supabase-js";
 
@@ -44,21 +57,24 @@ const fetchColumn = async (id?: string) => {
   if (id) {
     const { data, error } = await supabase
       .from("columns")
-      .select("*")
+      .select(COLUMN_SELECT)
+      .eq("group_bets.group_id", GROUP_ID)
       .eq("id", id)
       .single();
     if (error) throw error;
-    currentColumn = data;
+    currentColumn = withGroupBet(data);
   } else {
     const { data, error } = await supabase
       .from("columns")
-      .select("*")
+      .select(COLUMN_SELECT)
+      .eq("group_bets.group_id", GROUP_ID)
+      .or(GROUP_COLUMNS)
       .eq("is_active", true)
       .order("deadline", { ascending: false })
       .limit(1)
       .single();
     if (error) throw error;
-    currentColumn = data;
+    currentColumn = withGroupBet(data);
   }
 
   // Fetch previous/next column ids in parallel (only ids are used for navigation)
@@ -66,6 +82,8 @@ const fetchColumn = async (id?: string) => {
     supabase
       .from("columns")
       .select("id")
+      .or(GROUP_COLUMNS)
+      .eq("is_active", true)
       .lt("deadline", currentColumn.deadline)
       .order("deadline", { ascending: false })
       .limit(1)
@@ -73,6 +91,8 @@ const fetchColumn = async (id?: string) => {
     supabase
       .from("columns")
       .select("id")
+      .or(GROUP_COLUMNS)
+      .eq("is_active", true)
       .gt("deadline", currentColumn.deadline)
       .order("deadline", { ascending: true })
       .limit(1)
@@ -95,9 +115,7 @@ const fetchUserBets = async (columnId: string, user_id: string) => {
     )
     .eq("column_id", columnId)
     .eq("user_id", user_id)
-    // Latest row wins: tolerates legacy duplicate rows and returns null (not an error) when no bet exists yet
-    .order("created_at", { ascending: false })
-    .limit(1)
+    // returns null (not an error) when no bet exists yet
     .maybeSingle();
   if (error) throw error;
   return data;
@@ -152,9 +170,9 @@ const fetchVoteStats = async (columnId: string) => {
 
   const { data: userBets, error } = await supabase
     .from("user_bets")
-    .select("*")
+    .select(`user_id, column_id, bet_values, ${MEMBER_PROFILE}`)
+    .eq(forGroup, GROUP_ID)
     .eq("column_id", columnId)
-    .order("created_at", { ascending: false })
     .returns<UserBets[]>();
 
   if (error) throw error;
@@ -200,10 +218,11 @@ const fetchColumnStats = async (column: Column) => {
     .select(
       `
             bet_values,
-            profiles(id, name, avatar_url),
+            ${MEMBER_PROFILE},
             user_id
             `
     )
+    .eq(forGroup, GROUP_ID)
     .eq("column_id", column.id)
     .returns<UserBets[]>();
 
@@ -307,7 +326,7 @@ export const usePlaceBetMutation = () => {
       columnId,
     }: {
       betValues: {
-        game_num: string;
+        game_num: string | number;
         value: BetResult[];
       }[];
       userId: string;
@@ -315,12 +334,14 @@ export const usePlaceBetMutation = () => {
     }) => {
       // Match by user+column instead of a cached row id, so a stale/failed fetch can't cause a duplicate insert.
       // .select() makes a silent 0-row update (e.g. RLS) detectable.
+      // game_num as a number, like the mobile app writes it
+      betValues = betValues.map((b) => ({ ...b, game_num: Number(b.game_num) }));
       const { data: updated, error: updateError } = await supabase
         .from("user_bets")
         .update({ bet_values: betValues })
         .eq("user_id", userId)
         .eq("column_id", columnId)
-        .select("id");
+        .select("user_id");
       if (updateError) throw updateError;
       if (updated?.length) return true;
 
@@ -329,7 +350,7 @@ export const usePlaceBetMutation = () => {
         .insert([
           { bet_values: betValues, user_id: userId, column_id: columnId },
         ])
-        .select("id");
+        .select("user_id");
       if (insertError) throw insertError;
       if (!inserted?.length) throw new Error("bet not saved");
       return true;
@@ -376,67 +397,9 @@ export const useRecalculateCorrectGuessesMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // Scores are recomputed by the database whenever a column's games change.
     mutationFn: async (columnId?: string) => {
-      if (!columnId) return;
-
-      // Get the column data
-      const { data: column, error: columnError } = await supabase
-        .from("columns")
-        .select("*")
-        .eq("id", columnId)
-        .single();
-
-      if (columnError) throw columnError;
-
-      // Get all user bets for the column
-      const { data: userBets, error: userBetsError } = await supabase
-        .from("user_bets")
-        .select("*")
-        .eq("column_id", columnId);
-
-      if (userBetsError) throw userBetsError;
-
-      // Update correct_guess for each user bet
-      const toUpdate = await Promise.all(
-        userBets.map(async (userBet) => {
-          let correctGuesses = 0;
-          for (const gameBet of userBet.bet_values) {
-            const game = column.games.find(
-              (g: Game) => g.game_num == gameBet.game_num
-            );
-            if (game && game.result && gameBet.value.includes(game.result)) {
-              correctGuesses++;
-            }
-          }
-          return { id: userBet.id, correct_guesses: correctGuesses };
-        })
-      );
-
-      const { error: updateError } = await supabase
-        .from("user_bets")
-        .upsert(toUpdate);
-
-      if (updateError) throw updateError;
-
-      // now update the column "group_bet_correct_guesses"
-      const groupBetCorrectGuesses = column.group_bet?.reduce((acc, gameBet) => {
-        const game = column.games.find(
-          (g: Game) => g.game_num == gameBet.game_num
-        );
-        if (game && game.result && gameBet.value.includes(game.result)) {
-          acc++;
-        }
-        return acc;
-      }, 0);
-
-      const { error: updateColumnError } = await supabase
-        .from("columns")
-        .update({ group_bet_correct_guesses: groupBetCorrectGuesses })
-        .eq("id", columnId);
-
-      if (updateColumnError) throw updateColumnError;
-
-      return { columnId };
+      return { columnId: columnId ?? "" };
     },
     onSuccess: ({ columnId }) => {
       queryClient.invalidateQueries({
@@ -472,16 +435,21 @@ export const useSeasonDataQuery = (enabled = true) => {
         fetchAllRows<SeasonColumn>((from, to) =>
           supabase
             .from("columns")
-            .select("id, name, deadline, games, group_bet")
+            .select("id, name, deadline, games, group_bets(bet_values, correct_guesses)")
+            .eq("group_bets.group_id", GROUP_ID)
+            .or(GROUP_COLUMNS)
+            .eq("is_active", true)
             .order("deadline")
             .range(from, to)
-            .returns<SeasonColumn[]>()
+            .then((r) => ({ ...r, data: r.data?.map(withGroupBet) as SeasonColumn[] | null }))
         ),
         fetchAllRows<SeasonBet>((from, to) =>
           supabase
             .from("user_bets")
-            .select("user_id, column_id, bet_values, profiles(name, avatar_url)")
-            .order("id")
+            .select(`user_id, column_id, bet_values, ${MEMBER_PROFILE}`)
+            .eq(forGroup, GROUP_ID)
+            .order("column_id")
+            .order("user_id")
             .range(from, to)
             .returns<SeasonBet[]>()
         ),

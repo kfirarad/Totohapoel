@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 supabase/.db-password
 site/group-bet/dist
+mobile/store/*.local.txt
+.firebase/

@@ -99,7 +99,7 @@ export const useGroupColumns = (groupId: string) =>
         await supabase.from('group_types').select('toto_type_id').eq('group_id', groupId),
       ).map((r) => r.toto_type_id);
       const filter = types.length ? `group_id.eq.${groupId},toto_type_id.in.(${types.join(',')})` : `group_id.eq.${groupId}`;
-      return must<Column[]>(await supabase.from('columns').select('*').or(filter).order('deadline', { ascending: false }));
+      return must<Column[]>(await supabase.from('columns').select('*').or(filter).eq('is_active', true).order('deadline', { ascending: false }));
     },
   });
 

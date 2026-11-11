@@ -22,8 +22,11 @@ export async function signInWithGoogle() {
   await GoogleSignin.hasPlayServices();
   const res = await GoogleSignin.signIn();
   if (res.type !== 'success' || !res.data.idToken) return;
-  const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: res.data.idToken });
+  const { data, error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: res.data.idToken });
   if (error) throw error;
+  // No profile photo yet (e.g. account made with Apple, or imported) → use the Google one.
+  const photo = res.data.user.photo;
+  if (photo) await supabase.from('profiles').update({ avatar_url: photo }).eq('id', data.user.id).is('avatar_url', null);
 }
 
 export async function signInWithApple() {

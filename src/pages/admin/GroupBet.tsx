@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { ChevronRight, Minus, Plus } from 'lucide-react';
-import { supabase } from '@/services/supabase';
+import { supabase, GROUP_COLUMNS, GROUP_ID } from '@/services/supabase';
 import { BetResult, Column } from '@/types/database.types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -73,7 +73,7 @@ export const GroupBet = () => {
     const { columnId } = useParams();
     useEffect(() => {
         const fetchLatestColumn = async () => {
-            const query = supabase.from('columns').select('*');
+            const query = supabase.from('columns').select('*, group_bets(bet_values)').eq('group_bets.group_id', GROUP_ID).or(GROUP_COLUMNS);
             const { data, error } = await (columnId
                 ? query.eq('id', columnId).maybeSingle()
                 : query.eq('is_active', true).order('deadline', { ascending: false }).limit(1).maybeSingle());
@@ -83,12 +83,9 @@ export const GroupBet = () => {
                 setLoadError(true);
             } else if (data) {
                 setColumn(data);
-                setLimits({
-                    doubles: data.group_max_doubles ?? data.max_doubles ?? 0,
-                    triples: data.group_max_triples ?? data.max_triples ?? 0,
-                });
+                setLimits({ doubles: data.max_doubles ?? 0, triples: data.max_triples ?? 0 });
                 const formattedBets: Record<number, BetResult[]> = {};
-                (data.group_bet ?? []).forEach((bet: { game_num: number; value: BetResult[] }) => {
+                (data.group_bets?.[0]?.bet_values ?? []).forEach((bet: { game_num: number; value: BetResult[] }) => {
                     formattedBets[bet.game_num] = bet.value;
                 });
                 setUserBet(formattedBets);
@@ -152,16 +149,11 @@ export const GroupBet = () => {
             game_num: parseInt(game_num),
             value,
         }));
+        // ponytail: the group bet's own doubles/triples budget isn't stored anymore; it resets to the players' limits on load
         const { data, error } = await supabase
-            .from('columns')
-            .update({
-                group_bet: groupBet,
-                // store only when it differs, so the group bet keeps following the players' limits otherwise
-                group_max_doubles: limits.doubles === (column.max_doubles ?? 0) ? null : limits.doubles,
-                group_max_triples: limits.triples === (column.max_triples ?? 0) ? null : limits.triples,
-            })
-            .eq('id', column.id)
-            .select('id');
+            .from('group_bets')
+            .upsert({ group_id: GROUP_ID, column_id: column.id, bet_values: groupBet })
+            .select('column_id');
         setSaving(false);
         if (error || !data?.length) {
             console.error(error);

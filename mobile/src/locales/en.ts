@@ -1,7 +1,7 @@
 import type he from './he';
 
 const en: typeof he = {
-  appName: 'Toto Chaverim',
+  appName: 'Group Bet',
   tagline: 'Fill one column a week, compete in all your groups',
   signInApple: 'Continue with Apple',
   signInGoogle: 'Continue with Google',
@@ -87,7 +87,7 @@ const en: typeof he = {
   makeAdmin: 'Make admin',
   removeAdmin: 'Remove admin',
   removeMember: 'Remove from group',
-  inviteMsg: 'Join "{{name}}" on Toto Chaverim: {{link}} (code: {{code}})',
+  inviteMsg: 'Join "{{name}}" on Group Bet: {{link}} (code: {{code}})',
   groupSettings: 'Group settings',
   joining: 'Joining',
   groupType: 'Group type',

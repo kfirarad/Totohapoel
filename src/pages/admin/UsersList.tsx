@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/services/supabase';
+import { supabase, GROUP_ID } from '@/services/supabase';
 import { Avatar } from '@/components/Avatar';
 import { Input } from '@/components/ui/input';
 
@@ -14,12 +14,17 @@ type Player = {
 
 const fetchPlayers = async () => {
     const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, avatar_url, is_admin')
-        .order('name');
+        .from('group_members')
+        .select('role, profiles(id, name, avatar_url)')
+        .eq('group_id', GROUP_ID)
+        .eq('status', 'active')
+        .returns<{ role: string; profiles: Omit<Player, 'email' | 'is_admin'> }[]>();
 
     if (error) throw error;
-    return data as Player[];
+    // emails aren't exposed by the shared backend
+    return data
+        .map((m) => ({ ...m.profiles, email: null, is_admin: m.role === 'admin' }))
+        .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'he'));
 };
 
 export const UsersList = () => {

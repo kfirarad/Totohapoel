@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/services/supabase';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase, GROUP_COLUMNS } from '@/services/supabase';
 import { Column } from '@/types/database.types';
 
 const fetchColumns = async () => {
@@ -10,6 +10,7 @@ const fetchColumns = async () => {
         .from('columns')
         // user_bets(count): players who sent a bet for each column, counted in the same request
         .select('*, user_bets(count)')
+        .or(GROUP_COLUMNS)
         .order('deadline', { ascending: false });
 
     if (error) throw error;
@@ -24,6 +25,15 @@ export const ColumnsList = () => {
     } = useQuery({
         queryKey: ['columns'],
         queryFn: fetchColumns
+    });
+    // Archive = is_active off: hidden from players' rounds, navigation and stats; kept here to restore.
+    const queryClient = useQueryClient();
+    const { mutate: setActive, isPending: isArchiving } = useMutation({
+        mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+            const { data, error } = await supabase.from('columns').update({ is_active }).eq('id', id).select('id');
+            if (error || !data?.length) throw error ?? new Error('not saved');
+        },
+        onSettled: () => queryClient.invalidateQueries(),
     });
 
     if (isLoading) {
@@ -74,8 +84,17 @@ export const ColumnsList = () => {
                                             : 'bg-gray-100 text-gray-800'
                                         }`}
                                 >
-                                    {column.is_active ? 'פעיל' : 'לא פעיל'}
+                                    {column.is_active ? 'פעיל' : 'בארכיון'}
                                 </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="relative z-10"
+                                    disabled={isArchiving}
+                                    onClick={() => setActive({ id: column.id!, is_active: !column.is_active })}
+                                >
+                                    {column.is_active ? 'העבר לארכיון' : 'שחזר'}
+                                </Button>
                                 <span
                                     className={`px-2 py-1 rounded text-sm ${new Date(column.deadline) < new Date()
                                             ? 'bg-red-100 text-red-800'
